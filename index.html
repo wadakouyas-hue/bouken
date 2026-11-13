@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ぼうけんの たび(しさく)</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;}
+#stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:320px;height:200px;--u:1px;overflow:hidden;}
+#game{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+#ui{position:absolute;inset:0;pointer-events:none;font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans CJK JP","Noto Sans JP",sans-serif;color:#fff;}
+rt{font-size:.5em;}
+.hid{visibility:hidden;}
+
+/* 会話ウィンドウ */
+#dlg{position:absolute;left:calc(var(--u)*6);right:calc(var(--u)*6);bottom:calc(var(--u)*5);min-height:calc(var(--u)*44);box-sizing:border-box;
+  padding:calc(var(--u)*3) calc(var(--u)*7) calc(var(--u)*4);background:rgba(18,26,70,.93);border:calc(var(--u)*1) solid #fff;border-radius:calc(var(--u)*3);
+  font-size:calc(var(--u)*7);line-height:2.25;display:none;letter-spacing:.04em;}
+#dname{position:absolute;top:calc(var(--u)*-6);left:calc(var(--u)*6);background:#fff;color:#18224f;font-size:calc(var(--u)*4.5);line-height:1.7;
+  padding:0 calc(var(--u)*3);border-radius:calc(var(--u)*2);font-weight:bold;}
+#dname:empty{display:none;}
+#dnext{position:absolute;right:calc(var(--u)*4);bottom:calc(var(--u)*1.5);font-size:calc(var(--u)*5);line-height:1;display:none;animation:blink .8s steps(2) infinite;}
+@keyframes blink{50%{opacity:0}}
+
+/* 近づいたら出る印 */
+#act{position:absolute;width:calc(var(--u)*18);margin-left:calc(var(--u)*-9);pointer-events:auto;display:none;text-align:center;}
+#act .mark{width:calc(var(--u)*14);height:calc(var(--u)*14);margin:0 auto;border-radius:50%;background:#ffd23f;border:calc(var(--u)*1) solid #fff;box-sizing:border-box;
+  color:#c0392b;font-weight:bold;font-size:calc(var(--u)*9);line-height:calc(var(--u)*12);box-shadow:0 calc(var(--u)*1) 0 rgba(0,0,0,.35);animation:bob .9s ease-in-out infinite;}
+#act .lbl{display:inline-block;margin-top:calc(var(--u)*1);font-size:calc(var(--u)*3.6);line-height:1.5;padding:0 calc(var(--u)*2);background:rgba(0,0,0,.55);border-radius:calc(var(--u)*2);}
+@keyframes bob{50%{transform:translateY(calc(var(--u)*-2))}}
+
+/* 擬似スティック */
+#sbase{position:absolute;width:calc(var(--u)*28);height:calc(var(--u)*28);margin:calc(var(--u)*-14) 0 0 calc(var(--u)*-14);border-radius:50%;
+  background:rgba(255,255,255,.16);border:calc(var(--u)*.75) solid rgba(255,255,255,.55);box-sizing:border-box;display:none;}
+#sknob{position:absolute;width:calc(var(--u)*13);height:calc(var(--u)*13);margin:calc(var(--u)*-6.5) 0 0 calc(var(--u)*-6.5);border-radius:50%;
+  background:rgba(255,255,255,.65);display:none;}
+
+/* ヒント */
+.hint{position:absolute;left:50%;top:calc(var(--u)*5);transform:translateX(-50%);white-space:nowrap;background:rgba(0,0,0,.55);
+  font-size:calc(var(--u)*5);line-height:1.8;padding:0 calc(var(--u)*4);border-radius:calc(var(--u)*3);display:none;}
+
+/* タイトル */
+#title{position:absolute;inset:0;background:linear-gradient(#5bb8ff,#bfe6ff 60%,#6cc24a 60%);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#title h1{margin:0;font-size:calc(var(--u)*16);color:#fff;text-shadow:0 calc(var(--u)*1.2) 0 #1d4f8a,0 0 calc(var(--u)*4) rgba(0,0,0,.25);letter-spacing:.08em;}
+#title .sub{font-size:calc(var(--u)*5);color:#1d4f8a;margin-top:calc(var(--u)*2);}
+#title .tap{margin-top:calc(var(--u)*14);font-size:calc(var(--u)*6.5);color:#fff;background:rgba(0,0,0,.35);padding:0 calc(var(--u)*6);border-radius:calc(var(--u)*4);line-height:1.8;animation:blink 1.2s steps(2) infinite;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="320" height="200"></canvas>
+  <div id="ui">
+    <div id="hint1" class="hint">ゆびを おいて すべらせると あるけるよ</div>
+    <div id="hint2" class="hint">「!」を タップすると おはなし できるよ</div>
+    <div id="act"><div class="mark">!</div><div class="lbl" id="actlbl">はなす</div></div>
+    <div id="sbase"></div><div id="sknob"></div>
+    <div id="dlg"><div id="dname"></div><div id="dtext"></div><div id="dnext">▼</div></div>
+    <div id="title"><h1>ぼうけんの たび</h1><div class="sub">しさくばん</div><div class="tap">タップして はじめる</div></div>
+  </div>
+</div>
+<script>
+'use strict';
+// ===== 基本設定 =====
+const VW=320, VH=200, T=16;            // ゲーム内部の解像度とタイルの大きさ
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const stage=document.getElementById('stage');
+const $=id=>document.getElementById(id);
+let S=4;                                 // 拡大倍率(Fire HD 8 の全画面で4倍)
+
+function resize(){
+  const r=Math.min(innerWidth/VW, innerHeight/VH);
+  S = r>=1 ? Math.floor(r) : r;          // ドットがにじまないよう整数倍
+  stage.style.width=VW*S+'px'; stage.style.height=VH*S+'px';
+  stage.style.setProperty('--u', S+'px');
+}
+addEventListener('resize',resize); document.addEventListener('fullscreenchange',resize); resize();
+
+// ===== 乱数(毎回同じ見た目にするため固定) =====
+let seed=7;
+function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647;}
+
+// ===== タイル(仮のドット絵をプログラムで描く) =====
+function mk(fn){const c=document.createElement('canvas');c.width=c.height=T;const g=c.getContext('2d');fn(g);return c;}
+function px(g,x,y,w,h,col){g.fillStyle=col;g.fillRect(x|0,y|0,w,h);}
+function circle(g,cx,cy,r,col){g.fillStyle=col;for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)if(x*x+y*y<=r*r+r*.6)g.fillRect(cx+x,cy+y,1,1);}
+function grass(g){px(g,0,0,16,16,'#6cc24a');for(let i=0;i<9;i++)px(g,rnd()*16,rnd()*16,1,1,rnd()<.55?'#58a83a':'#8ad866');}
+function wallBase(g){px(g,0,0,16,16,'#f1e2c3');px(g,0,0,1,16,'#d8c59f');px(g,8,0,1,16,'#e2d0ab');}
+
+const TILE={};
+TILE.grass=[0,1,2].map(()=>mk(grass));
+TILE.flower=[0,1,2].map(()=>mk(g=>{grass(g);const cols=['#ff5a6e','#ffffff','#ffd23f','#ff8ad0'];
+  for(let i=0;i<3;i++){const x=1+rnd()*12|0,y=1+rnd()*12|0,c=cols[rnd()*4|0];px(g,x,y,3,1,c);px(g,x+1,y-1,1,3,c);px(g,x+1,y,1,1,'#ffb000');}}));
+TILE.tree=mk(g=>{grass(g);px(g,6,11,4,5,'#7a4a2a');px(g,6,11,1,5,'#5a341c');circle(g,8,6,6,'#1d5a26');circle(g,8,6,5,'#2f8a3a');circle(g,6,4,2,'#4fb14f');});
+TILE.path=[0,1].map(()=>mk(g=>{px(g,0,0,16,16,'#dcbb7d');for(let i=0;i<8;i++)px(g,rnd()*16,rnd()*16,1,1,rnd()<.5?'#c49e5e':'#ecd29c');}));
+TILE.water=[0,1].map(p=>mk(g=>{px(g,0,0,16,16,'#3b8fe0');px(g,(2+p*3)%12,4,4,1,'#9fd2ff');px(g,(9+p*3)%12,11,4,1,'#9fd2ff');px(g,(5+p*5)%14,8,2,1,'#2f78c4');}));
+TILE.bridgeT=mk(g=>{px(g,0,0,16,16,'#b5803f');for(let x=3;x<16;x+=4)px(g,x,0,1,16,'#8a5a2a');px(g,0,0,16,2,'#5a3a1c');});
+TILE.bridgeB=mk(g=>{px(g,0,0,16,16,'#b5803f');for(let x=3;x<16;x+=4)px(g,x,0,1,16,'#8a5a2a');px(g,0,14,16,2,'#5a3a1c');});
+TILE.roof=mk(g=>{px(g,0,0,16,16,'#cf4b3b');for(let y=0;y<16;y+=4){px(g,0,y+3,16,1,'#9a3328');for(let x=((y/4)%2)*4;x<16;x+=8)px(g,x,y,1,3,'#a8392d');}px(g,0,0,16,1,'#e8735f');});
+TILE.wallU=mk(g=>{wallBase(g);px(g,0,0,16,3,'#a88f68');});
+TILE.wallL=mk(g=>{wallBase(g);px(g,0,13,16,3,'#9a6a3a');});
+TILE.window=mk(g=>{wallBase(g);px(g,0,0,16,3,'#a88f68');px(g,3,5,10,8,'#5a3a1c');px(g,4,6,8,6,'#9fd8ff');px(g,8,6,1,6,'#5a3a1c');px(g,4,9,8,1,'#5a3a1c');px(g,5,7,2,1,'#e6f6ff');});
+TILE.door=mk(g=>{wallBase(g);px(g,0,13,16,3,'#9a6a3a');px(g,4,1,8,15,'#5a3a1c');px(g,5,2,6,14,'#8f5a32');px(g,9,9,1,1,'#f2c230');});
+
+// ===== マップ(30×20マス) =====
+const MW=30, MH=20;
+const map=Array.from({length:MH},()=>Array(MW).fill('.'));
+const set=(x,y,c)=>{if(x>=0&&y>=0&&x<MW&&y<MH)map[y][x]=c;};
+const rect=(x0,y0,w,h,c)=>{for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++)set(x,y,c);};
+for(let x=0;x<MW;x++){set(x,0,'T');set(x,MH-1,'T');}
+for(let y=0;y<MH;y++){set(0,y,'T');set(MW-1,y,'T');}
+rect(1,9,20,2,'=');rect(23,9,6,2,'=');                       // 道
+rect(21,0,2,MH,'~');rect(21,9,2,1,'B');rect(21,10,2,1,'b');  // 川と橋
+// 家1(主人公の家)
+rect(3,3,5,2,'R');rect(3,5,5,1,'H');rect(3,6,5,1,'h');set(4,5,'W');set(6,5,'W');set(5,6,'D');rect(5,7,1,2,'=');
+// 家2
+rect(12,3,5,2,'R');rect(12,5,5,1,'H');rect(12,6,5,1,'h');set(13,5,'W');set(15,5,'W');set(14,6,'D');rect(14,7,1,2,'=');
+// 花畑
+for(let y=12;y<=16;y++)for(let x=7;x<=13;x++)if(rnd()<.55)set(x,y,',');
+// 木
+[[9,1],[10,1],[18,2],[2,13],[3,16],[2,17],[17,14],[18,15],[17,17],[25,3],[27,4],[24,5],[26,15],[24,17],[27,16],[19,6]].forEach(([x,y])=>set(x,y,'T'));
+const BLOCK=new Set(['T','~','R','H','h','W','D']);
+
+function tileImg(c,x,y,t){
+  const v=(x*7+y*13)%3;
+  switch(c){
+    case 'T':return TILE.tree; case ',':return TILE.flower[v]; case '=':return TILE.path[(x+y)%2];
+    case '~':return TILE.water[(Math.floor(t*2)+x)%2]; case 'B':return TILE.bridgeT; case 'b':return TILE.bridgeB;
+    case 'R':return TILE.roof; case 'H':return TILE.wallU; case 'h':return TILE.wallL; case 'W':return TILE.window; case 'D':return TILE.door;
+    default:return TILE.grass[v];
+  }
+}
+
+// ===== キャラのドット絵 =====
+const HEAD={
+ down:["...kkkkkk...","..khhhhhhk..",".khhhhhhhhk.",".khhssssshk.",".khsesseshk.","..kssssssk.."],
+ up:  ["...kkkkkk...","..khhhhhhk..",".khhhhhhhhk.",".khhhhhhhhk.",".khhhhhhhhk.","..khhhhhhk.."],
+ side:["...kkkkkk...","..khhhhhhk..",".khhhhhhhhk.",".khhhhsssk..",".khhhssesk..","..khsssssk.."]};
+const BODY={
+ front:["..krrrrrrk..",".krrrrrrrrk.",".ksrrrrrrsk.",".kkrrrrrrkk."],
+ side: ["...krrrrk...","..krrrrrk...","..krrsrrk...","..kkrrrkk..."]};
+const LEGS={
+ fA:["..kbbbbbbk..","..kbbkkbbk..","..kbk..kbk..",".kook..kook.",".kkkk..kkkk.","............"],
+ fB:["..kbbbbbbk..","..kbbkkbbk..","..kbk..kbk..",".kook..kbk..",".kkkk..kook.",".......kkkk."],
+ sA:["...kbbbk....","...kbbbk....","...kbbbk....","...koook....","...kkkkk....","............"],
+ sB:["...kbbbk....","..kbk.kbk...",".kbk...kbk..",".kook..kook.",".kkkk..kkkk.","............"]};
+LEGS.fC=LEGS.fB.map(r=>r.split('').reverse().join(''));
+const PAL={
+ hero:{k:'#2a1e1a',h:'#6b3b1f',s:'#f6c9a0',e:'#2a1e1a',r:'#e04848',b:'#3a5ad8',o:'#5a3a22'},
+ oji: {k:'#2a1e1a',h:'#e6e6e6',s:'#f0c49a',e:'#2a1e1a',r:'#4f9a52',b:'#7a6a50',o:'#4a3a2a'},
+ girl:{k:'#2a1e1a',h:'#3a2a40',s:'#f8d0aa',e:'#2a1e1a',r:'#f07ab0',b:'#f5a8cf',o:'#c04060'},
+ obj: {k:'#2a1e1a',w:'#e0ab62',d:'#8a5a2a',p:'#8a5a2a',c:'#b5652a',y:'#f2c230',x:'#3a2210'}};
+const SIGN=["............","............","............","............","kkkkkkkkkkkk","kwwwwwwwwwwk","kwddddddddwk","kwwwwwwwwwwk","kwddddddwwwk","kwwwwwwwwwwk","kkkkkkkkkkkk","....kppk....","....kppk....","....kppk....","....kppk....","....kkkk...."];
+const CHEST=["............","............","............","............","............","............",".kkkkkkkkkk.",".kcccccccck.",".kcccyyccck.",".kyyyyyyyyk.",".kcccyyccck.",".kcccccccck.",".kcccccccck.",".kyyyyyyyyk.",".kkkkkkkkkk.","............"];
+const CHEST_OPEN=["............","............","............",".kkkkkkkkkk.",".kcccccccck.",".kyyyyyyyyk.",".kkkkkkkkkk.",".kxxxxxxxxk.",".kxxxxxxxxk.",".kyyyyyyyyk.",".kcccyyccck.",".kcccccccck.",".kcccccccck.",".kyyyyyyyyk.",".kkkkkkkkkk.","............"];
+
+function build(rows,pal,flip){
+  const c=document.createElement('canvas');c.width=12;c.height=16;const g=c.getContext('2d');
+  rows.forEach((r,y)=>{for(let x=0;x<12;x++){const ch=r[x];if(!ch||ch==='.')continue;g.fillStyle=pal[ch];g.fillRect(flip?11-x:x,y,1,1);}});
+  return c;
+}
+const cache={};
+function charSprite(palName,dir,f){
+  const key=palName+dir+f; if(cache[key])return cache[key];
+  const side=(dir==='left'||dir==='right');
+  const head=side?HEAD.side:HEAD[dir];
+  const body=side?BODY.side:BODY.front;
+  const legs=side?[LEGS.sA,LEGS.sB,LEGS.sA,LEGS.sB][f]:[LEGS.fA,LEGS.fB,LEGS.fA,LEGS.fC][f];
+  return cache[key]=build([...head,...body,...legs],PAL[palName],dir==='left');
+}
+const SPR={sign:build(SIGN,PAL.obj),chest:build(CHEST,PAL.obj),chestOpen:build(CHEST_OPEN,PAL.obj)};
+
+// ===== キャラと物 =====
+const at=(tx,ty)=>({x:tx*T+8,y:ty*T+14});
+const player={...at(5,8),dir:'down',anim:0,moving:false,pal:'hero'};
+const objs=[
+ {kind:'npc',...at(10,8),dir:'down',pal:'oji',name:'むらの おじいさん',label:'はなす',
+  lines:['おや、おはよう。 {今日|きょう}も {元気|げんき}だね。','{川|かわ}の むこうに、なにか ひかる ものが あったよ。','はしを わたって {見|み}て ごらん。']},
+ {kind:'npc',...at(10,14),dir:'down',pal:'girl',name:'おんなのこ',label:'はなす',wander:true,
+  lines:['みて! {花|はな}が いっぱい さいたの。','{赤|あか}い {花|はな}と {白|しろ}い {花|はな}、\nどっちが すき?']},
+ {kind:'sign',...at(19,8),name:'かんばん',label:'よむ',
+  lines:['← はじまりの {村|むら}    {森|もり}の みち →']},
+ {kind:'chest',...at(26,12),name:'',label:'あける',opened:false,
+  lines:['たからばこを あけた!','{赤|あか}い りんごを {手|て}に いれた!']},
+];
+
+// ===== 当たり判定 =====
+function solidAt(x,y){
+  const tx=Math.floor(x/T),ty=Math.floor(y/T);
+  if(tx<0||ty<0||tx>=MW||ty>=MH)return true;
+  if(BLOCK.has(map[ty][tx]))return true;
+  for(const o of objs)if(x>o.x-6&&x<o.x+6&&y>o.y-6&&y<o.y+1)return true;
+  return false;
+}
+const hits=(x,y)=>solidAt(x-5,y-5)||solidAt(x+5,y-5)||solidAt(x-5,y-1)||solidAt(x+5,y-1);
+
+// ===== 入力:擬似スティック =====
+const stick={id:null,bx:0,by:0,x:0,y:0,vx:0,vy:0};
+const sbase=$('sbase'),sknob=$('sknob');
+function local(e){const r=stage.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+function stickShow(on){sbase.style.display=sknob.style.display=on?'block':'none';}
+function stickRelease(){stick.id=null;stick.vx=stick.vy=0;stickShow(false);}
+function stickMove(p){
+  const R=S*14; let dx=p.x-stick.bx, dy=p.y-stick.by, len=Math.hypot(dx,dy);
+  if(len>R){stick.bx=p.x-dx/len*R;stick.by=p.y-dy/len*R;dx=p.x-stick.bx;dy=p.y-stick.by;len=R;} // 指について土台も動く
+  const mag=len/R;
+  if(mag<0.18){stick.vx=stick.vy=0;}else{stick.vx=dx/len*mag;stick.vy=dy/len*mag;}
+  stick.x=p.x;stick.y=p.y;
+  sbase.style.left=stick.bx+'px';sbase.style.top=stick.by+'px';
+  sknob.style.left=stick.x+'px';sknob.style.top=stick.y+'px';
+}
+
+let started=false, near=null, cam={x:0,y:0};
+stage.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(!started){start();return;}
+  if(dlg.open){advance();return;}
+  if(e.target.closest('#act')){if(near)interact(near);return;}
+  const p=local(e), wx=p.x/S+cam.x, wy=p.y/S+cam.y;
+  if(near&&Math.abs(wx-near.x)<10&&wy>near.y-18&&wy<near.y+3){interact(near);return;} // 近くの人を直接タップ
+  if(stick.id!==null)return;
+  stick.id=e.pointerId;stick.bx=p.x;stick.by=p.y;stickMove(p);stickShow(true);
+});
+addEventListener('pointermove',e=>{if(e.pointerId===stick.id)stickMove(local(e));});
+addEventListener('pointerup',e=>{if(e.pointerId===stick.id)stickRelease();});
+addEventListener('pointercancel',e=>{if(e.pointerId===stick.id)stickRelease();});
+document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// キーボード(Macで確認する用)
+const keys={};
+addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(e.key===' '||e.key==='Enter'||e.key==='z'){
+    if(!started)start(); else if(dlg.open)advance(); else if(near)interact(near);
+  }
+});
+addEventListener('keyup',e=>{keys[e.key]=false;});
+
+// ===== 会話(ふりがな付き・1文字ずつ表示) =====
+const dlg={open:false,lines:[],i:0,tokens:[],shown:0,timer:0,onEnd:null};
+function parse(s){
+  const out=[];let i=0;
+  while(i<s.length){
+    const c=s[i];
+    if(c==='{'){const j=s.indexOf('}',i);const [b,r]=s.slice(i+1,j).split('|');out.push({b,r,n:b.length});i=j+1;}
+    else if(c==='\n'){out.push({br:true,n:0});i++;}
+    else{out.push({t:c===' '?'　':c,n:1});i++;}
+  }
+  return out;
+}
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function renderText(){
+  let h='';
+  dlg.tokens.forEach((tk,i)=>{
+    if(tk.br){h+='<br>';return;}
+    const inner=tk.r?`<ruby>${esc(tk.b)}<rt>${esc(tk.r)}</rt></ruby>`:esc(tk.t);
+    h+= i<dlg.shown?inner:`<span class="hid">${inner}</span>`;   // まだ出ない文字も場所だけ確保(行がガタつかない)
+  });
+  $('dtext').innerHTML=h;
+  $('dnext').style.display=dlg.shown>=dlg.tokens.length?'block':'none';
+}
+function openDialog(name,lines,onEnd){
+  stickRelease();
+  dlg.open=true;dlg.lines=lines;dlg.i=0;dlg.onEnd=onEnd||null;
+  $('dname').textContent=name||'';$('dlg').style.display='block';$('act').style.display='none';
+  setLine();
+}
+function setLine(){dlg.tokens=parse(dlg.lines[dlg.i]);dlg.shown=0;dlg.timer=0;renderText();}
+function advance(){
+  if(dlg.shown<dlg.tokens.length){dlg.shown=dlg.tokens.length;renderText();return;} // 途中なら全部出す
+  dlg.i++;
+  if(dlg.i<dlg.lines.length){setLine();return;}
+  dlg.open=false;$('dlg').style.display='none';
+  const f=dlg.onEnd;dlg.onEnd=null;if(f)f();
+}
+function updateDialog(dt){
+  if(dlg.shown>=dlg.tokens.length)return;
+  dlg.timer+=dt*1000;let changed=false;
+  while(dlg.shown<dlg.tokens.length){
+    const cost=60*Math.max(1,dlg.tokens[dlg.shown].n);
+    if(dlg.timer<cost)break;
+    dlg.timer-=cost;dlg.shown++;changed=true;
+  }
+  if(changed)renderText();
+}
+
+// ===== 調べる・話す =====
+let talkedOnce=false;
+function interact(o){
+  talkedOnce=true;$('hint2').style.display='none';
+  if(o.kind==='npc'){
+    const dx=player.x-o.x,dy=player.y-o.y;
+    o.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+  }
+  if(o.kind==='chest'){
+    if(o.opened){openDialog('',['もう からっぽだ。']);return;}
+    o.opened=true;o.label='しらべる';
+  }
+  openDialog(o.name,o.lines);
+}
+
+// ===== はじめる =====
+let hintPhase=0, walked=0;
+function start(){
+  started=true;$('title').style.display='none';
+  const el=document.documentElement;
+  try{const p=el.requestFullscreen&&el.requestFullscreen({navigationUI:'hide'});if(p&&p.catch)p.catch(()=>{});}catch(_){}
+  try{const p=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');if(p&&p.catch)p.catch(()=>{});}catch(_){}
+  setTimeout(()=>openDialog('',['{目|め}が さめた。 いい {天気|てんき}だ!','どこへ いこうかな?'],()=>{hintPhase=1;$('hint1').style.display='block';}),300);
+}
+
+// ===== 毎フレームの更新 =====
+let tm=0;
+function update(dt){
+  tm+=dt;
+  if(dlg.open){updateDialog(dt);return;}
+  if(!started)return;
+  // 入力
+  let vx=stick.vx,vy=stick.vy;
+  const kx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);
+  const ky=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
+  if(kx||ky){const l=Math.hypot(kx,ky);vx=kx/l;vy=ky/l;}
+  const mag=Math.hypot(vx,vy);
+  player.moving=mag>0;
+  if(player.moving){
+    const sp=62*dt;
+    const nx=player.x+vx*sp; if(!hits(nx,player.y))player.x=nx;
+    const ny=player.y+vy*sp; if(!hits(player.x,ny))player.y=ny;
+    player.dir=Math.abs(vx)>Math.abs(vy)?(vx>0?'right':'left'):(vy>0?'down':'up');
+    player.anim+=dt*mag;
+    walked+=sp*mag;
+    if(hintPhase===1&&walked>40){hintPhase=2;$('hint1').style.display='none';}
+  }else player.anim=0;
+  // 女の子はときどき向きを変える
+  for(const o of objs)if(o.wander&&Math.random()<dt*.4)o.dir=['down','left','right'][Math.random()*3|0];
+  // カメラ
+  cam.x=Math.round(Math.max(0,Math.min(MW*T-VW,player.x-VW/2)));
+  cam.y=Math.round(Math.max(0,Math.min(MH*T-VH,player.y-8-VH/2)));
+  // 近くにあるものを探す
+  near=null;let best=24;
+  for(const o of objs){const d=Math.hypot(o.x-player.x,o.y-player.y);if(d<best){best=d;near=o;}}
+  const act=$('act');
+  if(near){
+    act.style.display='block';
+    act.style.left=(near.x-cam.x)*S+'px';
+    act.style.top=Math.max(0,(near.y-36-cam.y)*S)+'px';
+    $('actlbl').textContent=near.label;
+    if(!talkedOnce&&hintPhase>=2)$('hint2').style.display='block';
+  }else{act.style.display='none';$('hint2').style.display='none';}
+}
+
+// ===== 描画 =====
+function draw(){
+  const x0=Math.floor(cam.x/T),y0=Math.floor(cam.y/T);
+  for(let ty=y0;ty<=y0+Math.ceil(VH/T);ty++)for(let tx=x0;tx<=x0+Math.ceil(VW/T);tx++){
+    if(tx>=MW||ty>=MH)continue;
+    ctx.drawImage(tileImg(map[ty][tx],tx,ty,tm),tx*T-cam.x,ty*T-cam.y);
+  }
+  const ents=[player,...objs].sort((a,b)=>a.y-b.y);
+  for(const e of ents){
+    const sx=Math.round(e.x-cam.x),sy=Math.round(e.y-cam.y);
+    ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(sx-4,sy-1,8,2);ctx.fillRect(sx-3,sy-2,6,4);   // 影
+    let img;
+    if(e===player)img=charSprite('hero',e.dir,e.moving?Math.floor(e.anim*9)%4:0);
+    else if(e.kind==='npc')img=charSprite(e.pal,e.dir,0);
+    else if(e.kind==='sign')img=SPR.sign;
+    else img=e.opened?SPR.chestOpen:SPR.chest;
+    ctx.drawImage(img,sx-6,sy-15);
+    if(e.kind==='chest'&&!e.opened&&(tm%1.4)<.35){ctx.fillStyle='#fff';ctx.fillRect(sx+3,sy-14,1,3);ctx.fillRect(sx+2,sy-13,3,1);} // きらっ
+  }
+}
+
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
