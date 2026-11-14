@@ -1,10 +1,11 @@
 // ぼうけんの たび — 本体
 import { T, BLOCK, tileImg } from './tiles.js';
-import { charSprite, SPR, enemySprite } from './sprites.js';
+import { charSprite, SPR, enemySprite, heroSprite } from './sprites.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import { ready, dataErrors, byId, DATA } from './data.js';
-import { hero, bag, heroStats, healFull } from './hero.js';
+import { hero, bag, heroStats, healFull, equipLook, equipBest } from './hero.js';
+import { menu, openMenu, menuTap } from './menu.js';
 import { battle, startBattle, updateBattle, drawBattle, battleTap } from './battle.js';
 import { nameEntry, askName, nameKey } from './nameentry.js';
 import village from '../maps/village.js';
@@ -45,7 +46,7 @@ for (const [name, m] of Object.entries(MAPS)) {
 }
 let cur = village;
 const mapName = () => Object.keys(MAPS).find(k => MAPS[k] === cur);
-function resetEnemies(m) { for (const o of m.objs) if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0 }); }
+function resetEnemies(m) { for (const o of m.objs) if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 }); }
 
 // ===== キャラ =====
 const START = { map: 'village', ...at(5, 8) };
@@ -147,9 +148,11 @@ stage.addEventListener('pointerdown', e => {
   }
   if (nameEntry.open) { const b = e.target.closest('#names button'); if (b) { sfx('next'); nameKey(b.dataset.k); } return; }
   if (battle.on) { const b = e.target.closest('[data-b]'); battleTap(b ? +b.dataset.b : undefined); return; }
+  if (menu.open) { const b = e.target.closest('[data-m]'); if (b) menuTap(b.dataset.m); return; }
   if (trans.on) return;
   if (dlg.open) { advance(); return; }
-  if (e.target.closest('#act')) { if (near) interact(near); return; }
+  if (e.target.closest('#menubtn')) { openFieldMenu(); return; }
+  if (e.target.closest('#act') || e.target.closest('#actbtn')) { if (near) interact(near); return; }
   const p = local(e), wx = p.x / S + cam.x, wy = p.y / S + cam.y;
   if (near && Math.abs(wx - near.x) < 10 && wy > near.y - 18 && wy < near.y + 3) { interact(near); return; } // 近くの人や物を直接タップ
   if (stick.id !== null) return;
@@ -168,12 +171,16 @@ addEventListener('keydown', e => {
   const ok = e.key === ' ' || e.key === 'Enter' || e.key === 'z';
   if (nameEntry.open) { if (e.key === 'Backspace') nameKey('#del'); else if (e.key === 'Enter') nameKey('#ok'); return; }
   if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
+  if (e.key === 'm' || e.key === 'Escape') { if (menu.open) menuTap('#close'); else if (started && hero.name && !dlg.open && !trans.on) openFieldMenu(); return; }
+  if (menu.open) return;
   keys[e.key] = true;
   if (ok) {
     if (!started) start(); else if (trans.on) return; else if (dlg.open) advance(); else if (near) interact(near);
   }
 });
 addEventListener('keyup', e => { keys[e.key] = false; });
+
+function openFieldMenu() { stickRelease(); sfx('ok'); for (const k in keys) keys[k] = false; openMenu(() => { chipText = ''; save(); }); }
 
 // ===== 調べる・話す・ひろう =====
 let talkedOnce = false;
@@ -234,6 +241,7 @@ function load(d) {
   for (const o of allObjs()) if (done.has(o.key)) markTaken(o);
   talkedOnce = d.talked;
   if (d.hero) Object.assign(hero, d.hero);
+  if (!d.hero || !d.hero.equip) { hero.equip = { ぶき: null, よろい: null }; equipBest(); }   // 自動そうびの ころの セーブ
   const st = heroStats();
   hero.hp = Math.min(hero.hp, st.maxhp); hero.mp = Math.min(hero.mp, st.maxmp);
   updateCamera();
@@ -322,10 +330,11 @@ function updateCamera() {
 // ===== 毎フレームの更新 =====
 let tm = 0, chipText = '';
 function updateChip() {
-  const show = started && hero.name && !battle.on && !nameEntry.open;
+  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open;
   $('hpchip').style.display = show ? 'block' : 'none';
+  $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
   if (!show) return;
-  const st = heroStats(), t = `${hero.name} HP ${hero.hp}/${st.maxhp}`;
+  const st = heroStats(), t = `${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}`;
   if (t !== chipText) { chipText = t; $('hpchip').textContent = t; $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
 }
 function update(dt) {
@@ -333,8 +342,9 @@ function update(dt) {
   if (trans.on) updateTrans(dt);
   updateChip();
   if (battle.on) { updateBattle(dt); $('act').style.display = 'none'; return; }
-  if (trans.on || nameEntry.open) { $('act').style.display = 'none'; return; }
-  if (dlg.open) { updateDialog(dt); return; }
+  const hideAct = () => { $('act').style.display = 'none'; $('actbtn').classList.remove('show'); };
+  if (trans.on || nameEntry.open || menu.open) { hideAct(); return; }
+  if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
   // 入力
@@ -362,15 +372,28 @@ function update(dt) {
   // てきは うろうろ歩く。 ぶつかったら 戦闘
   for (const o of live()) {
     if (o.kind !== 'enemy') continue;
-    o.cool = Math.max(0, o.cool - dt);
+    o.cool = Math.max(0, o.cool - dt); o.notice = Math.max(0, (o.notice || 0) - dt);
+    // うごき: うろうろ / ゆっくり(おいかける) / はやい(主人公と おなじ はやさで おいかける)
+    const mv = byId('enemies', o.party[0])?.move || 'うろうろ', dp = Math.hypot(player.x - o.x, player.y - o.y);
+    o.giveup = Math.max(0, (o.giveup || 0) - dt);
+    if (mv !== 'うろうろ' && !o.cool && !o.giveup) {
+      if (!o.chase && dp < 80) { o.chase = true; o.notice = 0.7; }                         // 気づいた!
+      else if (o.chase && (dp > 140 || Math.hypot(o.x - o.hx, o.y - o.hy) > 220)) { o.chase = false; o.timer = 0; }   // あきらめる
+    } else o.chase = false;
     o.timer -= dt;
-    if (o.timer <= 0) { o.timer = 1.5 + Math.random() * 2; const a = Math.random() * 6.28, r = Math.random() * 24; o.tx = o.hx + Math.cos(a) * r; o.ty = o.hy + Math.sin(a) * r; }
+    if (o.chase) { o.tx = player.x; o.ty = player.y; }
+    else if (o.timer <= 0) { o.timer = 1.5 + Math.random() * 2; const a = Math.random() * 6.28, r = Math.random() * 24; o.tx = o.hx + Math.cos(a) * r; o.ty = o.hy + Math.sin(a) * r; }
     const dx = o.tx - o.x, dy = o.ty - o.y, d = Math.hypot(dx, dy);
     o.moving = d > 1;
-    if (o.moving) {
-      const s = Math.min(d, 18 * dt), nx = o.x + dx / d * s, ny = o.y + dy / d * s;
+    if (o.moving && !(o.notice > 0.3)) {
+      const speed = !o.chase ? 18 : mv === 'はやい' ? 62 : 28;
+      const s = Math.min(d, speed * dt), nx = o.x + dx / d * s, ny = o.y + dy / d * s;
+      const ox = o.x, oy = o.y;
       if (!enemyBlocked(nx, o.y)) o.x = nx; else o.timer = 0;
       if (!enemyBlocked(o.x, ny)) o.y = ny; else o.timer = 0;
+      // 木などに ひっかかって 進めないときは、少しの間 おいかけるのを やめる
+      o.stuck = Math.hypot(o.x - ox, o.y - oy) < s * 0.3 ? (o.stuck || 0) + dt : 0;
+      if (o.chase && o.stuck > 0.5) { o.chase = false; o.giveup = 2; o.timer = 0; o.stuck = 0; }
     }
     if (!o.cool && Math.hypot(o.x - player.x, o.y - player.y) < 12) { encounter(o); return; }
   }
@@ -379,6 +402,8 @@ function update(dt) {
   near = null; let best = 24;
   for (const o of live()) { if (o.kind === 'enemy') continue; const d = Math.hypot(o.x - player.x, o.y - player.y); if (d < best) { best = d; near = o; } }
   const act = $('act');
+  $('actbtn').classList.toggle('show', !!near);
+  if (near) { $('actbtnlbl').textContent = near.label; }
   if (near) {
     act.style.display = 'block';
     act.style.left = (near.x - cam.x) * S + 'px';
@@ -409,10 +434,11 @@ function drawField() {
     if (e.kind === 'enemy') {
       const hop = e.moving ? Math.round(Math.abs(Math.sin(tm * 8 + e.hx)) * -2) : 0;
       ctx.drawImage(enemySprite(byId('enemies', e.party[0])?.look), sx - 8, sy - 16 + hop);
+      if (e.notice > 0) { ctx.fillStyle = '#ffd23f'; ctx.fillRect(sx - 1, sy - 26, 3, 6); ctx.fillRect(sx - 1, sy - 19, 3, 2); ctx.fillStyle = '#2a1e1a'; ctx.fillRect(sx, sy - 25, 1, 4); ctx.fillRect(sx, sy - 19, 1, 1); }  // 「!」
       continue;
     }
     let img;
-    if (e === player) img = charSprite('hero', e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0);
+    if (e === player) img = heroSprite(e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0, equipLook());
     else if (e.kind === 'npc') img = charSprite(e.pal, e.dir, 0);
     else if (e.kind === 'sign') img = SPR.sign;
     else if (e.kind === 'item') img = SPR.potion;

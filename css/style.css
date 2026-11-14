@@ -108,3 +108,48 @@ rt{font-size:.5em;}
 #names .nfoot button{padding:0 calc(var(--u)*6);font-size:calc(var(--u)*7);background:#bfe0ff;}
 #names .nfoot button.ok{background:#ffd23f;}
 #names .nfoot button.off{opacity:.4;}
+
+/* 右上の メニューボタン・右下の アクションボタン */
+#menubtn{position:absolute;right:calc(var(--u)*4);top:calc(var(--u)*4);pointer-events:auto;display:none;background:rgba(18,26,70,.85);border:calc(var(--u)*.75) solid #fff;
+  border-radius:calc(var(--u)*3);font-size:calc(var(--u)*6);line-height:1.9;padding:calc(var(--u)*1) calc(var(--u)*5) 0;font-weight:bold;}
+#actbtn{position:absolute;right:calc(var(--u)*8);bottom:calc(var(--u)*8);width:calc(var(--u)*50);height:calc(var(--u)*50);border-radius:50%;pointer-events:auto;display:none;
+  background:#ffd23f;border:calc(var(--u)*1.2) solid #fff;box-sizing:border-box;box-shadow:0 calc(var(--u)*1.2) 0 rgba(0,0,0,.35);
+  color:#8a3a10;font-weight:bold;font-size:calc(var(--u)*8);align-items:center;justify-content:center;animation:pulse 1.2s ease-in-out infinite;}
+#actbtn.show{display:flex;}
+@keyframes pulse{50%{transform:scale(1.07)}}
+
+/* メニュー */
+#menu{position:absolute;inset:calc(var(--u)*5);display:none;gap:calc(var(--u)*4);pointer-events:auto;background:rgba(18,26,70,.96);border:calc(var(--u)*1) solid #fff;
+  border-radius:calc(var(--u)*4);padding:calc(var(--u)*4);box-sizing:border-box;}
+#menu button{font:inherit;color:#fff;background:rgba(255,255,255,.08);border:calc(var(--u)*.75) solid rgba(255,255,255,.6);border-radius:calc(var(--u)*3);padding:0 calc(var(--u)*3);}
+#menu button.on{background:#ffd23f;color:#18224f;border-color:#fff;}
+#menu .mside{display:flex;flex-direction:column;gap:calc(var(--u)*2);width:calc(var(--u)*66);flex:none;}
+#menu .mside button{height:calc(var(--u)*21);font-size:calc(var(--u)*6.5);font-weight:bold;}
+#menu .mside button.close{margin-top:auto;background:rgba(255,255,255,.2);}
+#menu .mbody{flex:1;display:flex;flex-direction:column;gap:calc(var(--u)*3);min-width:0;font-size:calc(var(--u)*6);line-height:1.6;}
+#menu .mlist{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.5);align-content:start;overflow:auto;max-height:calc(var(--u)*100);}
+#menu .mlist button{min-height:calc(var(--u)*22);font-size:calc(var(--u)*6);text-align:left;display:flex;justify-content:space-between;align-items:center;}
+#menu small{font-size:.75em;color:#bfe0ff;margin-left:calc(var(--u)*2);}
+#menu button.on small{color:#18224f;}
+#menu .mdetail{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:calc(var(--u)*3);background:rgba(0,0,0,.25);border-radius:calc(var(--u)*3);padding:calc(var(--u)*2) calc(var(--u)*4);min-height:calc(var(--u)*24);}
+#menu .mdetail button.go{background:#ffd23f;color:#18224f;font-weight:bold;height:calc(var(--u)*20);padding:0 calc(var(--u)*8);flex:none;}
+#menu .mhint,#menu .mempty{color:#bfe0ff;}
+#menu .mempty{margin:auto;}
+#menu .mtop{font-weight:bold;}
+#menu .mrow{display:flex;gap:calc(var(--u)*3);margin-top:auto;}
+#menu .mrow button{height:calc(var(--u)*20);padding:0 calc(var(--u)*8);}
+#menu .mmsg{min-height:1.6em;color:#ffd23f;font-size:calc(var(--u)*5.5);}
+#menu canvas{image-rendering:pixelated;image-rendering:crisp-edges;}
+#menu .mbig{width:calc(var(--u)*48);height:calc(var(--u)*64);flex:none;background:rgba(255,255,255,.08);border-radius:calc(var(--u)*3);padding:calc(var(--u)*4);}
+#menu .msmall{width:calc(var(--u)*30);height:calc(var(--u)*40);flex:none;}
+#menu .mequip{display:flex;gap:calc(var(--u)*6);align-items:flex-start;}
+#menu .mslots{flex:1;display:flex;flex-direction:column;gap:calc(var(--u)*3);}
+#menu .mslots button{height:calc(var(--u)*24);display:flex;justify-content:space-between;align-items:center;font-size:calc(var(--u)*6);}
+#menu .mslots b{font-weight:bold;}
+#menu .mstats{flex:1;}
+#menu .mstat{display:flex;justify-content:space-between;font-size:calc(var(--u)*5.5);line-height:1.55;}
+#menu .mname{font-weight:bold;font-size:calc(var(--u)*7);}
+#menu .mbar{display:block;height:calc(var(--u)*2);background:rgba(255,255,255,.2);border-radius:calc(var(--u)*1);overflow:hidden;margin:calc(var(--u)*.5) 0 calc(var(--u)*1);}
+#menu .mbar span{display:block;height:100%;}
+#menu .mcard{display:flex;gap:calc(var(--u)*5);background:rgba(255,255,255,.08);border-radius:calc(var(--u)*3);padding:calc(var(--u)*3) calc(var(--u)*5);width:calc(var(--u)*120);font-size:calc(var(--u)*5.5);}
+#menu .mcard > div{flex:1;}

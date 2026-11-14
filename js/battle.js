@@ -1,7 +1,7 @@
 // 戦闘(ターン制のコマンド戦闘)
 import { byId } from './data.js';
-import { hero, bag, heroStats, gainExp, heal, bagCount, bagRemove } from './hero.js';
-import { charSprite, enemySprite } from './sprites.js';
+import { hero, bag, heroStats, gainExp, heal, bagCount, bagRemove, equipLook } from './hero.js';
+import { heroSprite, enemySprite } from './sprites.js';
 import { sfx, playBgm } from './audio.js';
 import { rubyHTML } from './dialog.js';
 
@@ -274,7 +274,7 @@ export function drawBattle(ctx) {
   if (!(B.heroFlash > 0 && Math.floor(B.heroFlash * 20) % 2)) {
     const lx = B.heroLunge > 0 ? -Math.sin((1 - B.heroLunge / 0.3) * Math.PI) * 18 : 0;
     ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(HERO_X + lx, HERO_Y, 10, 3, 0, 0, 7); ctx.fill();
-    ctx.drawImage(charSprite('hero', 'left', B.heroLunge > 0 ? 1 : 0), Math.round(HERO_X - 12 + lx), HERO_Y - 31, 24, 32);
+    ctx.drawImage(heroSprite('left', B.heroLunge > 0 ? 1 : 0, equipLook()), Math.round(HERO_X - 12 + lx), HERO_Y - 31, 24, 32);
   }
   // きらきら
   if (B.sparkle > 0) {

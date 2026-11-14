@@ -105,3 +105,36 @@ export function enemySprite(look) {
   return ecache[look] || (ecache[look] = build(d.rows, d.pal));
 }
 export const ENEMY_ROWS = ENEMY;   // 確認用
+
+// ===== 主人公(そうびで 見た目が かわる) =====
+// よろい: 上着(r)と ズボン(b)の色、ベルト
+const ARMOR = {
+  ぬの: { r: '#e2d2a8', b: '#7a6a50' },
+  かわ: { r: '#a0683a', b: '#4a3020', belt: '#f2c230' },
+  てつ: { r: '#b8c4d0', b: '#5a6a7a', belt: '#f2c230' },
+};
+// ぶき: 手に持つ位置に 描く(x = 持つ場所)
+function drawWeapon(g, look, x, flip, side) {
+  const X = v => flip ? 11 - v : v;
+  const p = (xx, y, h, c) => { g.fillStyle = c; g.fillRect(X(xx), y, 1, h); };
+  if (side) {   // よこむき: 手から 前に むけて もつ
+    if (look === 'ぼう') for (let i = 5; i <= 11; i++) { p(i, 8, 1, '#a06a36'); p(i, 9, 1, '#5a3418'); }
+    else if (look === 'けん') { p(4, 8, 1, '#7a4a24'); p(5, 8, 1, '#7a4a24'); p(6, 7, 3, '#f2c230'); for (let i = 7; i <= 11; i++) { p(i, 8, 1, '#eef3f8'); p(i, 9, 1, '#8a96a4'); } }
+    return;
+  }
+  if (look === 'ぼう') { p(x, 3, 10, '#a06a36'); p(x + 1, 3, 10, '#5a3418'); }
+  else if (look === 'けん') { p(x, 1, 8, '#eef3f8'); p(x + 1, 1, 8, '#8a96a4'); p(x - 1, 9, 1, '#f2c230'); p(x, 9, 1, '#f2c230'); p(x + 1, 9, 1, '#f2c230'); p(x, 10, 3, '#7a4a24'); }
+}
+const hcache = {};
+export function heroSprite(dir, f, look = {}) {
+  const key = dir + f + (look.armor || '') + '/' + (look.weapon || '');
+  if (hcache[key]) return hcache[key];
+  const side = dir === 'left' || dir === 'right', flip = dir === 'left';
+  const legs = side ? [LEGS.sA, LEGS.sB, LEGS.sA, LEGS.sB][f] : [LEGS.fA, LEGS.fB, LEGS.fA, LEGS.fC][f];
+  const a = ARMOR[look.armor] || {};
+  const c = build([...(side ? HEAD.side : HEAD[dir]), ...(side ? BODY.side : BODY.front), ...legs], { ...PAL.hero, ...a }, flip);
+  const g = c.getContext('2d');
+  if (a.belt) { g.fillStyle = a.belt; if (side) g.fillRect(flip ? 4 : 3, 9, 5, 1); else g.fillRect(2, 9, 8, 1); }
+  if (look.weapon) drawWeapon(g, look.weapon, dir === 'down' ? 10 : 0, flip, side);
+  return hcache[key] = c;
+}
