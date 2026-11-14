@@ -47,7 +47,7 @@ function castSpell() {
   if (s.effect !== 'かいふく') { msg = 'たたかいの ときに つかうよ。'; return; }
   if (hero.mp < s.mp) { msg = 'MPが たりないよ。'; return; }
   if (hero.hp >= heroStats().maxhp) { msg = 'HPは まんたんだよ。'; return; }
-  hero.mp -= s.mp; const n = heal(s.pow); sfx('heal');
+  hero.mp -= s.mp; const n = heal(s.pow + Math.floor(heroStats().mag / 2)); sfx('heal');
   msg = `「${s.name}」! HPが ${n} かいふくした!`;
   changed();
 }
@@ -94,7 +94,7 @@ function spellsView() {
   if (!list.length) return '<div class="mempty">まだ じゅもんを おぼえていないよ</div>';
   const s = byId('skills', sel);
   return `<div class="mtop">MP ${hero.mp}/${st.maxmp}</div><div class="mlist">${list.map(x => btn('sel:' + x.id, `${R(x.name)}<small>MP ${x.mp}</small>`, sel === x.id ? 'on' : '')).join('')}</div>` +
-    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'かいふく' ? btn('cast', 'となえる', 'go') : '<small>(たたかいで つかう)</small>'}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
+    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'かいふく' ? btn('cast', 'となえる', 'go') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
 }
 function equipView() {
   const st = heroStats();
@@ -120,7 +120,7 @@ function statsView() {
     `<div class="mname">${R(hero.name)}  ${R('{レベル|れべる}')} ${hero.lv}</div>` +
     `<div class="mstat"><span>HP</span><b>${hero.hp}/${st.maxhp}</b></div>${bar(hero.hp, st.maxhp, '#6cdc5a')}` +
     `<div class="mstat"><span>MP</span><b>${hero.mp}/${st.maxmp}</b></div>${bar(hero.mp, st.maxmp, '#5ab0ff')}` +
-    row('こうげき', st.atk) + row('ぼうぎょ', st.def) + row('すばやさ', st.spd) +
+    row('こうげき', st.atk) + row('ぼうぎょ', st.def) + row('まりょく', st.mag) + row('せいしん', st.spr) + row('すばやさ', st.spd) +
     row('けいけんち', hero.exp) + row('つぎの {レベル|れべる}まで', nx === null ? '-' : nx) + `</div></div>`;
 }
 function partyView() {

@@ -26,7 +26,7 @@ export function startBattle(ids) {
     if (count[d.id] > 1) { seen[d.id] = (seen[d.id] || 0) + 1; name += ' ' + 'ABCDE'[seen[d.id] - 1]; }
     return { d, name, hp: d.hp, mp: d.mp, x: 105 + (i - (n - 1) / 2) * 66, y: 118, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
   });
-  B = { enemies, waits: [], shake: 0, heroLunge: 0, heroFlash: 0, sparkle: 0, sparkX: 0, sparkY: 0, btns: [], t: 0 };
+  B = { enemies, waits: [], shake: 0, heroLunge: 0, heroFlash: 0, fx: [], flashScreen: 0, btns: [], t: 0 };
   battle.on = true;
   $('battle').style.display = 'block';
   setButtons([]); showMsg('');
@@ -96,7 +96,7 @@ function chooseCommand() {
       const list = st.skills.map(id => byId('skills', id)).filter(s => s && s.type === kind);
       if (!list.length) { note(kind === 'じゅもん' ? 'まだ じゅもんを おぼえていないよ' : 'まだ わざを おぼえていないよ'); return; }
       setButtons([...list.map(s => ({
-        html: `${rubyHTML(s.name)}<small>MP ${s.mp}</small>`, off: hero.mp < s.mp,
+        html: `${rubyHTML(s.name)}<small>MP ${s.mp}${s.elem && s.elem !== 'なし' ? ' ' + s.elem : ''}</small>`, off: hero.mp < s.mp,
         fn: () => {
           if (hero.mp < s.mp) { note('MPが たりないよ'); return; }
           if (s.effect === 'こうげき' && s.target === 'ひとり') pick(t => done({ type: 'skill', skill: s, target: t }), () => skills(kind));
@@ -114,13 +114,33 @@ function chooseCommand() {
 }
 
 // ===== ダメージの けいさん =====
-// ダメージ = こうげき × いりょく ÷ 100 − あいての ぼうぎょ ÷ 2 (すこし ばらつく)
-function calc(atk, pow, def) {
-  if (Math.random() < 0.05) return { miss: true };
-  let dmg = Math.max(1, Math.round((atk * pow / 100 - def / 2) * rnd(0.85, 1.15)));
-  const crit = Math.random() < 1 / 16;
-  if (crit) dmg = Math.round(dmg * 1.5) + 1;
-  return { dmg, crit };
+// わざ・たたかう(物理) = こうげき × いりょく ÷ 100 − あいての ぼうぎょ ÷ 2
+// じゅもん(魔法)      = まりょく × いりょく ÷ 100 − あいての せいしん ÷ 2
+// ぞくせい: あいての よわい ぞくせい なら 1.5倍、 つよい ぞくせい なら 半分
+// user: {atk, mag}  target: {def, spr, weak, resist}
+function calc(user, skill, target) {
+  const magic = skill?.type === 'じゅもん';
+  if (!magic && Math.random() < 0.05) return { miss: true };          // じゅもんは よけられない
+  const pow = skill ? skill.pow : 100;
+  let dmg = ((magic ? user.mag : user.atk) * pow / 100 - (magic ? target.spr : target.def) / 2) * rnd(0.85, 1.15);
+  let mult = 1;
+  const el = skill?.elem;
+  if (el && el !== 'なし') { if (target.weak?.includes(el)) mult = 1.5; else if (target.resist?.includes(el)) mult = 0.5; }
+  dmg *= mult;
+  const crit = !magic && mult === 1 && Math.random() < 1 / 16;
+  if (crit) dmg = dmg * 1.5 + 1;
+  return { dmg: Math.max(1, Math.round(dmg)), crit, mult };
+}
+const heroTarget = st => ({ def: st.def, spr: st.spr, weak: [], resist: [] });
+// こうげきの エフェクトの しゅるい
+const FX_OF = { ほのお: 'fire', みず: 'water', かみなり: 'thunder', かぜ: 'wind' };
+function fxType(skill) { if (skill?.elem && FX_OF[skill.elem]) return FX_OF[skill.elem]; return skill?.type === 'じゅもん' ? 'magic' : 'slash'; }
+const FX_TIME = { slash: 0.35, fire: 0.75, water: 0.7, thunder: 0.6, wind: 0.75, magic: 0.6, heal: 0.7, impact: 0.25 };
+async function effect(type, targets) {
+  sfx({ slash: 'slash', fire: 'fire', water: 'water', thunder: 'thunder', wind: 'wind', magic: 'magic', heal: 'heal', impact: 'hurt' }[type]);
+  for (const t of targets) B.fx.push({ type, x: t.x, y: t.y, t: 0, dur: FX_TIME[type], seed: Math.random() * 1000 });
+  if (type === 'thunder') B.flashScreen = 0.18;
+  await wait(FX_TIME[type] * 0.8);
 }
 function popup(x, y, text, cls) {
   const el = document.createElement('div');
@@ -140,52 +160,57 @@ async function lunge(who) { if (who === 'hero') B.heroLunge = 0.3; else who.lung
 async function hitEnemy(t, r) {
   if (r.miss) { sfx('miss'); await say(`${t.name}は ひらりと よけた!`); return; }
   if (r.crit) await say('すごい いちげき!', 0.7);
-  sfx('hit'); t.flash = 0.4; t.hp -= r.dmg; popup(t.x, t.y - 40, r.dmg);
+  sfx('hit'); t.flash = 0.4; t.hp -= r.dmg; popup(t.x, t.y - 40, r.dmg, r.mult > 1 ? 'weak' : '');
+  if (r.mult > 1) await say('よわい ところを ついた!', 0.9);
+  if (r.mult < 1) await say('あまり きいていない…', 0.9);
   await say(`${t.name}に ${r.dmg}の {ダメージ|だめーじ}!`);
   if (t.hp <= 0) { t.alive = false; sfx('defeat'); await say(`${t.name}を やっつけた!`); }
+}
+const heroSpot = { x: HERO_X, y: HERO_Y };
+async function heroHeal(n) {
+  await effect('heal', [heroSpot]);
+  const got = heal(n); updateStat(); popup(HERO_X, HERO_Y - 44, '+' + got, 'heal');
+  await say(`@の HPが ${got} かいふくした!`);
 }
 async function heroAct(cmd) {
   const st = heroStats();
   if (cmd.type === 'attack') {
     const t = cmd.target.alive ? cmd.target : alive()[0];
     await say('@の こうげき!', 0.6); await lunge('hero');
-    await hitEnemy(t, calc(st.atk, 100, t.d.def));
+    await effect('slash', [t]);
+    await hitEnemy(t, calc(st, null, t.d));
   } else if (cmd.type === 'skill') {
     const s = cmd.skill;
     hero.mp -= s.mp; updateStat();
     await say(`@は 「${s.name}」を ${s.type === 'じゅもん' ? 'となえた' : 'つかった'}!`, 1.1);
-    if (s.effect === 'かいふく') {
-      sfx('heal'); B.sparkle = 0.6; B.sparkX = HERO_X; B.sparkY = HERO_Y;
-      const n = heal(s.pow); updateStat(); popup(HERO_X, HERO_Y - 44, '+' + n, 'heal');
-      await say(`@の HPが ${n} かいふくした!`);
-    } else {
-      sfx(s.type === 'じゅもん' ? 'magic' : 'swing'); await lunge('hero');
+    if (s.effect === 'かいふく') await heroHeal(s.pow + Math.floor(st.mag / 2));   // かいふく = いりょく + まりょく ÷ 2
+    else {
+      if (s.type === 'わざ') await lunge('hero');
       const targets = s.target === 'ぜんぶ' ? alive() : [cmd.target?.alive ? cmd.target : alive()[0]];
-      for (const t of targets) if (t.alive) await hitEnemy(t, calc(st.atk, s.pow, t.d.def));
+      await effect(fxType(s), targets);
+      for (const t of targets) if (t.alive) await hitEnemy(t, calc(st, s, t.d));
     }
   } else if (cmd.type === 'item') {
     const it = cmd.item;
     bagRemove(it.id);
     await say(`@は ${it.name}を つかった!`, 1);
-    sfx('heal'); B.sparkle = 0.6; B.sparkX = HERO_X; B.sparkY = HERO_Y;
-    const n = heal(it.val); updateStat(); popup(HERO_X, HERO_Y - 44, '+' + n, 'heal');
-    await say(`@の HPが ${n} かいふくした!`);
+    await heroHeal(it.val);
   }
 }
 async function enemyAct(e) {
   const st = heroStats();
   const sk = e.d.skills.map(id => byId('skills', id)).filter(s => s && e.mp >= s.mp);
-  let pow = 100;
+  let skill = null;
   if (sk.length && Math.random() < 0.35) {
-    const s = sk[Math.random() * sk.length | 0];
-    e.mp -= s.mp;
-    await say(`${e.name}の ${s.name}!`, 0.8);
-    if (s.effect === 'かいふく') { sfx('heal'); e.hp = Math.min(e.d.hp, e.hp + s.pow); await say(`${e.name}は げんきに なった!`); return; }
-    pow = s.pow;
+    skill = sk[Math.random() * sk.length | 0];
+    e.mp -= skill.mp;
+    await say(`${e.name}の ${skill.name}!`, 0.8);
+    if (skill.effect === 'かいふく') { await effect('heal', [e]); e.hp = Math.min(e.d.hp, e.hp + skill.pow + Math.floor(e.d.mag / 2)); await say(`${e.name}は げんきに なった!`); return; }
   } else await say(`${e.name}の こうげき!`, 0.6);
-  await lunge(e);
-  const r = calc(e.d.atk, pow, st.def);
+  if (skill?.type !== 'じゅもん') await lunge(e);
+  const r = calc(e.d, skill, heroTarget(st));
   if (r.miss) { sfx('miss'); await say('@は ひらりと かわした!'); return; }
+  await effect(skill ? fxType(skill) : 'impact', [heroSpot]);
   if (r.crit) await say('いたい いちげき!', 0.7);
   sfx('hurt'); B.shake = 0.3; B.heroFlash = 0.4;
   hero.hp = Math.max(0, hero.hp - r.dmg); updateStat(); popup(HERO_X, HERO_Y - 44, r.dmg, 'hurt');
@@ -243,7 +268,9 @@ export function updateBattle(dt) {
   B.t += dt;
   for (const w of [...B.waits]) { w.t -= dt; if (w.t <= 0) { B.waits.splice(B.waits.indexOf(w), 1); w.r(); } }
   B.shake = Math.max(0, B.shake - dt); B.heroFlash = Math.max(0, B.heroFlash - dt);
-  B.heroLunge = Math.max(0, B.heroLunge - dt); B.sparkle = Math.max(0, B.sparkle - dt);
+  B.heroLunge = Math.max(0, B.heroLunge - dt); B.flashScreen = Math.max(0, B.flashScreen - dt);
+  for (const f of B.fx) f.t += dt;
+  B.fx = B.fx.filter(f => f.t < f.dur);
   for (const e of B.enemies) {
     e.flash = Math.max(0, e.flash - dt); e.lunge = Math.max(0, e.lunge - dt);
     if (!e.alive) e.alpha = Math.max(0, e.alpha - dt * 2.5);
@@ -276,9 +303,53 @@ export function drawBattle(ctx) {
     ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(HERO_X + lx, HERO_Y, 10, 3, 0, 0, 7); ctx.fill();
     ctx.drawImage(heroSprite('left', B.heroLunge > 0 ? 1 : 0, equipLook()), Math.round(HERO_X - 12 + lx), HERO_Y - 31, 24, 32);
   }
-  // きらきら
-  if (B.sparkle > 0) {
-    ctx.fillStyle = '#fff';
-    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28 + B.t * 4, r = 10 + (0.6 - B.sparkle) * 30; ctx.fillRect(Math.round(B.sparkX + Math.cos(a) * r), Math.round(B.sparkY - 16 + Math.sin(a) * r), 2, 2); }
+  // エフェクト
+  for (const f of B.fx) drawFx(ctx, f);
+  if (B.flashScreen > 0) { ctx.fillStyle = `rgba(255,255,230,${B.flashScreen * 3})`; ctx.fillRect(0, 0, 320, 200); }
+}
+
+// ===== エフェクトの 絵 =====
+const hash = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
+function dot(ctx, x, y, c, w = 2) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, w); }
+function line(ctx, x0, y0, x1, y1, c, w = 2) { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)); for (let i = 0; i <= n; i++) dot(ctx, x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c, w); }
+function drawFx(ctx, f) {
+  const p = f.t / f.dur, cx = f.x, cy = f.y - 16, S = f.seed;
+  if (f.type === 'slash') {           // ななめの 斬りあと
+    for (let k = 0; k < 2; k++) {
+      const q = Math.min(1, p * 2.2 - k * 0.35); if (q <= 0) continue;
+      const a = 1 - Math.max(0, p - 0.6) / 0.4, x0 = cx - 14 + k * 8, y0 = cy - 14, x1 = cx + 10 + k * 8, y1 = cy + 12;
+      line(ctx, x0, y0, x0 + (x1 - x0) * q, y0 + (y1 - y0) * q, `rgba(255,255,255,${a})`, 2);
+      line(ctx, x0 + 1, y0, x0 + 1 + (x1 - x0) * q, y0 + (y1 - y0) * q, `rgba(180,220,255,${a * .7})`, 1);
+    }
+  } else if (f.type === 'fire') {     // 下から もえあがる ほのお
+    const cols = ['#fff3a0', '#ffd23f', '#ff8a2a', '#e8401a', '#a02010'];
+    for (let i = 0; i < 22; i++) {
+      const life = (p * 1.6 + hash(S + i)) % 1, x = cx + (hash(S + i * 3) - .5) * 26 + Math.sin(life * 6 + i) * 2, y = cy + 16 - life * 40 * (0.6 + hash(i) * .6);
+      if (p > 0.85 && hash(i + 9) < (p - .85) * 6) continue;
+      dot(ctx, x, y, cols[Math.min(4, life * 5 | 0)], life < .5 ? 3 : 2);
+    }
+  } else if (f.type === 'water') {    // はじける しぶき
+    for (let r = 0; r < 2; r++) { const rr = p * 22 + r * 6; for (let a = 0; a < 16; a++) { const an = a / 16 * 6.28; dot(ctx, cx + Math.cos(an) * rr, cy + Math.sin(an) * rr * .6, `rgba(160,215,255,${1 - p})`, 1); } }
+    for (let i = 0; i < 14; i++) {
+      const an = hash(S + i) * 6.28, sp = 18 + hash(S + i * 7) * 16;
+      dot(ctx, cx + Math.cos(an) * sp * p, cy - 6 + Math.sin(an) * sp * p * .7 + p * p * 22, i % 2 ? '#3b8fe0' : '#9fd2ff', 2);
+    }
+  } else if (f.type === 'thunder') {  // 上から おちる かみなり
+    if (p < 0.65 && (f.t * 30 | 0) % 3 !== 2) {
+      let x = cx + (hash(S + (f.t * 20 | 0)) - .5) * 10, y = 0;
+      while (y < cy + 6) { const nx = cx + (hash(S + y + (f.t * 20 | 0)) - .5) * 18, ny = y + 8; line(ctx, x, y, nx, ny, '#fffbd0', 2); line(ctx, x + 1, y, nx + 1, ny, '#ffd23f', 1); x = nx; y = ny; }
+    }
+    for (let i = 0; i < 8; i++) { const an = i / 8 * 6.28; dot(ctx, cx + Math.cos(an) * (6 + p * 16), cy + 6 + Math.sin(an) * (3 + p * 6), '#ffd23f', 2); }
+  } else if (f.type === 'wind') {     // ぐるぐる まわる かぜ
+    for (let j = 0; j < 3; j++) for (let k = 0; k < 10; k++) {
+      const an = f.t * 14 + j * 2.1 + k * 0.12, r = 8 + p * 12 + j * 2;
+      dot(ctx, cx + Math.cos(an) * r, cy + 4 + Math.sin(an) * r * .45 - p * 10, k < 5 ? '#e8ffe8' : '#8ae08a', 2);
+    }
+    for (let i = 0; i < 6; i++) dot(ctx, cx + (hash(S + i) - .5) * 30 + p * 20, cy + (hash(S + i * 5) - .5) * 24, '#cfeccf', 1);
+  } else if (f.type === 'heal' || f.type === 'magic') {   // きらきら
+    const c = f.type === 'heal' ? ['#ffffff', '#9affb0'] : ['#ffffff', '#c8a8ff'];
+    for (let i = 0; i < 10; i++) { const an = i / 10 * 6.28 + p * 4, r = 6 + p * 22; dot(ctx, cx + Math.cos(an) * r, cy + 6 + Math.sin(an) * r * .6 - p * 14, c[i % 2], 2); }
+  } else if (f.type === 'impact') {   // ぶつかった ほし
+    for (let i = 0; i < 8; i++) { const an = i / 8 * 6.28, r = 4 + p * 12; line(ctx, cx + Math.cos(an) * r * .4, cy + 4 + Math.sin(an) * r * .4, cx + Math.cos(an) * r, cy + 4 + Math.sin(an) * r, i % 2 ? '#ffffff' : '#ff6060', 1); }
   }
 }

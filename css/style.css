@@ -91,7 +91,7 @@ rt{font-size:.5em;}
 #battle .tgt .tname{font-size:calc(var(--u)*4.2);background:rgba(0,0,0,.55);border-radius:calc(var(--u)*2);padding:0 calc(var(--u)*2);line-height:1.6;white-space:nowrap;}
 .pop{position:absolute;width:calc(var(--u)*40);text-align:center;font-weight:bold;font-size:calc(var(--u)*10);color:#fff;
   text-shadow:0 0 calc(var(--u)*1) #000,0 calc(var(--u)*.7) 0 #000;animation:pop .9s ease-out forwards;pointer-events:none;}
-.pop.hurt{color:#ff6060;} .pop.heal{color:#7dff7d;}
+.pop.hurt{color:#ff6060;} .pop.heal{color:#7dff7d;} .pop.weak{color:#ffd23f;font-size:calc(var(--u)*13);}
 @keyframes pop{0%{transform:translateY(0);opacity:1}70%{opacity:1}100%{transform:translateY(calc(var(--u)*-14));opacity:0}}
 
 /* なまえを いれる */

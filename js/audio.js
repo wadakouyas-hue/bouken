@@ -216,6 +216,34 @@ export function sfx(name) {
       [72, 76, 79, 84].forEach(m => fm(t + .5, freqOf(m), .9, { ...EP, vol: .09 }, sfxBus)); break;
     case 'lose':   // まけた
       [67, 66, 65, 64].forEach((m, i) => fm(t + i * .3, freqOf(m), .28, { ...LEAD, vol: .1, send: 1 }, sfxBus)); break;
+    case 'slash':  // 斬る
+      { const s = hiss(t, .25, 'bandpass', 3000, 2, .14, sfxBus); } hiss(t + .05, .12, 'highpass', 5000, .7, .08, sfxBus); break;
+    case 'fire': { // ほのお: ゴォーッと もえる
+      const s = ac.createBufferSource(); s.buffer = noise; const f = ac.createBiquadFilter(); f.type = 'lowpass';
+      f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(2400, t + .35); f.frequency.exponentialRampToValueAtTime(500, t + .7);
+      const g = ac.createGain(); g.gain.setValueAtTime(.001, t); g.gain.exponentialRampToValueAtTime(.5, t + .1); g.gain.exponentialRampToValueAtTime(.001, t + .75);
+      s.connect(f).connect(g).connect(sfxBus); s.start(t); s.stop(t + .8);
+      for (let i = 0; i < 6; i++) hiss(t + .1 + Math.random() * .5, .15, 'highpass', 3000, .5, .02, sfxBus);   // パチパチ
+      break;
+    }
+    case 'water':  // みず: ザバーン + あわ
+      hiss(t, .35, 'bandpass', 900, .6, .45, sfxBus);
+      for (let i = 0; i < 6; i++) { const o = ac.createOscillator(), g = ac.createGain(), tt = t + .1 + i * .07, f0 = 500 + Math.random() * 700;
+        o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 2.2, tt + .06);
+        g.gain.setValueAtTime(.06, tt); g.gain.exponentialRampToValueAtTime(.001, tt + .07); o.connect(g).connect(sfxBus); o.start(tt); o.stop(tt + .08); }
+      break;
+    case 'thunder': { // かみなり: バリッ + ゴロゴロ
+      hiss(t, .6, 'highpass', 1500, .5, .12, sfxBus);
+      const s = ac.createBufferSource(); s.buffer = noise; const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 180;
+      const g = ac.createGain(); g.gain.setValueAtTime(.001, t); g.gain.exponentialRampToValueAtTime(.9, t + .08); g.gain.exponentialRampToValueAtTime(.001, t + .8);
+      s.connect(f).connect(g).connect(sfxBus); s.start(t); s.stop(t + .85); break;
+    }
+    case 'wind': { // かぜ: ヒュルルー
+      const s = ac.createBufferSource(); s.buffer = noise; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 6;
+      f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(2600, t + .3); f.frequency.exponentialRampToValueAtTime(900, t + .7);
+      const g = ac.createGain(); g.gain.setValueAtTime(.001, t); g.gain.exponentialRampToValueAtTime(.7, t + .15); g.gain.exponentialRampToValueAtTime(.001, t + .75);
+      s.connect(f).connect(g).connect(sfxBus); s.start(t); s.stop(t + .8); break;
+    }
     case 'warp': { // 場面が切り替わる
       const o = ac.createOscillator(), g = ac.createGain();
       o.type = 'triangle'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(160, t + .25);

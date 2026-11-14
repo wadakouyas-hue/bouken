@@ -5,13 +5,13 @@ export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: 
 export const bag = [];                                             // 持ち物(items.csv の id)
 
 const rows = () => DATA.party.filter(r => r.id === 'hero').sort((a, b) => a.lv - b.lv);
-const FALLBACK = { lv: 1, exp: 0, hp: 30, mp: 6, atk: 8, def: 4, spd: 6, learn: [] };
+const FALLBACK = { lv: 1, exp: 0, hp: 30, mp: 6, atk: 8, def: 4, mag: 6, spr: 4, spd: 6, learn: [] };
 
 export function heroStats() {
   const rs = rows(); let row = rs[0] || FALLBACK;
   const skills = [];
   for (const r of rs) if (r.lv <= hero.lv) { row = r; for (const s of r.learn) if (!skills.includes(s)) skills.push(s); }
-  return { maxhp: row.hp, maxmp: row.mp, atk: row.atk + (equipped('ぶき')?.val || 0), def: row.def + (equipped('よろい')?.val || 0), spd: row.spd, skills,
+  return { maxhp: row.hp, maxmp: row.mp, atk: row.atk + (equipped('ぶき')?.val || 0), def: row.def + (equipped('よろい')?.val || 0), mag: row.mag, spr: row.spr, spd: row.spd, skills,
     baseAtk: row.atk, baseDef: row.def };
 }
 // そうびしている物(持っていなければ なし)

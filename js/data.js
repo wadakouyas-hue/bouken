@@ -4,19 +4,20 @@ export const dataErrors = [];
 export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
 export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ'];     // よろいの「みため」
 export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
+export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
 
 const SPEC = {
   party: { file: 'data/party.csv', label: 'みかた',
-    cols: { id: 'id', name: 'なまえ', lv: 'レベル', exp: 'けいけんち', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', spd: 'すばやさ', learn: 'おぼえる わざ' },
-    nums: ['lv', 'exp', 'hp', 'mp', 'atk', 'def', 'spd'], lists: ['learn'], optional: ['name', 'learn'] },
+    cols: { id: 'id', name: 'なまえ', lv: 'レベル', exp: 'けいけんち', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', learn: 'おぼえる わざ' },
+    nums: ['lv', 'exp', 'hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd'], lists: ['learn'], optional: ['name', 'learn', 'mag', 'spr'] },
   enemies: { file: 'data/enemies.csv', label: 'てき',
-    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', spd: 'すばやさ', exp: 'けいけんち', skills: 'わざ' },
-    nums: ['hp', 'mp', 'atk', 'def', 'spd', 'exp'], lists: ['skills'], optional: ['skills', 'move'],
+    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', exp: 'けいけんち', weak: 'よわい', resist: 'つよい', skills: 'わざ' },
+    nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist'],
     choices: { move: ['うろうろ', 'ゆっくり', 'はやい'] } },
   skills: { file: 'data/skills.csv', label: 'わざ・じゅもん',
-    cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい' },
-    nums: ['mp', 'pow'], optional: ['desc'],
-    choices: { type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく'], target: ['ひとり', 'ぜんぶ', 'じぶん'] } },
+    cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', elem: 'ぞくせい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい' },
+    nums: ['mp', 'pow'], optional: ['desc', 'elem'],
+    choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく'], target: ['ひとり', 'ぜんぶ', 'じぶん'] } },
   items: { file: 'data/items.csv', label: 'どうぐ・そうび',
     cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', desc: 'せつめい' },
     nums: ['val'], optional: ['desc', 'look'], choices: { kind: ['かいふく', 'よろい', 'ぶき', 'だいじ'] } },
@@ -69,7 +70,8 @@ function table(key, text) {
       const raw = colIdx[k] !== undefined ? (r[colIdx[k]] ?? '').trim() : '';
       if (sp.nums.includes(k)) {
         const v = Number(raw.normalize('NFKC'));
-        if (raw === '' || !Number.isFinite(v)) { dataErrors.push(`${where}の ${line}行目:「${sp.cols[k]}」が 数字ではありません(「${raw}」)。0にします。`); o[k] = 0; }
+        if (raw === '' && sp.optional?.includes(k)) o[k] = 0;               // 書いていなければ 0
+        else if (raw === '' || !Number.isFinite(v)) { dataErrors.push(`${where}の ${line}行目:「${sp.cols[k]}」が 数字ではありません(「${raw}」)。0にします。`); o[k] = 0; }
         else o[k] = v;
       } else if (sp.lists?.includes(k)) o[k] = raw.split(/[\s、,・]+/).filter(Boolean);
       else o[k] = raw;
@@ -97,7 +99,11 @@ async function loadAll() {
     for (const s of e.skills) if (!byId('skills', s)) dataErrors.push(`てき(enemies.csv)「${e.id}」: 「${s}」という わざが skills.csv に ありません。`);
     if (!LOOKS.includes(e.look)) { dataErrors.push(`てき(enemies.csv)「${e.id}」: みためは ${LOOKS.join(' / ')} のどれかにしてください。`); e.look = LOOKS[0]; }
   }
-  for (const e of DATA.enemies) if (!e.move) e.move = 'うろうろ';
+  for (const e of DATA.enemies) {
+    if (!e.move) e.move = 'うろうろ';
+    for (const k of ['weak', 'resist']) for (const el of e[k]) if (!ELEMENTS.includes(el)) dataErrors.push(`てき(enemies.csv)「${e.id}」: ${k === 'weak' ? 'よわい' : 'つよい'}は ${ELEMENTS.join(' / ')} のどれかにしてください(「${el}」)。`);
+  }
+  for (const s of DATA.skills) if (!s.elem) s.elem = 'なし';
   for (const it of DATA.items) {
     const ok = it.kind === 'よろい' ? ARMOR_LOOKS : it.kind === 'ぶき' ? WEAPON_LOOKS : null;
     if (ok && it.look && !ok.includes(it.look)) { dataErrors.push(`どうぐ(items.csv)「${it.id}」: みためは ${ok.join(' / ')} のどれかにしてください。`); it.look = ''; }
