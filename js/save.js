@@ -19,6 +19,9 @@ function check(d) {
   if (!['up', 'down', 'left', 'right'].includes(d.dir)) d.dir = 'down';
   const strs = a => Array.isArray(a) ? a.filter(s => typeof s === 'string').slice(0, 500) : [];
   d.bag = strs(d.bag); d.done = strs(d.done); d.talked = !!d.talked;
+  const h = d.hero, num = (v, min) => Number.isFinite(v) && v >= min;
+  d.hero = h && typeof h.name === 'string' && h.name && num(h.lv, 1) && num(h.exp, 0) && num(h.hp, 0) && num(h.mp, 0)
+    ? { name: h.name.slice(0, 8), lv: Math.floor(h.lv), exp: h.exp, hp: h.hp, mp: h.mp } : null;
   return d;
 }
 

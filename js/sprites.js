@@ -29,8 +29,9 @@ const CHEST_OPEN = ["............", "............", "............", ".kkkkkkkkkk
 const POTION = ["............", "............", "............", "............", "............", ".....kk.....", "....knnk....", "....kkkk....", "....kggk....", "...kggggk...", "..kllllllk..", "..kLlllllk..", "..kLlllllk..", "..kllllllk..", "...kkkkkk...", "............"];
 
 function build(rows, pal, flip) {
-  const c = document.createElement('canvas'); c.width = 12; c.height = 16; const g = c.getContext('2d');
-  rows.forEach((r, y) => { for (let x = 0; x < 12; x++) { const ch = r[x]; if (!ch || ch === '.') continue; g.fillStyle = pal[ch]; g.fillRect(flip ? 11 - x : x, y, 1, 1); } });
+  const w = rows[0].length;
+  const c = document.createElement('canvas'); c.width = w; c.height = rows.length; const g = c.getContext('2d');
+  rows.forEach((r, y) => { for (let x = 0; x < w; x++) { const ch = r[x]; if (!ch || ch === '.') continue; g.fillStyle = pal[ch]; g.fillRect(flip ? w - 1 - x : x, y, 1, 1); } });
   return c;
 }
 const cache = {};
@@ -43,3 +44,64 @@ export function charSprite(palName, dir, f) {
   return cache[key] = build([...head, ...body, ...legs], PAL[palName] || PAL.oji, dir === 'left');
 }
 export const SPR = { sign: build(SIGN, PAL.obj), chest: build(CHEST, PAL.obj), chestOpen: build(CHEST_OPEN, PAL.obj), potion: build(POTION, PAL.obj) };
+
+// ===== てき(16×16ドット) =====
+const ENEMY = {
+  きのこ: { pal: { k: '#2a1e1a', r: '#e04848', w: '#ffffff', s: '#f6e7c8', e: '#2a1e1a', p: '#e07070', f: '#8a5a2a' }, rows: [
+    '................',
+    '.....kkkkkk.....',
+    '...kkrrrrrrkk...',
+    '..krrwwrrrrrrk..',
+    '.krrwwwrrrwwrrk.',
+    '.krrrrrrrrwwrrk.',
+    'krrrrrwwrrrrrrrk',
+    'kkkkkkkkkkkkkkkk',
+    '...kssssssssk...',
+    '...ksessssesk...',
+    '...ksssppsssk...',
+    '...kssssssssk...',
+    '....kssssssk....',
+    '...kkkk..kkkk...',
+    '..kffffk.kffffk.',
+    '..kkkkkk.kkkkkk.'] },
+  どんぐり: { pal: { k: '#2a1e1a', c: '#7a4a24', C: '#5a3418', b: '#c8894a', e: '#2a1e1a', p: '#e07070' }, rows: [
+    '......kk........',
+    '.......kk.......',
+    '....kkkkkkkk....',
+    '..kkccCccCcckk..',
+    '.kcCccCccCccCck.',
+    '.kkkkkkkkkkkkkk.',
+    '..kbbbbbbbbbbk..',
+    '..kbbebbbbebbk..',
+    '..kbbebbbbebbk..',
+    '.kkbbbbbbbbbbkk.',
+    '..kbbbbppbbbbk..',
+    '..kbbbbbbbbbbk..',
+    '...kbbbbbbbbk...',
+    '....kbbbbbbk....',
+    '.....kkkkkk.....',
+    '................'] },
+  はっぱ: { pal: { k: '#2a1e1a', g: '#5cc45a', G: '#2f8a3a', e: '#2a1e1a', p: '#e07070' }, rows: [
+    '........kk......',
+    '......kkggk.....',
+    '.....kgggggk....',
+    '....kgggggggk...',
+    '...kgggGgggggk..',
+    '..kggggGggggggk.',
+    '.kgggegGggeggggk',
+    '.kgggegGggeggggk',
+    '.kggggggGgggggk.',
+    '.kgggpppGgggggk.',
+    '..kggggggGgggk..',
+    '...kggggggGgk...',
+    '....kggggggk....',
+    '.....kkkkkk.....',
+    '......k..k......',
+    '.....kk..kk.....'] },
+};
+const ecache = {};
+export function enemySprite(look) {
+  const d = ENEMY[look] || ENEMY.きのこ;
+  return ecache[look] || (ecache[look] = build(d.rows, d.pal));
+}
+export const ENEMY_ROWS = ENEMY;   // 確認用

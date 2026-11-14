@@ -89,4 +89,35 @@ export const SONGS = {
       snareFill: '....x..g.g..xxxx',
     },
   },
+  // 戦闘 — 速めの ファンク
+  battle: {
+    bpm: 132,
+    swing: 0,
+    bassSound: 'slap',
+    //   Em7 | Em7 | Cmaj7 | B7
+    chords: ['E4 G4 B4 D5', 'E4 G4 B4 D5', 'E4 G4 B4 C5', 'D#4 F#4 A4 B4'],
+    comp:  'x.......x.......',
+    comp2: 'x.......x.......',
+    gtr:   'x.xgx.xgx.xgx.xg',
+    bass: [
+      'E1:2 E2:2 E1:2 E2:2 E1:2 E2:2 D2:2 B1:2',
+      'E1:2 E2:2 E1:2 E2:2 E1:2 E2:2 G2:2 F#2:2',
+      'C2:2 C3:2 C2:2 C3:2 C2:2 C3:2 G2:2 C3:2',
+      'B1:2 B2:2 B1:2 B2:2 A2:2 F#2:2 D#2:2 B1:2',
+    ],
+    melody: [
+      'B4:2 B4:1 r:1 E5:2 B4:2 D5:2 E5:2 r:2 G5:2',
+      'F#5:4 E5:2 D5:2 E5:8',
+      'G5:2 G5:1 r:1 E5:2 G5:2 C6:4 B5:4',
+      'A5:2 F#5:2 D#5:2 B4:2 F#5:4 D#5:4',
+      '', '', '', '',
+    ],
+    drums: {
+      kick:  'x...x...x...x.x.',
+      snare: '....x.......x...',
+      hat:   'x.x.x.x.x.x.x.x.',
+      kickFill:  'x...x...x.x.x.x.',
+      snareFill: '....x.......xxxx',
+    },
+  },
 };

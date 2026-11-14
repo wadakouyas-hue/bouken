@@ -1,8 +1,12 @@
 // ぼうけんの たび — 本体
 import { T, BLOCK, tileImg } from './tiles.js';
-import { charSprite, SPR } from './sprites.js';
+import { charSprite, SPR, enemySprite } from './sprites.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
+import { ready, dataErrors, byId, DATA } from './data.js';
+import { hero, bag, heroStats, healFull } from './hero.js';
+import { battle, startBattle, updateBattle, drawBattle, battleTap } from './battle.js';
+import { nameEntry, askName, nameKey } from './nameentry.js';
 import village from '../maps/village.js';
 import house from '../maps/house.js';
 import forest from '../maps/forest.js';
@@ -32,10 +36,16 @@ const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
 const MAPS = { village, house, forest };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length;
-  m.objs = m.objs.map(o => ({ dir: 'down', ...o, key: `${name}:${o.x},${o.y}`, ...at(o.x, o.y) }));  // key はセーブで使う名札
+  m.objs = m.objs.map(o => {
+    const p = at(o.x, o.y);
+    const r = { dir: 'down', ...o, key: `${name}:${o.x},${o.y}`, ...p };   // key はセーブで使う名札
+    if (o.kind === 'enemy') Object.assign(r, { party: o.party.split(/\s+/), hx: p.x, hy: p.y, tx: p.x, ty: p.y, timer: 0, cool: 0 });
+    return r;
+  });
 }
 let cur = village;
-const bag = [];                          // 手に入れた物(戦闘で使う予定)
+const mapName = () => Object.keys(MAPS).find(k => MAPS[k] === cur);
+function resetEnemies(m) { for (const o of m.objs) if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0 }); }
 
 // ===== キャラ =====
 const START = { map: 'village', ...at(5, 8) };
@@ -43,17 +53,20 @@ const player = { x: START.x, y: START.y, dir: 'down', anim: 0, moving: false };
 const live = () => cur.objs.filter(o => !o.gone);
 
 // ===== 当たり判定 =====
-function solidAt(x, y) {
+function tileSolid(x, y) {
   const tx = Math.floor(x / T), ty = Math.floor(y / T);
-  if (tx < 0 || ty < 0 || tx >= cur.w || ty >= cur.h) return true;
-  if (BLOCK.has(cur.rows[ty][tx])) return true;
+  return tx < 0 || ty < 0 || tx >= cur.w || ty >= cur.h || BLOCK.has(cur.rows[ty][tx]);
+}
+function solidAt(x, y) {
+  if (tileSolid(x, y)) return true;
   for (const o of live()) {
-    if (o.kind === 'look' || o.kind === 'item') continue;  // 家具はタイルで止まる/落ちている物は通れる
+    if (o.kind === 'look' || o.kind === 'item' || o.kind === 'enemy') continue;  // 家具はタイルで止まる/落ちている物は通れる/てきは ぶつかると戦闘
     if (x > o.x - 6 && x < o.x + 6 && y > o.y - 6 && y < o.y + 1) return true;
   }
   return false;
 }
 const hits = (x, y) => solidAt(x - 5, y - 5) || solidAt(x + 5, y - 5) || solidAt(x - 5, y - 1) || solidAt(x + 5, y - 1);
+const enemyBlocked = (x, y) => tileSolid(x - 5, y - 5) || tileSolid(x + 5, y - 5) || tileSolid(x - 5, y - 1) || tileSolid(x + 5, y - 1) || exitAt(x, y);
 // 出入り口にふれたか
 function exitAt(x, y) {
   for (const e of cur.exits) {
@@ -63,29 +76,45 @@ function exitAt(x, y) {
   return null;
 }
 
-// ===== 場面の切り替え(暗くなって → 明るくなる) =====
+// ===== 場面の切り替え(暗くなって → まっくらの間に fn → 明るくなって → after) =====
 const FADE = 0.25;
-const trans = { on: false, t: 0, exit: null };
+const trans = { on: false, t: 0, fn: null, after: null };
+function fadeTo(fn, after) { stickRelease(); trans.on = true; trans.t = 0; trans.fn = fn; trans.after = after || null; }
 function goExit(e) {
   sfx('warp');
-  stickRelease();
-  trans.on = true; trans.t = 0; trans.exit = e;
+  fadeTo(() => {
+    cur = MAPS[e.to]; resetEnemies(cur);
+    Object.assign(player, at(e.at[0], e.at[1]));
+    player.dir = e.dir || player.dir; player.anim = 0; player.moving = false;
+    updateCamera(); save();
+    playBgm(cur.bgm || 'village');
+  });
 }
 function updateTrans(dt) {
   const before = trans.t;
   trans.t += dt;
-  if (before < FADE && trans.t >= FADE) {        // まっくらの間に マップを入れかえる
-    const e = trans.exit;
-    cur = MAPS[e.to];
-    Object.assign(player, at(e.at[0], e.at[1]));
-    player.dir = e.dir || player.dir; player.anim = 0; player.moving = false;
-    updateCamera();
-    save();
-    playBgm(cur.bgm || 'village');
-  }
-  if (trans.t >= FADE * 2) trans.on = false;
+  if (before < FADE && trans.t >= FADE && trans.fn) { const f = trans.fn; trans.fn = null; f(); }
+  if (trans.t >= FADE * 2) { trans.on = false; const a = trans.after; trans.after = null; if (a) a(); }
 }
 const fadeAlpha = () => !trans.on ? 0 : trans.t < FADE ? trans.t / FADE : Math.max(0, 2 - trans.t / FADE);
+
+// ===== 戦闘へ =====
+function encounter(o) {
+  sfx('encounter');
+  fadeTo(() => {
+    startBattle(o.party).then(result => fadeTo(() => {
+      if (result === 'win') o.gone = true;
+      if (result === 'run') o.cool = 3;          // にげたあと 少しの間は ぶつからない
+      if (result === 'lose') {                   // まけたら 村で 目が さめる
+        cur = MAPS[START.map]; Object.values(MAPS).forEach(resetEnemies);
+        Object.assign(player, { x: START.x, y: START.y, dir: 'down' });
+        healFull();
+      }
+      updateCamera(); save();
+      playBgm(cur.bgm || 'village');
+    }, result === 'lose' ? () => openDialog('', ['……はっ!', '{目|め}が さめた。 むらの ひとが はこんで くれたみたい。', '@の HPが ぜんぶ もどった!']) : null));
+  });
+}
 
 // ===== 入力:擬似スティック =====
 const stick = { id: null, bx: 0, by: 0, x: 0, y: 0, vx: 0, vy: 0 };
@@ -102,7 +131,8 @@ function stickMove(p) {
   sbase.style.left = stick.bx + 'px'; sbase.style.top = stick.by + 'px';
   sknob.style.left = stick.x + 'px'; sknob.style.top = stick.y + 'px';
 }
-function openDialog(name, lines, onEnd) { stickRelease(); openDlg(name, lines, onEnd); }
+// セリフの @ は 主人公の なまえ になる
+function openDialog(name, lines, onEnd) { stickRelease(); openDlg(name, lines.map(l => l.replace(/@/g, hero.name)), onEnd); }
 
 let started = false, near = null;
 const cam = { x: 0, y: 0 };
@@ -115,6 +145,8 @@ stage.addEventListener('pointerdown', e => {
     if (e.target.closest('#pcorner')) { holdStart(); return; }
     start(); return;
   }
+  if (nameEntry.open) { const b = e.target.closest('#names button'); if (b) { sfx('next'); nameKey(b.dataset.k); } return; }
+  if (battle.on) { const b = e.target.closest('[data-b]'); battleTap(b ? +b.dataset.b : undefined); return; }
   if (trans.on) return;
   if (dlg.open) { advance(); return; }
   if (e.target.closest('#act')) { if (near) interact(near); return; }
@@ -133,8 +165,11 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 const keys = {};
 addEventListener('keydown', e => {
   if (parentOpen()) return;              // 保護者メニューで文字を打っているとき
+  const ok = e.key === ' ' || e.key === 'Enter' || e.key === 'z';
+  if (nameEntry.open) { if (e.key === 'Backspace') nameKey('#del'); else if (e.key === 'Enter') nameKey('#ok'); return; }
+  if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
   keys[e.key] = true;
-  if (e.key === ' ' || e.key === 'Enter' || e.key === 'z') {
+  if (ok) {
     if (!started) start(); else if (trans.on) return; else if (dlg.open) advance(); else if (near) interact(near);
   }
 });
@@ -148,7 +183,9 @@ function interact(o) {
   if (o.kind === 'npc') {
     const dx = player.x - o.x, dy = player.y - o.y;
     o.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-    if (o.ifHave && bag.includes(o.ifHave.item)) { openDialog(o.name, o.ifHave.lines); return; }
+    const lines = o.ifHave && bag.includes(o.ifHave.item) ? o.ifHave.lines : o.lines;
+    openDialog(o.name, lines, o.heal ? () => healAt(o) : null);
+    return;
   }
   if (o.taken) { openDialog(o.name, o.after || ['もう なにも ない。']); return; }
   if (o.give) {
@@ -157,6 +194,13 @@ function interact(o) {
     save();
   }
   openDialog(o.name, o.lines);
+}
+// HP・MPを ぜんぶ もどしてくれる人
+function healAt(o) {
+  const st = heroStats();
+  if (hero.hp >= st.maxhp && hero.mp >= st.maxmp) return;
+  healFull(); sfx('heal'); save();
+  openDialog(o.name, ['つかれた かおを しているね。 すこし やすんで いきな。', '@の {体|からだ}が げんきに なった!']);
 }
 function advance() { sfx('next'); advanceDlg(); }
 hooks.onType = () => sfx('type');
@@ -170,11 +214,12 @@ function markTaken(o) {
 // ===== セーブ(自動) =====
 function allObjs() { return Object.values(MAPS).flatMap(m => m.objs); }
 function save() {
-  if (!started) return;
+  if (!started || !hero.name) return;
   writeSave({
-    v: 1, map: Object.keys(MAPS).find(k => MAPS[k] === cur),
+    v: 1, map: mapName(),
     x: Math.round(player.x), y: Math.round(player.y), dir: player.dir,
     bag: [...bag], done: allObjs().filter(o => o.taken).map(o => o.key), talked: talkedOnce,
+    hero: { ...hero },
   });
 }
 function load(d) {
@@ -183,10 +228,14 @@ function load(d) {
   if (!MAPS[d.map] || hits(player.x, player.y) || exitAt(player.x, player.y)) {  // マップを作り直して 入れない場所になっていたら 村の最初の場所へ
     cur = MAPS[START.map]; Object.assign(player, { x: START.x, y: START.y });
   }
-  bag.push(...d.bag);
+  // 持ち物: むかしの セーブは 名前で 入っているので id に なおす
+  for (const b of d.bag) { const it = byId('items', b) || DATA.items.find(i => i.name === b); bag.push(it ? it.id : b); }
   const done = new Set(d.done);
   for (const o of allObjs()) if (done.has(o.key)) markTaken(o);
   talkedOnce = d.talked;
+  if (d.hero) Object.assign(hero, d.hero);
+  const st = heroStats();
+  hero.hp = Math.min(hero.hp, st.maxhp); hero.mp = Math.min(hero.mp, st.maxmp);
   updateCamera();
 }
 let autoT = 0;
@@ -196,16 +245,33 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 // ===== はじめる =====
 let hintPhase = 0, walked = 0;
 const saved = readSave();
-if (saved) { load(saved); $('taptxt').innerHTML = rubyHTML('{タップ|たっぷ}して つづきから'); }
+if (saved) $('taptxt').innerHTML = rubyHTML('{タップ|たっぷ}して つづきから');
+const boot = ready.then(() => {
+  for (const [name, m] of Object.entries(MAPS)) for (const o of m.objs) if (o.kind === 'enemy')
+    for (const id of o.party) if (!byId('enemies', id)) dataErrors.push(`maps/${name}.js の てき「${id}」が enemies.csv に ありません。`);
+  if (saved) load(saved);
+  if (dataErrors.length) {
+    const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const list = dataErrors.slice(0, 6).map(esc).join('<br>') + (dataErrors.length > 6 ? `<br>(ほかに ${dataErrors.length - 6}件)` : '');
+    $('dataerr').innerHTML = '<b>data フォルダの CSV に まちがいがあります(ゲームは そのまま遊べます)</b><br>' + list;
+    $('dataerr').style.display = 'block';
+  }
+});
 function start() {
   if (started) return;
   started = true; $('title').style.display = 'none';
-  initAudio(); playBgm(cur.bgm || 'village');
+  initAudio();
   const el = document.documentElement;
   try { const p = el.requestFullscreen && el.requestFullscreen({ navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
   try { const p = screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); if (p && p.catch) p.catch(() => {}); } catch (_) {}
-  if (saved) { hintPhase = 2; return; }   // つづきからは すぐ遊べる
-  setTimeout(() => openDialog('', ['{目|め}が さめた。 いい {天気|てんき}だ!', 'どこへ いこうかな?'], () => { hintPhase = 1; $('hint1').style.display = 'block'; }), 300);
+  boot.then(async () => {
+    if (!hero.name) hero.name = await askName();
+    if (hero.hp < 0) healFull();
+    playBgm(cur.bgm || 'village');
+    if (saved) { hintPhase = 2; save(); return; }   // つづきからは すぐ遊べる
+    save();
+    setTimeout(() => openDialog('', ['{目|め}が さめた。 いい {天気|てんき}だ!', 'どこへ いこうかな?'], () => { hintPhase = 1; $('hint1').style.display = 'block'; }), 300);
+  });
 }
 
 // ===== 保護者メニュー =====
@@ -254,12 +320,22 @@ function updateCamera() {
 }
 
 // ===== 毎フレームの更新 =====
-let tm = 0;
+let tm = 0, chipText = '';
+function updateChip() {
+  const show = started && hero.name && !battle.on && !nameEntry.open;
+  $('hpchip').style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const st = heroStats(), t = `${hero.name} HP ${hero.hp}/${st.maxhp}`;
+  if (t !== chipText) { chipText = t; $('hpchip').textContent = t; $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
+}
 function update(dt) {
   tm += dt;
-  if (trans.on) { updateTrans(dt); $('act').style.display = 'none'; return; }
+  if (trans.on) updateTrans(dt);
+  updateChip();
+  if (battle.on) { updateBattle(dt); $('act').style.display = 'none'; return; }
+  if (trans.on || nameEntry.open) { $('act').style.display = 'none'; return; }
   if (dlg.open) { updateDialog(dt); return; }
-  if (!started) return;
+  if (!started || !hero.name) return;
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
   // 入力
   let vx = stick.vx, vy = stick.vy;
@@ -283,10 +359,25 @@ function update(dt) {
   } else player.anim = 0;
   // ときどき向きを変える人
   for (const o of cur.objs) if (o.wander && Math.random() < dt * .4) o.dir = ['down', 'left', 'right'][Math.random() * 3 | 0];
+  // てきは うろうろ歩く。 ぶつかったら 戦闘
+  for (const o of live()) {
+    if (o.kind !== 'enemy') continue;
+    o.cool = Math.max(0, o.cool - dt);
+    o.timer -= dt;
+    if (o.timer <= 0) { o.timer = 1.5 + Math.random() * 2; const a = Math.random() * 6.28, r = Math.random() * 24; o.tx = o.hx + Math.cos(a) * r; o.ty = o.hy + Math.sin(a) * r; }
+    const dx = o.tx - o.x, dy = o.ty - o.y, d = Math.hypot(dx, dy);
+    o.moving = d > 1;
+    if (o.moving) {
+      const s = Math.min(d, 18 * dt), nx = o.x + dx / d * s, ny = o.y + dy / d * s;
+      if (!enemyBlocked(nx, o.y)) o.x = nx; else o.timer = 0;
+      if (!enemyBlocked(o.x, ny)) o.y = ny; else o.timer = 0;
+    }
+    if (!o.cool && Math.hypot(o.x - player.x, o.y - player.y) < 12) { encounter(o); return; }
+  }
   updateCamera();
   // 近くにあるものを探す
   near = null; let best = 24;
-  for (const o of live()) { const d = Math.hypot(o.x - player.x, o.y - player.y); if (d < best) { best = d; near = o; } }
+  for (const o of live()) { if (o.kind === 'enemy') continue; const d = Math.hypot(o.x - player.x, o.y - player.y); if (d < best) { best = d; near = o; } }
   const act = $('act');
   if (near) {
     act.style.display = 'block';
@@ -300,6 +391,11 @@ function update(dt) {
 // ===== 描画 =====
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
+  if (battle.on) drawBattle(ctx); else drawField();
+  const a = fadeAlpha();
+  if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
+}
+function drawField() {
   const x0 = Math.max(0, Math.floor(cam.x / T)), y0 = Math.max(0, Math.floor(cam.y / T));
   for (let ty = y0; ty <= y0 + Math.ceil(VH / T); ty++) for (let tx = x0; tx <= x0 + Math.ceil(VW / T); tx++) {
     if (tx >= cur.w || ty >= cur.h) continue;
@@ -308,7 +404,13 @@ function draw() {
   const ents = [player, ...live().filter(o => o.kind !== 'look')].sort((a, b) => a.y - b.y);
   for (const e of ents) {
     const sx = Math.round(e.x - cam.x), sy = Math.round(e.y - cam.y);
+    if (e.kind === 'enemy' && e.cool > 0 && Math.floor(tm * 10) % 2) continue;   // にげたあとは ちかちか
     ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(sx - 4, sy - 1, 8, 2); ctx.fillRect(sx - 3, sy - 2, 6, 4);   // 影
+    if (e.kind === 'enemy') {
+      const hop = e.moving ? Math.round(Math.abs(Math.sin(tm * 8 + e.hx)) * -2) : 0;
+      ctx.drawImage(enemySprite(byId('enemies', e.party[0])?.look), sx - 8, sy - 16 + hop);
+      continue;
+    }
     let img;
     if (e === player) img = charSprite('hero', e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0);
     else if (e.kind === 'npc') img = charSprite(e.pal, e.dir, 0);
@@ -318,12 +420,10 @@ function draw() {
     ctx.drawImage(img, sx - 6, sy - 15);
     if ((e.kind === 'chest' && !e.taken || e.kind === 'item') && (tm % 1.4) < .35) { ctx.fillStyle = '#fff'; ctx.fillRect(sx + 3, sy - 14, 1, 3); ctx.fillRect(sx + 2, sy - 13, 3, 1); } // きらっ
   }
-  const a = fadeAlpha();
-  if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
 }
 
 // 確認用(Macのブラウザの開発ツールから bouken.player などを見られる)
-globalThis.bouken = { player, bag, get map() { return Object.keys(MAPS).find(k => MAPS[k] === cur); }, get near() { return near; } };
+globalThis.bouken = { player, bag, hero, battle, get map() { return mapName(); }, get near() { return near; }, get objs() { return cur.objs; } };
 
 let last = performance.now();
 function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); }

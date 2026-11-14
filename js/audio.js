@@ -182,6 +182,40 @@ export function sfx(name) {
       duck(1.3);
       [72, 76, 79, 84].forEach((m, i) => fm(t + i * .09, freqOf(m), .12, { ...LEAD, vol: .16, send: .6, vib: 0 }, sfxBus));
       [72, 76, 79, 83].forEach(m => fm(t + .38, freqOf(m), .7, { ...EP, vol: .09 }, sfxBus)); break;
+    case 'encounter': // てきに ぶつかった
+      [76, 72, 76, 72, 79].forEach((m, i) => fm(t + i * .06, freqOf(m), .05, { ...BLIP, vol: .12, dec: .06 }, sfxBus)); break;
+    case 'hit':    // こうげきが あたった
+      hiss(t, .35, 'bandpass', 1200, .7, .12, sfxBus);
+      { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(60, t + .1);
+        g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .15); o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .16); } break;
+    case 'hurt': { // じぶんが ダメージを うけた
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = 'square';
+      o.frequency.setValueAtTime(330, t); o.frequency.exponentialRampToValueAtTime(110, t + .2);
+      g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.001, t + .25); o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .26);
+      hiss(t, .2, 'lowpass', 800, .7, .15, sfxBus); break;
+    }
+    case 'miss':   // よけた
+      { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(400, t); o.frequency.exponentialRampToValueAtTime(1200, t + .15);
+        g.gain.setValueAtTime(.07, t); g.gain.exponentialRampToValueAtTime(.001, t + .18); o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .2); } break;
+    case 'swing':  // わざ
+      hiss(t, .18, 'bandpass', 2500, 1.5, .18, sfxBus); break;
+    case 'magic':  // じゅもんを となえた
+    case 'heal':   // かいふく
+      [72, 76, 79, 84, 88].forEach((m, i) => fm(t + i * .05, freqOf(m + (name === 'magic' ? -5 : 0)), .1, { ...LEAD, vol: .07, send: 1, vib: 0 }, sfxBus)); break;
+    case 'defeat': // てきを やっつけた
+      [84, 79, 76, 72].forEach((m, i) => fm(t + i * .045, freqOf(m), .04, { ...BLIP, vol: .09, dec: .05 }, sfxBus)); break;
+    case 'run':    // にげる
+      [60, 64, 67, 72].forEach((m, i) => fm(t + i * .04, freqOf(m), .04, { ...BLIP, vol: .08, dec: .05 }, sfxBus)); break;
+    case 'win':    // かった!
+      [67, 72, 76, 79].forEach((m, i) => fm(t + i * .1, freqOf(m), .1, { ...LEAD, vol: .14, send: .6, vib: 0 }, sfxBus));
+      [72, 76, 79, 84].forEach(m => fm(t + .42, freqOf(m), 1.1, { ...EP, vol: .08 }, sfxBus));
+      fm(t + .42, freqOf(84), 1.1, { ...LEAD, vol: .14, send: .8 }, sfxBus); break;
+    case 'lvup':   // レベルアップ
+      duck(1.6);
+      [72, 74, 76, 77, 79, 81, 83, 84].forEach((m, i) => fm(t + i * .06, freqOf(m), .07, { ...LEAD, vol: .12, send: .6, vib: 0 }, sfxBus));
+      [72, 76, 79, 84].forEach(m => fm(t + .5, freqOf(m), .9, { ...EP, vol: .09 }, sfxBus)); break;
+    case 'lose':   // まけた
+      [67, 66, 65, 64].forEach((m, i) => fm(t + i * .3, freqOf(m), .28, { ...LEAD, vol: .1, send: 1 }, sfxBus)); break;
     case 'warp': { // 場面が切り替わる
       const o = ac.createOscillator(), g = ac.createGain();
       o.type = 'triangle'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(160, t + .25);
