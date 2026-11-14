@@ -121,7 +121,7 @@ stage.addEventListener('pointerdown', e => {
   stick.id = e.pointerId; stick.bx = p.x; stick.by = p.y; stickMove(p); stickShow(true);
 });
 addEventListener('pointermove', e => { if (e.pointerId === stick.id) stickMove(local(e)); });
-addEventListener('pointerup', e => { if (e.pointerId === stick.id) stickRelease(); if (hold.timer) { holdCancel(); start(); } }); // 短く押しただけなら ふつうに始める
+addEventListener('pointerup', e => { if (e.pointerId === stick.id) stickRelease(); holdCancel(); }); // 3秒より前に離したら やめる
 addEventListener('pointercancel', e => { if (e.pointerId === stick.id) stickRelease(); holdCancel(); });
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -202,8 +202,12 @@ function start() {
 
 // ===== 保護者メニュー =====
 const parentOpen = () => $('parent').style.display === 'flex';
-function holdStart() { holdCancel(); hold.timer = setTimeout(() => { hold.timer = null; openParent(); }, 3000); }
-function holdCancel() { if (hold.timer) { clearTimeout(hold.timer); hold.timer = null; } }
+function holdStart() {
+  holdCancel();
+  $('pcorner').classList.add('holding');
+  hold.timer = setTimeout(() => { hold.timer = null; $('pcorner').classList.remove('holding'); openParent(); }, 3000);
+}
+function holdCancel() { if (hold.timer) { clearTimeout(hold.timer); hold.timer = null; } $('pcorner').classList.remove('holding'); }
 let armed = null;                        // 「もう一度押してください」の確認待ち
 function pmsg(t, err) { $('pMsg').textContent = t; $('pMsg').className = err ? 'err' : ''; }
 function openParent() { armed = null; pmsg(''); $('pCode').value = ''; $('parent').style.display = 'flex'; }

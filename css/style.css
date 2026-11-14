@@ -39,7 +39,12 @@ rt{font-size:.5em;}
 #title .tap{margin-top:calc(var(--u)*14);font-size:calc(var(--u)*6.5);color:#fff;background:rgba(0,0,0,.35);padding:0 calc(var(--u)*6);border-radius:calc(var(--u)*4);line-height:1.8;animation:blink 1.2s steps(2) infinite;}
 
 /* 保護者メニュー */
-#pcorner{position:absolute;top:0;right:0;width:calc(var(--u)*40);height:calc(var(--u)*40);pointer-events:auto;}
+/* タイトル右上の「おとな」ボタン(3秒長押しで左から色がたまる) */
+#pcorner{position:absolute;top:calc(var(--u)*5);right:calc(var(--u)*5);width:calc(var(--u)*34);height:calc(var(--u)*13);pointer-events:auto;overflow:hidden;
+  border-radius:calc(var(--u)*7);background:rgba(0,0,0,.18);border:calc(var(--u)*.5) solid rgba(255,255,255,.6);box-sizing:border-box;}
+#pcorner .bar{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(29,79,138,.75);}
+#pcorner.holding .bar{width:100%;transition:width 3s linear;}
+#pcorner .plbl{position:relative;display:block;text-align:center;color:#fff;font-size:calc(var(--u)*5);line-height:calc(var(--u)*12);}
 #parent{position:absolute;inset:calc(var(--u)*8);box-sizing:border-box;padding:calc(var(--u)*5) calc(var(--u)*7);background:#fff;color:#222;border-radius:calc(var(--u)*4);
   font-size:calc(var(--u)*6);line-height:1.5;pointer-events:auto;display:none;flex-direction:column;gap:calc(var(--u)*3);box-shadow:0 0 0 calc(var(--u)*100) rgba(0,0,0,.5);}
 #parent .ptitle{font-weight:bold;font-size:calc(var(--u)*7);}
