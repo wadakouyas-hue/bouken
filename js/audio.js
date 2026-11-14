@@ -66,6 +66,8 @@ function fm(t, f, dur, o, dest) {
 const EP   = { vol: .07, atk: .004, dec: .9, rel: .15, send: 1, mods: [[1, 1.8, .2, .6], [14, .5, .01, .08]] };          // エレピ
 const BASS = { vol: .32, atk: .006, dec: .45, rel: .05, mods: [[1, 1.3, .3, .25]] };                                     // ベース
 const LEAD = { vol: .10, atk: .03, dec: 1.4, rel: .12, send: 1.2, vib: .004, mods: [[2, .9, .35, .5]] };               // メロディ
+const SLAP = { vol: .30, atk: .004, dec: .22, rel: .04, mods: [[1, 2.4, .4, .12]] };                                     // はねるベース
+const GTR  = { vol: .035, atk: .002, dec: .05, rel: .03, mods: [[3, 2.2, .4, .05], [1, 1, .3, .05]] };               // 刻むギター
 const BLIP = { vol: .04, atk: .002, dec: .03, rel: .02, mods: [[1, .6, .2, .03]] };
 
 function kick(t, v) {
@@ -121,7 +123,9 @@ function compile(song) {
       chordAt(st).forEach((m, j) => ev.push({ step: base + st, fn: (t, sd) => fm(t + j * .008, freqOf(m), len * sd * .9, EP, musicBus) }));
     });
     // ベース
-    for (const n of line(song.bass[b % song.bass.length])) ev.push({ step: base + n.step, fn: (t, sd) => fm(t, freqOf(n.m), n.len * sd * .85, BASS, musicBus) });
+    for (const n of line(song.bass[b % song.bass.length])) ev.push({ step: base + n.step, fn: (t, sd) => fm(t, freqOf(n.m), n.len * sd * .85, song.bassSound === 'slap' ? SLAP : BASS, musicBus) });
+    // ギター(ある曲だけ)
+    if (song.gtr) [...song.gtr].forEach((c, i) => { if (c === '.') return; chordAt(i).slice(-3).forEach((m, j) => ev.push({ step: base + i, fn: (t, sd) => fm(t + j * .004, freqOf(m), sd * .6, { ...GTR, vol: GTR.vol * (c === 'g' ? .5 : 1) }, musicBus) })); });
     // メロディ
     for (const n of line(mel)) ev.push({ step: base + n.step, fn: (t, sd) => fm(t, freqOf(n.m), n.len * sd * .95, LEAD, musicBus) });
     // ドラム

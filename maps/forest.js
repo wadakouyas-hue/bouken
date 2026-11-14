@@ -1,5 +1,6 @@
 // 森(30×20マス)— はじめての 戦闘を する予定の場所
 export default {
+  bgm: 'forest',   // 流す曲(js/music.js)
   rows: [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
     'YYYYYYgggggggggYYYYYYYYYYYYYYY',
