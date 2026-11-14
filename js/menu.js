@@ -86,7 +86,7 @@ function itemsView() {
   }).join('');
   const it = byId('items', sel);
   const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? btn('use', 'つかう', 'go') : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
-  return `<div class="mlist">${list}</div>${detail}`;
+  return `<div class="mtop">おかね ${R(`${hero.gold}{円|えん}`)}</div><div class="mlist">${list}</div>${detail}`;
 }
 function spellsView() {
   const st = heroStats();
@@ -121,7 +121,7 @@ function statsView() {
     `<div class="mstat"><span>HP</span><b>${hero.hp}/${st.maxhp}</b></div>${bar(hero.hp, st.maxhp, '#6cdc5a')}` +
     `<div class="mstat"><span>MP</span><b>${hero.mp}/${st.maxmp}</b></div>${bar(hero.mp, st.maxmp, '#5ab0ff')}` +
     row('こうげき', st.atk) + row('ぼうぎょ', st.def) + row('まりょく', st.mag) + row('せいしん', st.spr) + row('すばやさ', st.spd) +
-    row('けいけんち', hero.exp) + row('つぎの {レベル|れべる}まで', nx === null ? '-' : nx) + `</div></div>`;
+    row('けいけんち', hero.exp) + row('おかね', `${hero.gold}{円|えん}`) + row('つぎの {レベル|れべる}まで', nx === null ? '-' : nx) + `</div></div>`;
 }
 function partyView() {
   const st = heroStats();

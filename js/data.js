@@ -11,16 +11,16 @@ const SPEC = {
     cols: { id: 'id', name: 'なまえ', lv: 'レベル', exp: 'けいけんち', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', learn: 'おぼえる わざ' },
     nums: ['lv', 'exp', 'hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd'], lists: ['learn'], optional: ['name', 'learn', 'mag', 'spr'] },
   enemies: { file: 'data/enemies.csv', label: 'てき',
-    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', exp: 'けいけんち', weak: 'よわい', resist: 'つよい', skills: 'わざ' },
-    nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist'],
+    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', exp: 'けいけんち', gold: 'おかね', weak: 'よわい', resist: 'つよい', skills: 'わざ' },
+    nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp', 'gold'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist', 'gold'],
     choices: { move: ['うろうろ', 'ゆっくり', 'はやい'] } },
   skills: { file: 'data/skills.csv', label: 'わざ・じゅもん',
     cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', elem: 'ぞくせい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい' },
     nums: ['mp', 'pow'], optional: ['desc', 'elem'],
     choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく'], target: ['ひとり', 'ぜんぶ', 'じぶん'] } },
   items: { file: 'data/items.csv', label: 'どうぐ・そうび',
-    cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', desc: 'せつめい' },
-    nums: ['val'], optional: ['desc', 'look'], choices: { kind: ['かいふく', 'よろい', 'ぶき', 'だいじ'] } },
+    cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', price: 'ねだん', desc: 'せつめい' },
+    nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'よろい', 'ぶき', 'だいじ'] } },
 };
 
 const norm = s => String(s ?? '').normalize('NFKC').replace(/\s+/g, '').toLowerCase();   // 全角/半角・スペースの ちがいを なくす

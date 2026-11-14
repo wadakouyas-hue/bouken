@@ -1,7 +1,8 @@
 // 主人公の つよさ と 持ち物
 import { DATA, byId } from './data.js';
 
-export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null } };   // hp が -1 なら「まだ はじめていない」
+export const START_GOLD = 200;   // さいしょの おかね
+export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null }, gold: START_GOLD, bank: 0 };   // gold: もっている おかね  bank: ぎんこうに あずけた おかね   // hp が -1 なら「まだ はじめていない」
 export const bag = [];                                             // 持ち物(items.csv の id)
 
 const rows = () => DATA.party.filter(r => r.id === 'hero').sort((a, b) => a.lv - b.lv);

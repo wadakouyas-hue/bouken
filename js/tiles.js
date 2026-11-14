@@ -27,6 +27,8 @@ TILE.wallL = mk(g => { wallBase(g); px(g, 0, 13, 16, 3, '#9a6a3a'); });
 TILE.window = mk(g => { wallBase(g); px(g, 0, 0, 16, 3, '#a88f68'); px(g, 3, 5, 10, 8, '#5a3a1c'); px(g, 4, 6, 8, 6, '#9fd8ff'); px(g, 8, 6, 1, 6, '#5a3a1c'); px(g, 4, 9, 8, 1, '#5a3a1c'); px(g, 5, 7, 2, 1, '#e6f6ff'); });
 TILE.door = mk(g => { wallBase(g); px(g, 0, 13, 16, 3, '#9a6a3a'); px(g, 4, 1, 8, 15, '#5a3a1c'); px(g, 5, 2, 6, 14, '#8f5a32'); px(g, 9, 9, 1, 1, '#f2c230'); });
 
+TILE.roofB = mk(g => { px(g, 0, 0, 16, 16, '#3a6ad0'); for (let y = 0; y < 16; y += 4) { px(g, 0, y + 3, 16, 1, '#284a98'); for (let x = ((y / 4) % 2) * 4; x < 16; x += 8) px(g, x, y, 1, 3, '#2c56b0'); } px(g, 0, 0, 16, 1, '#6a94f0'); });
+
 // --- 森 ---
 function fgrass(g) { px(g, 0, 0, 16, 16, '#3f8f3a'); for (let i = 0; i < 10; i++) px(g, rnd() * 16, rnd() * 16, 1, 1, rnd() < .6 ? '#347a30' : '#55a84a'); }
 TILE.fgrass = [0, 1, 2].map(() => mk(fgrass));
@@ -56,20 +58,21 @@ TILE.bedT = mk(g => { floor(g); px(g, 1, 0, 14, 16, '#6a3c1a'); px(g, 2, 2, 12, 
 TILE.bedB = mk(g => { floor(g); px(g, 1, 0, 14, 14, '#6a3c1a'); px(g, 2, 0, 12, 12, '#5a8ad8'); px(g, 2, 4, 12, 1, '#7aa6f0'); px(g, 2, 9, 12, 1, '#7aa6f0'); px(g, 1, 14, 2, 2, '#4a2a10'); px(g, 13, 14, 2, 2, '#4a2a10'); });
 TILE.pot = mk(g => { floor(g); px(g, 5, 9, 6, 6, '#b5652a'); px(g, 4, 9, 8, 2, '#c87a3a'); px(g, 7, 3, 1, 6, '#3a8a3e'); px(g, 5, 5, 2, 1, '#3a8a3e');
   px(g, 6, 1, 3, 3, '#ff5a6e'); px(g, 7, 2, 1, 1, '#ffd23f'); px(g, 9, 4, 3, 2, '#ffffff'); px(g, 10, 4, 1, 1, '#ffd23f'); });
+TILE.counter = mk(g => { px(g, 0, 0, 16, 16, '#7a4a24'); px(g, 0, 0, 16, 4, '#c8925a'); px(g, 0, 3, 16, 1, '#5a3418'); for (let x = 3; x < 16; x += 6) px(g, x, 6, 1, 8, '#5a3418'); px(g, 0, 15, 16, 1, '#3a2414'); });
 TILE.mat = mk(g => { floor(g); px(g, 2, 2, 12, 12, '#4f9a52'); px(g, 3, 3, 10, 10, '#6cc24a'); for (let x = 4; x < 12; x += 2) px(g, x, 5, 1, 6, '#4f9a52'); });
 
 // 文字 → タイルの絵
-// 村  . 草  , 花  T 木  = 道  ~ 川  B b 橋  R 屋根  H h 壁  W 窓  D ドア
+// 村  . 草  , 花  T 木  = 道  ~ 川  B b 橋  R 屋根  U 青い屋根  H h 壁  W 窓  D ドア
 // 森  g 森の草  Y 森の木  m きのこ  o しげみ
-// 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  E 出口のマット
-export const BLOCK = new Set(['T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P']);
+// 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  C お店のカウンター  E 出口のマット
+export const BLOCK = new Set(['U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P']);
 
 export function tileImg(c, x, y, t) {
   const v = (x * 7 + y * 13) % 3;
   switch (c) {
     case 'T': return TILE.tree; case ',': return TILE.flower[v]; case '=': return TILE.path[(x + y) % 2];
     case '~': return TILE.water[(Math.floor(t * 2) + x) % 2]; case 'B': return TILE.bridgeT; case 'b': return TILE.bridgeB;
-    case 'R': return TILE.roof; case 'H': return TILE.wallU; case 'h': return TILE.wallL; case 'W': return TILE.window; case 'D': return TILE.door;
+    case 'R': return TILE.roof; case 'U': return TILE.roofB; case 'C': return TILE.counter; case 'H': return TILE.wallU; case 'h': return TILE.wallL; case 'W': return TILE.window; case 'D': return TILE.door;
     case 'g': return TILE.fgrass[v]; case 'Y': return TILE.ftree[(x + y) % 2]; case 'm': return TILE.mush; case 'o': return TILE.bush;
     case '#': return TILE.inTop; case 'w': return TILE.inWall; case 'v': return TILE.inWin; case '_': return TILE.floor; case 'r': return TILE.rug;
     case 'K': return TILE.tansu; case 'S': return TILE.shelf; case 'O': return TILE.tableL; case 'Q': return TILE.tableR;

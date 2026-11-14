@@ -19,6 +19,9 @@ export const PAL = {
   oji:  { k: '#2a1e1a', h: '#e6e6e6', s: '#f0c49a', e: '#2a1e1a', r: '#4f9a52', b: '#7a6a50', o: '#4a3a2a' },
   girl: { k: '#2a1e1a', h: '#3a2a40', s: '#f8d0aa', e: '#2a1e1a', r: '#f07ab0', b: '#f5a8cf', o: '#c04060' },
   oba:  { k: '#2a1e1a', h: '#c8c8d2', s: '#f0c49a', e: '#2a1e1a', r: '#8a5ab8', b: '#6a4a8a', o: '#4a3a2a' },
+  shop1: { k: '#2a1e1a', h: '#8a4a2a', s: '#f6c9a0', e: '#2a1e1a', r: '#4fb07a', b: '#e8e0c8', o: '#4a3a2a' },
+  shop2: { k: '#2a1e1a', h: '#2a2a2a', s: '#e8b88a', e: '#2a1e1a', r: '#8a96a4', b: '#4a4a5a', o: '#2a2a2a' },
+  bank:  { k: '#2a1e1a', h: '#4a3a2a', s: '#f6c9a0', e: '#2a1e1a', r: '#2a3a6a', b: '#2a3a6a', o: '#1a1a1a' },
   obj:  { k: '#2a1e1a', w: '#e0ab62', d: '#8a5a2a', p: '#8a5a2a', c: '#b5652a', y: '#f2c230', x: '#3a2210',
           g: '#dff4ff', l: '#4fd16a', L: '#c8ffd0', n: '#b07a40' }};
 

@@ -22,6 +22,7 @@ function check(d) {
   const h = d.hero, num = (v, min) => Number.isFinite(v) && v >= min;
   d.hero = h && typeof h.name === 'string' && h.name && num(h.lv, 1) && num(h.exp, 0) && num(h.hp, 0) && num(h.mp, 0)
     ? { name: h.name.slice(0, 8), lv: Math.floor(h.lv), exp: h.exp, hp: h.hp, mp: h.mp,
+        gold: num(h.gold, 0) ? Math.floor(h.gold) : null, bank: num(h.bank, 0) ? Math.floor(h.bank) : 0,
         equip: h.equip && typeof h.equip === 'object' ? { ぶき: typeof h.equip.ぶき === 'string' ? h.equip.ぶき : null, よろい: typeof h.equip.よろい === 'string' ? h.equip.よろい : null } : null } : null;
   return d;
 }

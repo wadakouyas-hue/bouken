@@ -4,13 +4,15 @@ import { charSprite, SPR, enemySprite, heroSprite } from './sprites.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import { ready, dataErrors, byId, DATA } from './data.js';
-import { hero, bag, heroStats, healFull, equipLook, equipBest } from './hero.js';
+import { hero, bag, heroStats, healFull, equipLook, equipBest, START_GOLD } from './hero.js';
+import { shop, openShop, shopTap } from './shop.js';
 import { menu, openMenu, menuTap } from './menu.js';
 import { battle, startBattle, updateBattle, drawBattle, battleTap } from './battle.js';
 import { nameEntry, askName, nameKey } from './nameentry.js';
 import village from '../maps/village.js';
 import house from '../maps/house.js';
 import forest from '../maps/forest.js';
+import shopMap from '../maps/shop.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -34,7 +36,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest };
+const MAPS = { village, house, forest, shop: shopMap };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length;
   m.objs = m.objs.map(o => {
@@ -101,19 +103,22 @@ const fadeAlpha = () => !trans.on ? 0 : trans.t < FADE ? trans.t / FADE : Math.m
 
 // ===== 戦闘へ =====
 function encounter(o) {
+  let lost = 0;
   sfx('encounter');
   fadeTo(() => {
     startBattle(o.party).then(result => fadeTo(() => {
       if (result === 'win') o.gone = true;
       if (result === 'run') o.cool = 3;          // にげたあと 少しの間は ぶつからない
-      if (result === 'lose') {                   // まけたら 村で 目が さめる
+      if (result === 'lose') {                   // まけたら 村で 目が さめる。 もっている おかねは はんぶんに
         cur = MAPS[START.map]; Object.values(MAPS).forEach(resetEnemies);
         Object.assign(player, { x: START.x, y: START.y, dir: 'down' });
         healFull();
+        lost = hero.gold - Math.floor(hero.gold / 2); hero.gold -= lost;
       }
       updateCamera(); save();
       playBgm(cur.bgm || 'village');
-    }, result === 'lose' ? () => openDialog('', ['……はっ!', '{目|め}が さめた。 むらの ひとが はこんで くれたみたい。', '@の HPが ぜんぶ もどった!']) : null));
+    }, result === 'lose' ? () => openDialog('', ['……はっ!', '{目|め}が さめた。 むらの ひとが はこんで くれたみたい。', '@の HPが ぜんぶ もどった!',
+      ...(lost > 0 ? [`でも、 おかねを ${lost}{円|えん} おとして しまった…`] : [])]) : null));
   });
 }
 
@@ -149,6 +154,7 @@ stage.addEventListener('pointerdown', e => {
   if (nameEntry.open) { const b = e.target.closest('#names button'); if (b) { sfx('next'); nameKey(b.dataset.k); } return; }
   if (battle.on) { const b = e.target.closest('[data-b]'); battleTap(b ? +b.dataset.b : undefined); return; }
   if (menu.open) { const b = e.target.closest('[data-m]'); if (b) menuTap(b.dataset.m); return; }
+  if (shop.open) { const b = e.target.closest('[data-s]'); if (b) shopTap(b.dataset.s); return; }
   if (trans.on) return;
   if (dlg.open) { advance(); return; }
   if (e.target.closest('#menubtn')) { openFieldMenu(); return; }
@@ -171,6 +177,7 @@ addEventListener('keydown', e => {
   const ok = e.key === ' ' || e.key === 'Enter' || e.key === 'z';
   if (nameEntry.open) { if (e.key === 'Backspace') nameKey('#del'); else if (e.key === 'Enter') nameKey('#ok'); return; }
   if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
+  if (shop.open) { if (e.key === 'Escape') shopTap('#close'); return; }
   if (e.key === 'm' || e.key === 'Escape') { if (menu.open) menuTap('#close'); else if (started && hero.name && !dlg.open && !trans.on) openFieldMenu(); return; }
   if (menu.open) return;
   keys[e.key] = true;
@@ -191,7 +198,8 @@ function interact(o) {
     const dx = player.x - o.x, dy = player.y - o.y;
     o.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     const lines = o.ifHave && bag.includes(o.ifHave.item) ? o.ifHave.lines : o.lines;
-    openDialog(o.name, lines, o.heal ? () => healAt(o) : null);
+    const after = o.heal ? () => healAt(o) : (o.shop || o.bank) ? () => openShop(o, () => { chipText = ''; save(); }) : null;
+    openDialog(o.name, lines, after);
     return;
   }
   if (o.taken) { openDialog(o.name, o.after || ['もう なにも ない。']); return; }
@@ -242,6 +250,7 @@ function load(d) {
   talkedOnce = d.talked;
   if (d.hero) Object.assign(hero, d.hero);
   if (!d.hero || !d.hero.equip) { hero.equip = { ぶき: null, よろい: null }; equipBest(); }   // 自動そうびの ころの セーブ
+  if (!d.hero || d.hero.gold == null) hero.gold = START_GOLD;                               // おかねが なかった ころの セーブ
   const st = heroStats();
   hero.hp = Math.min(hero.hp, st.maxhp); hero.mp = Math.min(hero.mp, st.maxmp);
   updateCamera();
@@ -257,6 +266,8 @@ if (saved) $('taptxt').innerHTML = rubyHTML('{タップ|たっぷ}して つづ�
 const boot = ready.then(() => {
   for (const [name, m] of Object.entries(MAPS)) for (const o of m.objs) if (o.kind === 'enemy')
     for (const id of o.party) if (!byId('enemies', id)) dataErrors.push(`maps/${name}.js の てき「${id}」が enemies.csv に ありません。`);
+  for (const [name, m] of Object.entries(MAPS)) for (const o of m.objs) for (const id of [...(o.shop || []), ...(o.give ? [o.give] : [])])
+    if (!byId('items', id)) dataErrors.push(`maps/${name}.js の どうぐ「${id}」が items.csv に ありません。`);
   if (saved) load(saved);
   if (dataErrors.length) {
     const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -330,12 +341,12 @@ function updateCamera() {
 // ===== 毎フレームの更新 =====
 let tm = 0, chipText = '';
 function updateChip() {
-  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open;
+  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open;
   $('hpchip').style.display = show ? 'block' : 'none';
   $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
   if (!show) return;
-  const st = heroStats(), t = `${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}`;
-  if (t !== chipText) { chipText = t; $('hpchip').textContent = t; $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
+  const st = heroStats(), t = `${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}  ${hero.gold}{円|えん}`;
+  if (t !== chipText) { chipText = t; $('hpchip').innerHTML = rubyHTML(t); $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
 }
 function update(dt) {
   tm += dt;
@@ -343,7 +354,7 @@ function update(dt) {
   updateChip();
   if (battle.on) { updateBattle(dt); $('act').style.display = 'none'; return; }
   const hideAct = () => { $('act').style.display = 'none'; $('actbtn').classList.remove('show'); };
-  if (trans.on || nameEntry.open || menu.open) { hideAct(); return; }
+  if (trans.on || nameEntry.open || menu.open || shop.open) { hideAct(); return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ

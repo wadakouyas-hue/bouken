@@ -240,9 +240,10 @@ async function run() {
 }
 async function victory() {
   playBgm(''); sfx('win');
-  const exp = B.enemies.reduce((s, e) => s + e.d.exp, 0);
+  const exp = B.enemies.reduce((s, e) => s + e.d.exp, 0), gold = B.enemies.reduce((s, e) => s + (e.d.gold || 0), 0);
   if (B.enemies.length > 1) await say('まものを ぜんぶ やっつけた!', 1.6); else await wait(1.0);
   await say(`けいけんちを ${exp} もらった!`);
+  if (gold > 0) { hero.gold += gold; await say(`おかねを ${gold}{円|えん} ひろった!`); }
   for (const up of gainExp(exp)) {
     sfx('lvup'); updateStat();
     await say(`@の {レベル|れべる}が ${up.lv}に あがった!`, 2.2);
