@@ -16,7 +16,15 @@
     <div id="act"><div class="mark">!</div><div class="lbl" id="actlbl">はなす</div></div>
     <div id="sbase"></div><div id="sknob"></div>
     <div id="dlg"><div id="dname"></div><div id="dtext"></div><div id="dnext">▼</div></div>
-    <div id="title"><h1>ぼうけんの たび</h1><div class="sub">しさくばん</div><div class="tap ruby">{タップ|たっぷ}して はじめる</div></div>
+    <div id="title"><h1>ぼうけんの たび</h1><div class="sub">しさくばん</div><div class="tap ruby" id="taptxt">{タップ|たっぷ}して はじめる</div><div id="pcorner"></div></div>
+    <!-- 保護者メニュー(タイトル右上を3秒長押し) -->
+    <div id="parent">
+      <div class="ptitle">保護者メニュー</div>
+      <div class="prow"><button id="pExport">セーブコードを表示してコピー</button></div>
+      <textarea id="pCode" spellcheck="false" placeholder="取っておいたセーブコードをここに貼りつけて「読み込む」を押してください"></textarea>
+      <div class="prow"><button id="pImport">読み込む</button><button id="pNew" class="warn">はじめから</button><button id="pClose">閉じる</button></div>
+      <div id="pMsg"></div>
+    </div>
   </div>
 </div>
 <script type="module" src="js/main.js"></script>

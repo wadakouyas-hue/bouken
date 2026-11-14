@@ -5,6 +5,7 @@ import { dlg, openDialog as openDlg, advance, updateDialog, rubyHTML } from './d
 import village from '../maps/village.js';
 import house from '../maps/house.js';
 import forest from '../maps/forest.js';
+import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
 const VW = 320, VH = 200;                // ゲーム内部の解像度
@@ -28,15 +29,16 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
 const MAPS = { village, house, forest };
-for (const m of Object.values(MAPS)) {
+for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length;
-  m.objs = m.objs.map(o => ({ dir: 'down', ...o, ...at(o.x, o.y) }));
+  m.objs = m.objs.map(o => ({ dir: 'down', ...o, key: `${name}:${o.x},${o.y}`, ...at(o.x, o.y) }));  // key はセーブで使う名札
 }
 let cur = village;
-const bag = [];                          // 手に入れた物(セーブや戦闘で使う予定)
+const bag = [];                          // 手に入れた物(戦闘で使う予定)
 
 // ===== キャラ =====
-const player = { ...at(5, 8), dir: 'down', anim: 0, moving: false };
+const START = { map: 'village', ...at(5, 8) };
+const player = { x: START.x, y: START.y, dir: 'down', anim: 0, moving: false };
 const live = () => cur.objs.filter(o => !o.gone);
 
 // ===== 当たり判定 =====
@@ -76,6 +78,7 @@ function updateTrans(dt) {
     Object.assign(player, at(e.at[0], e.at[1]));
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false;
     updateCamera();
+    save();
   }
   if (trans.t >= FADE * 2) trans.on = false;
 }
@@ -100,9 +103,15 @@ function openDialog(name, lines, onEnd) { stickRelease(); openDlg(name, lines, o
 
 let started = false, near = null;
 const cam = { x: 0, y: 0 };
+const hold = { timer: null };            // タイトル右上の長押し
 stage.addEventListener('pointerdown', e => {
+  if (e.target.closest('#parent')) return;            // 保護者メニューは ふつうに操作できるように
   e.preventDefault();
-  if (!started) { start(); return; }
+  if (parentOpen()) return;
+  if (!started) {
+    if (e.target.closest('#pcorner')) { holdStart(); return; }
+    start(); return;
+  }
   if (trans.on) return;
   if (dlg.open) { advance(); return; }
   if (e.target.closest('#act')) { if (near) interact(near); return; }
@@ -112,14 +121,15 @@ stage.addEventListener('pointerdown', e => {
   stick.id = e.pointerId; stick.bx = p.x; stick.by = p.y; stickMove(p); stickShow(true);
 });
 addEventListener('pointermove', e => { if (e.pointerId === stick.id) stickMove(local(e)); });
-addEventListener('pointerup', e => { if (e.pointerId === stick.id) stickRelease(); });
-addEventListener('pointercancel', e => { if (e.pointerId === stick.id) stickRelease(); });
+addEventListener('pointerup', e => { if (e.pointerId === stick.id) stickRelease(); if (hold.timer) { holdCancel(); start(); } }); // 短く押しただけなら ふつうに始める
+addEventListener('pointercancel', e => { if (e.pointerId === stick.id) stickRelease(); holdCancel(); });
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 // キーボード(Macで確認する用)
 const keys = {};
 addEventListener('keydown', e => {
+  if (parentOpen()) return;              // 保護者メニューで文字を打っているとき
   keys[e.key] = true;
   if (e.key === ' ' || e.key === 'Enter' || e.key === 'z') {
     if (!started) start(); else if (trans.on) return; else if (dlg.open) advance(); else if (near) interact(near);
@@ -139,21 +149,86 @@ function interact(o) {
   if (o.taken) { openDialog(o.name, o.after || ['もう なにも ない。']); return; }
   if (o.give) {
     o.taken = true; bag.push(o.give);
-    if (o.kind === 'item') o.gone = true;
-    if (o.kind === 'chest') o.label = 'しらべる';
+    markTaken(o);
+    save();
   }
   openDialog(o.name, o.lines);
 }
+function markTaken(o) {
+  o.taken = true;
+  if (o.kind === 'item') o.gone = true;
+  if (o.kind === 'chest') o.label = 'しらべる';
+}
+
+// ===== セーブ(自動) =====
+function allObjs() { return Object.values(MAPS).flatMap(m => m.objs); }
+function save() {
+  if (!started) return;
+  writeSave({
+    v: 1, map: Object.keys(MAPS).find(k => MAPS[k] === cur),
+    x: Math.round(player.x), y: Math.round(player.y), dir: player.dir,
+    bag: [...bag], done: allObjs().filter(o => o.taken).map(o => o.key), talked: talkedOnce,
+  });
+}
+function load(d) {
+  cur = MAPS[d.map] || village;
+  Object.assign(player, { x: d.x, y: d.y, dir: d.dir });
+  if (!MAPS[d.map] || hits(player.x, player.y) || exitAt(player.x, player.y)) {  // マップを作り直して 入れない場所になっていたら 村の最初の場所へ
+    cur = MAPS[START.map]; Object.assign(player, { x: START.x, y: START.y });
+  }
+  bag.push(...d.bag);
+  const done = new Set(d.done);
+  for (const o of allObjs()) if (done.has(o.key)) markTaken(o);
+  talkedOnce = d.talked;
+  updateCamera();
+}
+let autoT = 0;
+addEventListener('pagehide', save);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
 
 // ===== はじめる =====
 let hintPhase = 0, walked = 0;
+const saved = readSave();
+if (saved) { load(saved); $('taptxt').innerHTML = rubyHTML('{タップ|たっぷ}して つづきから'); }
 function start() {
+  if (started) return;
   started = true; $('title').style.display = 'none';
   const el = document.documentElement;
   try { const p = el.requestFullscreen && el.requestFullscreen({ navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
   try { const p = screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+  if (saved) { hintPhase = 2; return; }   // つづきからは すぐ遊べる
   setTimeout(() => openDialog('', ['{目|め}が さめた。 いい {天気|てんき}だ!', 'どこへ いこうかな?'], () => { hintPhase = 1; $('hint1').style.display = 'block'; }), 300);
 }
+
+// ===== 保護者メニュー =====
+const parentOpen = () => $('parent').style.display === 'flex';
+function holdStart() { holdCancel(); hold.timer = setTimeout(() => { hold.timer = null; openParent(); }, 3000); }
+function holdCancel() { if (hold.timer) { clearTimeout(hold.timer); hold.timer = null; } }
+let armed = null;                        // 「もう一度押してください」の確認待ち
+function pmsg(t, err) { $('pMsg').textContent = t; $('pMsg').className = err ? 'err' : ''; }
+function openParent() { armed = null; pmsg(''); $('pCode').value = ''; $('parent').style.display = 'flex'; }
+$('pClose').addEventListener('click', () => { $('parent').style.display = 'none'; });
+$('pExport').addEventListener('click', () => {
+  armed = null;
+  const d = readSave();
+  if (!d) { pmsg('まだセーブがありません。少し遊ぶと自動でセーブされます。', true); return; }
+  const code = toCode(d), ta = $('pCode');
+  ta.value = code;
+  const fallback = () => { ta.focus(); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {}
+    pmsg(ok ? 'コピーしました。LINEやメモに貼って保存してください。' : '上の文字をすべて選んでコピーし、LINEやメモに保存してください。'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(() => pmsg('コピーしました。LINEやメモに貼って保存してください。'), fallback);
+  else fallback();
+});
+$('pImport').addEventListener('click', () => {
+  const r = fromCode($('pCode').value);
+  if (r.error) { armed = null; pmsg(r.error, true); return; }
+  if (readSave() && armed !== 'import') { armed = 'import'; pmsg('今のセーブは上書きされます。よければ、もう一度「読み込む」を押してください。', true); return; }
+  writeSave(r.data); location.reload();
+});
+$('pNew').addEventListener('click', () => {
+  if (armed !== 'new') { armed = 'new'; pmsg('今のセーブが消えます。(先にセーブコードを取っておくと安心です)よければ、もう一度「はじめから」を押してください。', true); return; }
+  clearSave(); location.reload();
+});
 
 // ===== カメラ(マップが画面より小さいときは まん中に) =====
 function updateCamera() {
@@ -169,6 +244,7 @@ function update(dt) {
   if (trans.on) { updateTrans(dt); $('act').style.display = 'none'; return; }
   if (dlg.open) { updateDialog(dt); return; }
   if (!started) return;
+  autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
   // 入力
   let vx = stick.vx, vy = stick.vy;
   const kx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0);

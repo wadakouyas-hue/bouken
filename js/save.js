@@ -1,0 +1,40 @@
+// セーブ(localStorage)と、保護者用のセーブコード
+const KEY = 'bouken-save';
+const PREFIX = 'BK1-';
+
+export function readSave() {
+  try { const s = localStorage.getItem(KEY); return s ? check(JSON.parse(s)) : null; } catch (_) { return null; }
+}
+export function writeSave(data) {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (_) { return false; }
+}
+export function clearSave() {
+  try { localStorage.removeItem(KEY); } catch (_) {}
+}
+
+// 中身が正しい形かを確かめる(おかしければ null)
+function check(d) {
+  if (!d || typeof d !== 'object' || d.v !== 1) return null;
+  if (typeof d.map !== 'string' || !Number.isFinite(d.x) || !Number.isFinite(d.y)) return null;
+  if (!['up', 'down', 'left', 'right'].includes(d.dir)) d.dir = 'down';
+  const strs = a => Array.isArray(a) ? a.filter(s => typeof s === 'string').slice(0, 500) : [];
+  d.bag = strs(d.bag); d.done = strs(d.done); d.talked = !!d.talked;
+  return d;
+}
+
+// --- セーブコード(LINEやメモに貼って取っておける文字列) ---
+function sum(s) { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 65521; return h.toString(16).padStart(4, '0'); }
+function toB64(str) { const b = new TextEncoder().encode(str); let s = ''; b.forEach(c => { s += String.fromCharCode(c); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function fromB64(b64) { const s = atob(b64.replace(/-/g, '+').replace(/_/g, '/')); return new TextDecoder().decode(Uint8Array.from(s, c => c.charCodeAt(0))); }
+
+export function toCode(data) { const body = toB64(JSON.stringify(data)); return PREFIX + body + '.' + sum(body); }
+// 戻り値: { data } か { error: '理由' }
+export function fromCode(text) {
+  const c = String(text || '').replace(/\s+/g, '');
+  if (!c) return { error: 'セーブコードが入っていません。' };
+  if (!c.startsWith(PREFIX)) return { error: 'セーブコードではないようです。「BK1-」から始まる文字をすべて貼りつけてください。' };
+  const [body, s] = c.slice(PREFIX.length).split('.');
+  if (!body || sum(body) !== s) return { error: 'セーブコードの一部が欠けているか、まちがっています。もう一度すべてコピーして貼りつけてください。' };
+  try { const d = check(JSON.parse(fromB64(body))); if (d) return { data: d }; } catch (_) {}
+  return { error: 'セーブコードを読み取れませんでした。' };
+}
