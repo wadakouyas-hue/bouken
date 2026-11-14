@@ -1,7 +1,8 @@
 // ぼうけんの たび — 本体
 import { T, BLOCK, tileImg } from './tiles.js';
 import { charSprite, SPR } from './sprites.js';
-import { dlg, openDialog as openDlg, advance, updateDialog, rubyHTML } from './dialog.js';
+import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
+import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import village from '../maps/village.js';
 import house from '../maps/house.js';
 import forest from '../maps/forest.js';
@@ -66,6 +67,7 @@ function exitAt(x, y) {
 const FADE = 0.25;
 const trans = { on: false, t: 0, exit: null };
 function goExit(e) {
+  sfx('warp');
   stickRelease();
   trans.on = true; trans.t = 0; trans.exit = e;
 }
@@ -79,6 +81,7 @@ function updateTrans(dt) {
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false;
     updateCamera();
     save();
+    playBgm(cur.bgm || 'village');
   }
   if (trans.t >= FADE * 2) trans.on = false;
 }
@@ -141,6 +144,7 @@ addEventListener('keyup', e => { keys[e.key] = false; });
 let talkedOnce = false;
 function interact(o) {
   talkedOnce = true; $('hint2').style.display = 'none';
+  sfx('ok');
   if (o.kind === 'npc') {
     const dx = player.x - o.x, dy = player.y - o.y;
     o.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
@@ -154,6 +158,9 @@ function interact(o) {
   }
   openDialog(o.name, o.lines);
 }
+function advance() { sfx('next'); advanceDlg(); }
+hooks.onType = () => sfx('type');
+hooks.onJingle = () => sfx('get');
 function markTaken(o) {
   o.taken = true;
   if (o.kind === 'item') o.gone = true;
@@ -193,6 +200,7 @@ if (saved) { load(saved); $('taptxt').innerHTML = rubyHTML('{タップ|たっぷ
 function start() {
   if (started) return;
   started = true; $('title').style.display = 'none';
+  initAudio(); playBgm(cur.bgm || 'village');
   const el = document.documentElement;
   try { const p = el.requestFullscreen && el.requestFullscreen({ navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
   try { const p = screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); if (p && p.catch) p.catch(() => {}); } catch (_) {}
@@ -212,6 +220,10 @@ let armed = null;                        // 「もう一度押してください
 function pmsg(t, err) { $('pMsg').textContent = t; $('pMsg').className = err ? 'err' : ''; }
 function openParent() { armed = null; pmsg(''); $('pCode').value = ''; $('parent').style.display = 'flex'; }
 $('pClose').addEventListener('click', () => { $('parent').style.display = 'none'; });
+const soundBtns = [...document.querySelectorAll('#pSound button')];
+const showLevel = () => soundBtns.forEach(b => b.classList.toggle('on', +b.dataset.l === getLevel()));
+soundBtns.forEach(b => b.addEventListener('click', () => { setLevel(+b.dataset.l); showLevel(); }));
+showLevel();
 $('pExport').addEventListener('click', () => {
   armed = null;
   const d = readSave();

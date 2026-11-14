@@ -28,7 +28,10 @@ function renderText() {
   $('dtext').innerHTML = h;
   $('dnext').style.display = dlg.shown >= dlg.tokens.length ? 'block' : 'none';
 }
-function setLine() { dlg.tokens = parse(dlg.lines[dlg.i]); dlg.shown = 0; dlg.timer = 0; renderText(); }
+function setLine() {
+  let s = dlg.lines[dlg.i];
+  if (s.startsWith('♪')) { s = s.slice(1); if (hooks.onJingle) hooks.onJingle(); }   // ♪で始まる行は「手に入れた!」の音
+  dlg.tokens = parse(s); dlg.shown = 0; dlg.timer = 0; renderText(); }
 
 export function openDialog(name, lines, onEnd) {
   dlg.open = true; dlg.lines = lines; dlg.i = 0; dlg.onEnd = onEnd || null;
@@ -50,5 +53,6 @@ export function updateDialog(dt) {
     if (dlg.timer < cost) break;
     dlg.timer -= cost; dlg.shown++; changed = true;
   }
-  if (changed) renderText();
+  if (changed) { renderText(); if (hooks.onType) hooks.onType(); }
 }
+export const hooks = { onType: null, onJingle: null };   // 音を鳴らす用
