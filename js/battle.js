@@ -96,10 +96,11 @@ function chooseCommand(m, first) {
     const pick = (then, back) => { const a = alive(); if (a.length === 1) then(a[0]); else targetButtons(a, then, back, 'どの てきに する? てきを タップしてね'); };
     // かいふくする あいて(みかたが ひとりなら じぶん)
     const pickAlly = (then, back, ask) => { if (B.party.length === 1) then(B.party[0]); else targetButtons(B.party, then, back, ask || 'だれを かいふく する? タップしてね'); };
-    // がっそう: 3にん そろって うごける とき、 さいしょの ひとが えらべる(1かいの たたかいで 1かい)
+    // がっそう: 3にん そろって うごける とき、 さいしょの ひとが えらべる(1かいの たたかいで 1かい。 3にんの MPを GASSOU_MP ずつ つかう)
     const canGassou = first && B.party.length === 3 && bag.includes('がっそうのかけら') && !B.gassou && up().length === 3 && B.party.every(x => !x.cond.ねむり && !x.cond.わらい);
+    const gassouMp = canGassou && B.party.every(x => x.s.mp >= GASSOU_MP);
     const main = () => setButtons([
-      ...(canGassou ? [{ html: 'がっそう', fn: () => done({ type: 'gassou' }) }] : []),
+      ...(canGassou ? [{ html: `がっそう<small>MP${GASSOU_MP}ずつ</small>`, off: !gassouMp, fn: () => gassouMp ? done({ type: 'gassou' }) : note(`MPが ${GASSOU_MP}より すくない ひとが いるよ`) }] : []),
       { html: 'たたかう', fn: () => pick(t => done({ type: 'attack', target: t }), main) },
       { html: 'じゅもん', fn: () => skills('じゅもん') },
       { html: 'わざ', fn: () => skills('わざ') },
@@ -279,7 +280,9 @@ async function memberAct(m, cmd) {
   }
 }
 // がっそう: 3にんで えんそうして てき ぜんぶに こうげき + みんな すこし かいふく。 かけらが おおいほど つよい
+const GASSOU_MP = 4;
 async function gassou() {
+  for (const m of B.party) m.s.mp = Math.max(0, m.s.mp - GASSOU_MP); updateStat();
   const k = bag.filter(id => id.endsWith('のかけら')).length;
   const [h, a, b] = ['hero', 'hamo', 'melo'].map(key => B.party.find(x => x.key === key));
   await say(`みんなで 「がっそう」!`, 1.2);
