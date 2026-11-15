@@ -62,7 +62,9 @@ export function gainExp(n) {
     const beforeSkills = before[0].skills;
     hero.lv = next.lv;
     members().forEach((m, i) => { m.s.hp += m.st.maxhp - before[i].maxhp; m.s.mp += m.st.maxmp - before[i].maxmp; });   // ふえた ぶんだけ 回復
-    ups.push({ lv: hero.lv, learned: next.learn.filter(s => !beforeSkills.includes(s)) });
+    const learned = next.learn.filter(s => !beforeSkills.includes(s)).map(id => ({ id, who: hero.name }));
+    for (const k of ['hamo', 'melo']) if (hero[k]) for (const r of rows(k)) if (r.lv === hero.lv) for (const id of r.learn) learned.push({ id, who: ALLY_NAME[k] });
+    ups.push({ lv: hero.lv, learned });
   }
   return ups;
 }

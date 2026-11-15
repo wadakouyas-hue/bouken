@@ -9,7 +9,7 @@ const $ = id => document.getElementById(id);
 const R = s => rubyHTML(String(s).replace(/@/g, hero.name));
 export const menu = { open: false, towns: () => [], warp: null };   // towns: いける まち [{ map, name }]、 warp(map): とぶ(main.js が いれる)
 const TABS = ['どうぐ', 'じゅもん', 'そうび', 'つよさ', 'なかま', 'だいじな もの'];
-let tab = TABS[0], sel = null, slot = null, msg = '', onChange = null, eqWho = 'hero';   // eqWho: そうびを かえる ひと
+let tab = TABS[0], sel = null, caster = 'hero', slot = null, msg = '', onChange = null, eqWho = 'hero';   // eqWho: そうびを かえる ひと
 
 export function openMenu(cb) {
   onChange = cb; menu.open = true; tab = TABS[0]; sel = null; slot = null; msg = ''; eqWho = 'hero';
@@ -22,8 +22,8 @@ const changed = () => { if (onChange) onChange(); };
 export function menuTap(k) {
   sfx('next');
   if (k === '#close') { close(); return; }
-  if (k.startsWith('tab:')) { tab = k.slice(4); sel = null; slot = null; msg = ''; }
-  else if (k.startsWith('sel:')) { sel = k.slice(4); msg = ''; }
+  if (k.startsWith('tab:')) { tab = k.slice(4); sel = null; slot = null; msg = ''; caster = 'hero'; }
+  else if (k.startsWith('sel:')) { sel = k.slice(4); msg = ''; if (sel.includes('|')) [caster, sel] = sel.split('|'); }
   else if (k.startsWith('use')) useItem(k.slice(4));
   else if (k.startsWith('cast')) castSpell(k.slice(5));
   else if (k.startsWith('who:')) { eqWho = k.slice(4); slot = null; msg = ''; }
@@ -48,13 +48,13 @@ function useItem(key) {
 }
 function castSpell(key) {
   const s = byId('skills', sel); if (!s) return;
-  const m = who(key);
-  if (s.effect !== 'かいふく') { msg = 'たたかいの ときに つかうよ。'; return; }
-  if (hero.mp < s.mp) { msg = 'MPが たりないよ。'; return; }
+  const m = who(key), c = who(caster), pow = s.pow + Math.floor(c.st.mag / 2);   // c: となえる ひと
+  if (s.effect !== 'かいふく') { msg = 'たたかいの ときに つかうよ。'; return; }   // こうげき・なおす・じょうたい は たたかいで
+  if (c.s.mp < s.mp) { msg = 'MPが たりないよ。'; return; }
   if (key === 'all') { if (members().every(x => x.s.hp >= x.st.maxhp)) { msg = 'みんな まんたんだよ。'; return; }
-    hero.mp -= s.mp; for (const x of members()) heal(s.pow + Math.floor(heroStats().mag / 2), x); sfx('heal'); msg = `「${s.name}」! みんなの HPが かいふくした!`; changed(); return; }
+    c.s.mp -= s.mp; for (const x of members()) heal(pow, x); sfx('heal'); msg = `「${s.name}」! みんなの HPが かいふくした!`; changed(); return; }
   if (m.s.hp >= m.st.maxhp) { msg = `${m.name}の HPは まんたんだよ。`; return; }
-  hero.mp -= s.mp; const n = heal(s.pow + Math.floor(heroStats().mag / 2), m); sfx('heal');
+  c.s.mp -= s.mp; const n = heal(pow, m); sfx('heal');
   msg = `「${s.name}」! ${m.name}の HPが ${n} かいふくした!`;
   changed();
 }
@@ -113,11 +113,12 @@ function itemsView() {
   return `<div class="mtop">おかね ${R(`${hero.gold}{円|えん}`)}</div><div class="mlist">${list}</div>${detail}`;
 }
 function spellsView() {
-  const st = heroStats();
-  const list = st.skills.map(id => byId('skills', id)).filter(s => s && s.type === 'じゅもん');
+  // みんなの じゅもん(なまえの よこに だれの じゅもんか)
+  const ms = members(), list = ms.flatMap(m => m.st.skills.map(id => byId('skills', id)).filter(s => s && s.type === 'じゅもん').map(s => ({ m, s })));
   if (!list.length) return '<div class="mempty">まだ じゅもんを おぼえていないよ</div>';
-  const s = byId('skills', sel);
-  return `<div class="mtop">MP ${hero.mp}/${st.maxmp}</div><div class="mlist">${list.map(x => btn('sel:' + x.id, `${R(x.name)}<small>MP ${x.mp}</small>`, sel === x.id ? 'on' : '')).join('')}</div>` +
+  const s = byId('skills', sel), c = who(caster);
+  const top = ms.map(m => `${R(m.name)} MP ${m.s.mp}/${m.st.maxmp}`).join('  ');
+  return `<div class="mtop">${top}</div><div class="mlist">${list.map(({ m, s: x }) => btn(`sel:${m.key}|${x.id}`, `${R(x.name)}<small>${ms.length > 1 ? R(m.name) + ' ' : ''}MP ${x.mp}</small>`, sel === x.id && caster === m.key ? 'on' : '')).join('')}</div>` +
     (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'ワープ' ? warpBtns() : s.effect === 'かいふく' && s.target === 'みんな' ? btn('cast:all', 'となえる', 'go') : s.effect === 'かいふく' ? forWho('cast', 'となえる') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
 }
 function equipView() {

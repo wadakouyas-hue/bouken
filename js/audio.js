@@ -200,6 +200,22 @@ export function sfx(name) {
       [64, 66, 71, 69].forEach((m, i) => fm(t + 1 + i * .25, freqOf(m), .5, { ...EP, vol: .08, send: .7 }, sfxBus)); break;
     case 'rise':   // よるの まものが じめんから でてくる(ゴゴゴ)
       hiss(t, .22, 'lowpass', 180, 1, .9, sfxBus); hiss(t + .3, .16, 'lowpass', 140, 1, .8, sfxBus); break;
+    case 'drum':   // スネア
+      hiss(t, .35, 'highpass', 1500, .7, .12, sfxBus); hiss(t + .09, .3, 'highpass', 1500, .7, .1, sfxBus); hiss(t + .18, .4, 'bandpass', 900, .8, .2, sfxBus); break;
+    case 'note':   // おんぷ
+      [79, 83, 86, 91].forEach((m, i) => fm(t + i * .08, freqOf(m), .12, { ...LEAD, vol: .07, send: 1, vib: 0 }, sfxBus)); break;
+    case 'chord':  // ギターの コード
+      [52, 59, 64, 67, 71].forEach((m, i) => fm(t + i * .015, freqOf(m), .6, { ...EP, vol: .08 }, sfxBus)); hiss(t, .1, 'bandpass', 2000, 1, .1, sfxBus); break;
+    case 'stink':  // ぷしゅ〜
+      hiss(t, .18, 'lowpass', 500, 1, .8, sfxBus); break;
+    case 'lick': { // ぺろーん
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(900, t + .3);
+      g.gain.setValueAtTime(.08, t); g.gain.exponentialRampToValueAtTime(.001, t + .35); o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .36); break; }
+    case 'spit':   // ぺっ
+      hiss(t, .25, 'bandpass', 3000, 1.5, .06, sfxBus); break;
+    case 'boing': { // ぽよん
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(200, t); o.frequency.exponentialRampToValueAtTime(500, t + .1); o.frequency.exponentialRampToValueAtTime(250, t + .3);
+      g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .35); o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .36); break; }
     case 'step':   // よるの まものの あしおと(ざっ)
       hiss(t, .14, 'bandpass', 650, 1.2, .09, sfxBus); hiss(t + .02, .18, 'lowpass', 250, .7, .08, sfxBus); break;
     case 'miss':   // よけた

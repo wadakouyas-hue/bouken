@@ -111,7 +111,7 @@ function chooseCommand(m, first) {
         fn: () => {
           if (m.s.mp < s.mp) { note('MPが たりないよ'); return; }
           if ((s.effect === 'こうげき' || s.effect === 'じょうたい') && s.target === 'ひとり') pick(t => done({ type: 'skill', skill: s, target: t }), () => skills(kind));
-          else if (s.effect === 'かいふく' && s.target === 'みんな') done({ type: 'skill', skill: s });
+          else if ((s.effect === 'かいふく' || s.effect === 'なおす') && s.target === 'みんな') done({ type: 'skill', skill: s });
           else if (s.effect === 'かいふく') pickAlly(t => done({ type: 'skill', skill: s, target: t }), () => skills(kind));
           else done({ type: 'skill', skill: s });
         } })), { html: 'もどる', fn: main }], true);
@@ -185,10 +185,10 @@ function calc(user, skill, target, mul = 1) {
 const allyTarget = m => ({ def: st(m).def, spr: st(m).spr, weak: [], resist: [] });
 // こうげきの エフェクトの しゅるい
 const FX_OF = { ほのお: 'fire', みず: 'water', かみなり: 'thunder', かぜ: 'wind' };
-function fxType(skill) { if (skill?.elem && FX_OF[skill.elem]) return FX_OF[skill.elem]; return skill?.type === 'じゅもん' ? 'magic' : 'slash'; }
-const FX_TIME = { slash: 0.35, fire: 0.75, water: 0.7, thunder: 0.6, wind: 0.75, magic: 0.6, heal: 0.7, impact: 0.25 };
+function fxType(skill) { if (skill?.fx) return skill.fx; if (skill?.elem && FX_OF[skill.elem]) return FX_OF[skill.elem]; return skill?.type === 'じゅもん' ? 'magic' : 'slash'; }
+const FX_TIME = { slash: 0.35, fire: 0.75, water: 0.7, thunder: 0.6, wind: 0.75, magic: 0.6, heal: 0.7, impact: 0.25, drum: 0.6, notes: 0.8, wave: 0.6, star: 0.9, song: 0.9, stink: 0.9, lick: 0.55, spit: 0.5, spore: 0.7, leaf: 0.7, butt: 0.7 };
 async function effect(type, targets) {
-  sfx({ slash: 'slash', fire: 'fire', water: 'water', thunder: 'thunder', wind: 'wind', magic: 'magic', heal: 'heal', impact: 'hurt' }[type]);
+  sfx({ slash: 'slash', fire: 'fire', water: 'water', thunder: 'thunder', wind: 'wind', magic: 'magic', heal: 'heal', impact: 'hurt', drum: 'drum', notes: 'note', wave: 'chord', star: 'magic', song: 'heal', stink: 'stink', lick: 'lick', spit: 'spit', spore: 'stink', leaf: 'wind', butt: 'boing' }[type]);
   for (const t of targets) B.fx.push({ type, x: t.x, y: t.y, t: 0, dur: FX_TIME[type], seed: Math.random() * 1000 });
   if (type === 'thunder') B.flashScreen = 0.18;
   await wait(FX_TIME[type] * 0.8);
@@ -230,7 +230,7 @@ async function hitEnemy(t, r) {
   if (t.hp <= 0) { t.alive = false; sfx('defeat'); await say(`${t.name}を やっつけた!`); }
 }
 async function cureMember(t) {
-  await effect('heal', [t]);
+  await effect('song', [t]);
   t.cond = {}; updateStat();
   await say(`${t.name}は すっかり よくなった!`);
 }
@@ -253,6 +253,7 @@ async function memberAct(m, cmd) {
     await say(`${m.name}は 「${s.name}」を ${s.type === 'じゅもん' ? 'となえた' : 'つかった'}!`, 1.1);
     if (s.effect === 'かいふく' && s.target === 'みんな') { for (const t of up()) await healMember(t, s.pow + Math.floor(s0.mag / 2)); }
     else if (s.effect === 'かいふく') await healMember(cmd.target || m, s.pow + Math.floor(s0.mag / 2));   // かいふく = いりょく + まりょく ÷ 2
+    else if (s.effect === 'なおす') { for (const t of up()) if (Object.keys(t.cond).length) await cureMember(t); else { await effect(fxType(s), [t]); } }
     else if (s.effect === 'まもる') { m.guard = true; await say(`${m.name}は みんなの まえに たった!`, 1); }
     else {
       if (s.type === 'わざ') await lunge(m);
@@ -353,7 +354,7 @@ async function victory() {
   for (const u of gainExp(exp)) {
     sfx('lvup'); B.party = B.party.map(m => ({ ...m, st: members().find(x => x.key === m.key)?.st || m.st })); updateStat();
     await say(`@の {レベル|れべる}が ${u.lv}に あがった!`, 2.2);
-    for (const id of u.learned) { const s = byId('skills', id); if (s) await say(`「${s.name}」を おぼえた!`, 1.8); }
+    for (const l of u.learned) { const s = byId('skills', l.id); if (s) await say(`${l.who}は 「${s.name}」を おぼえた!`, 1.8); }
   }
   finish('win');
 }
@@ -461,7 +462,43 @@ function drawFx(ctx, f) {
   } else if (f.type === 'heal' || f.type === 'magic') {   // きらきら
     const c = f.type === 'heal' ? ['#ffffff', '#9affb0'] : ['#ffffff', '#c8a8ff'];
     for (let i = 0; i < 10; i++) { const an = i / 10 * 6.28 + p * 4, r = 6 + p * 22; dot(ctx, cx + Math.cos(an) * r, cy + 6 + Math.sin(an) * r * .6 - p * 14, c[i % 2], 2); }
+  } else if (f.type === 'drum') {     // ドラムの おとの わ
+    for (let k = 0; k < 3; k++) { const q = p * 1.6 - k * 0.25; if (q <= 0 || q > 1) continue; const r = 4 + q * 22;
+      for (let a = 0; a < 20; a++) { const an = a / 20 * 6.28; dot(ctx, cx + Math.cos(an) * r, cy + 2 + Math.sin(an) * r * .5, k % 2 ? '#ffd23f' : '#ffffff', 2); } }
+    for (let i = 0; i < 4; i++) { const an = hash(S + i) * 6.28; dot(ctx, cx + Math.cos(an) * 14 * p, cy - 8 + Math.sin(an) * 10 * p, '#ff8a2a', 2); }
+  } else if (f.type === 'notes' || f.type === 'song') {   // おんぷが とぶ(song は みどりで うえへ)
+    const up = f.type === 'song', cols = up ? ['#9affb0', '#ffffff', '#ffd23f'] : ['#ffd23f', '#f5a8cf', '#7ac8ff'];
+    for (let i = 0; i < 7; i++) {
+      const q = Math.min(1, Math.max(0, p * 1.4 - i * 0.07)), x = up ? cx - 14 + i * 5 + Math.sin(q * 6 + i) * 3 : cx + 40 * (1 - q) + (hash(S + i) - .5) * 24,
+        y = up ? cy + 10 - q * 30 : cy - 10 + (hash(S + i * 3) - .5) * 20 - Math.sin(q * 3.14) * 10;
+      if (q <= 0) continue; const c = cols[i % 3];
+      dot(ctx, x, y + 4, c, 2); dot(ctx, x + 1, y + 4, c, 2); ctx.fillStyle = c; ctx.fillRect(Math.round(x + 2), Math.round(y - 2), 1, 7); ctx.fillRect(Math.round(x + 2), Math.round(y - 2), 3, 1);   // ♪
+    }
+  } else if (f.type === 'wave') {     // ギターの おとの なみ
+    for (let k = 0; k < 3; k++) { const q = Math.min(1, p * 1.5 - k * 0.15); if (q <= 0) continue; const x0 = cx + 50 - q * 60;
+      for (let y = -14; y <= 14; y++) dot(ctx, x0 + Math.sin(y * 0.5 + f.t * 20 + k) * 3 + Math.abs(y) * 0.4, cy + y, k % 2 ? '#c8a8ff' : '#ffffff', 1); }
+  } else if (f.type === 'star') {     // ほしが ふる
+    for (let i = 0; i < 12; i++) { const q = Math.min(1, Math.max(0, p * 1.5 - hash(S + i) * 0.5)), x = cx + (hash(S + i * 7) - .5) * 44, y = cy - 40 + q * 44;
+      if (q <= 0 || q >= 1) continue; const c = i % 2 ? '#ffd23f' : '#ffffff'; dot(ctx, x, y, c, 2); dot(ctx, x - 2, y, c, 1); dot(ctx, x + 3, y, c, 1); dot(ctx, x, y - 2, c, 1); dot(ctx, x, y + 3, c, 1); }
+    if (p > 0.6) { const r = (p - 0.6) * 60; for (let a = 0; a < 16; a++) { const an = a / 16 * 6.28; dot(ctx, cx + Math.cos(an) * r, cy + Math.sin(an) * r * .6, '#fff3a0', 2); } }
+  } else if (f.type === 'stink' || f.type === 'spore') {   // くさい くも / ほうし
+    const cols = f.type === 'stink' ? ['#8ab84a', '#6a8a3a', '#b8d870'] : ['#f2e27a', '#d8c050', '#fff3a0'];
+    for (let i = 0; i < 9; i++) { const an = hash(S + i) * 6.28, r = 6 + p * 18 * hash(S + i * 3); const x = cx + Math.cos(an) * r, y = cy + Math.sin(an) * r * .6 - p * 8;
+      const z = 4 + Math.round(p * 4); if (p > 0.75 && hash(S + i + 5) < (p - .75) * 4) continue; dot(ctx, x - z / 2, y - z / 2, cols[i % 3], z); dot(ctx, x - z / 2 + 1, y - z / 2 - 1, cols[(i + 2) % 3], Math.max(1, z - 2)); }
+  } else if (f.type === 'lick') {     // ベロで ぺろーん
+    const q = Math.sin(p * 3.14); for (let i = 0; i < 14; i++) { const x = cx - 10 + i * 1.6, y = cy - 6 + Math.sin(i / 14 * 3.14 + p * 3) * 8 * q; dot(ctx, x, y, '#f07a9a', 3); }
+    dot(ctx, cx + 12, cy - 4, '#ffffff', 2);
+  } else if (f.type === 'spit') {     // つばが とぶ
+    for (let i = 0; i < 6; i++) { const q = Math.min(1, p * 1.4 - i * 0.05); if (q <= 0) continue; dot(ctx, cx - 40 * (1 - q) + i * 2, cy - 6 - Math.sin(q * 3.14) * 12 + i, i % 2 ? '#cfeaff' : '#ffffff', 2); }
+    if (p > 0.7) for (let a = 0; a < 6; a++) dot(ctx, cx + Math.cos(a) * 8 * (p - 0.7) * 3, cy + Math.sin(a) * 5, '#9fd2ff', 1);
+  } else if (f.type === 'leaf') {     // はっぱが まう
+    for (let i = 0; i < 8; i++) { const an = f.t * 10 + i * .8, r = 6 + p * 16; const x = cx + Math.cos(an) * r, y = cy + Math.sin(an) * r * .5 - p * 6;
+      dot(ctx, x, y, i % 2 ? '#d8f070' : '#f0a040', 2); dot(ctx, x + 2, y + 1, '#ffe080', 1); }
+  } else if (f.type === 'butt') {     // おしり プリプリ(ハート)
+    for (let i = 0; i < 5; i++) { const q = Math.min(1, p * 1.3 - i * 0.1); if (q <= 0) continue; const x = cx - 12 + i * 6, y = cy - q * 20;
+      const c = '#ff6aa8'; dot(ctx, x, y, c, 2); dot(ctx, x + 2, y, c, 2); dot(ctx, x + 1, y + 2, c, 2); }
   } else if (f.type === 'impact') {   // ぶつかった ほし
     for (let i = 0; i < 8; i++) { const an = i / 8 * 6.28, r = 4 + p * 12; line(ctx, cx + Math.cos(an) * r * .4, cy + 4 + Math.sin(an) * r * .4, cx + Math.cos(an) * r, cy + 4 + Math.sin(an) * r, i % 2 ? '#ffffff' : '#ff6060', 1); }
   }
 }
+export const _drawFx = (ctx, f) => drawFx(ctx, f);   // かくにん用

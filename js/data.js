@@ -6,6 +6,7 @@ export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ'];     // よろいの�
 export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
 export const STATUSES = ['ねむり', 'どく', 'しびれ', 'わらい', 'くさい'];   // ステータス いじょう
+export const FX_TYPES = ['slash', 'fire', 'water', 'thunder', 'wind', 'magic', 'heal', 'impact', 'drum', 'notes', 'wave', 'star', 'song', 'stink', 'lick', 'spit', 'spore', 'leaf', 'butt'];   // わざの エフェクト(js/battle.js の drawFx)
 export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい', 'ランプ', 'ほねのいす', 'き', 'え'];   // かぐの「みため」(js/furniture.js にある絵)
 
 const SPEC = {
@@ -17,9 +18,9 @@ const SPEC = {
     nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp', 'gold', 'rate'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist', 'gold', 'drop', 'rate'],
     choices: { move: ['うろうろ', 'ゆっくり', 'はやい'] } },
   skills: { file: 'data/skills.csv', label: 'わざ・じゅもん',
-    cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', elem: 'ぞくせい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい', status: 'じょうたい', chance: 'かかりやすさ' },
-    nums: ['mp', 'pow', 'chance'], optional: ['desc', 'elem', 'status', 'chance'],
-    choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく', 'まもる', 'ワープ', 'じょうたい'], status: ['', ...STATUSES], target: ['ひとり', 'ぜんぶ', 'じぶん', 'みんな'] } },
+    cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', elem: 'ぞくせい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい', status: 'じょうたい', chance: 'かかりやすさ', fx: 'エフェクト' },
+    nums: ['mp', 'pow', 'chance'], optional: ['desc', 'elem', 'status', 'chance', 'fx'],
+    choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく', 'なおす', 'まもる', 'ワープ', 'じょうたい'], status: ['', ...STATUSES], fx: ['', ...FX_TYPES], target: ['ひとり', 'ぜんぶ', 'じぶん', 'みんな'] } },
   items: { file: 'data/items.csv', label: 'どうぐ・そうび',
     cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', price: 'ねだん', desc: 'せつめい' },
     nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'なおす', 'よろい', 'ぶき', 'ざいりょう', 'ワープ', 'だいじ'] } },
