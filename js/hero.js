@@ -25,9 +25,10 @@ export function allyStats(id) {
 const ALLY_NAME = { hamo: '{ハモ|はも}', melo: '{メロ|めろ}' };
 // パーティ: [{ key, name, pal, s(hp・mp が 入っている もの), st(つよさ) }]
 // away: リズが いない あいだ(第3章 かぜで ねている。 main.js が いれる)
-export const party = { away: false };
+export const party = { away: false, solo: false };   // solo: リズ ひとり(第4章 ないしょの じゅんび)
 export function members() {
   const list = party.away ? [] : [{ key: 'hero', name: hero.name, s: hero, st: heroStats() }];
+  if (party.solo) return list;
   for (const k of ['hamo', 'melo']) if (hero[k]) list.push({ key: k, name: ALLY_NAME[k], pal: k, s: hero[k], st: allyStats(k) });
   return list;
 }

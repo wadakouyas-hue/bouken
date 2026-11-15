@@ -4,6 +4,7 @@ import { charSprite, SPR, enemySprite, heroSprite, eyeColor, eyePos, DECO } from
 import { paint, openPaint, paintTap, paintAt } from './paint.js';
 import { concert, startConcert, concertTap, updateConcert, drawConcert, rankOf } from './concert.js';
 import { care, startCare, careTap, updateCare, drawCare } from './kanbyo.js';
+import { fest, startPhoto, startCook, festTap, updateFest, drawFest } from './festival.js';
 import { clock, tick, toMorning, darkness, isNight, hourNow, timeWords, dayLen } from './clock.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
@@ -57,6 +58,7 @@ import kori1 from '../maps/kori1.js';
 import kori2 from '../maps/kori2.js';
 import kori3 from '../maps/kori3.js';
 import korioku from '../maps/korioku.js';
+import mogu from '../maps/mogu.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -80,7 +82,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama, yama1, yama2, yama3, yama4, kori1, kori2, kori3, korioku };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama, yama1, yama2, yama3, yama4, kori1, kori2, kori3, korioku, mogu };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -234,7 +236,7 @@ const player = { x: START.x, y: START.y, dir: 'down', anim: 0, moving: false };
 const flags = new Set();
 const has = f => !f || (Array.isArray(f) ? f.every(x => flags.has(x)) : flags.has(f));
 // リズが かぜで ねている あいだは ハモと メロの ふたりで ぼうけん(第3章)
-const syncParty = () => { party.away = flags.has('sick') && !flags.has('genki'); };
+const syncParty = () => { party.away = flags.has('sick') && !flags.has('genki'); party.solo = flags.has('ch4start') && !flags.has('ch4together'); };   // solo: 第4章 ないしょの じゅんび(ハモと メロは やぐらの てつだい)
 const shown = o => (!o.show || has(o.show)) && (!o.hide || !flags.has(o.hide)) && (o.step == null || o.step === maze.step);   // step: まよいの もりの だんかい
 const live = () => cur.objs.filter(o => !o.gone && shown(o));
 
@@ -261,6 +263,7 @@ const enemyBlocked = (x, y) => tileSolid(x - 5, y - 5) || tileSolid(x + 5, y - 5
 // 出入り口にふれたか
 function exitAt(x, y) {
   for (const e of cur.exits) {
+    if (e.show && !has(e.show)) continue;   // show: フラグが ついてから できる 出入り口(モグの おみせ など)
     const x0 = e.x * T, y0 = e.y * T, x1 = x0 + (e.w || 1) * T, y1 = y0 + (e.h || 1) * T;
     if (x + 5 > x0 && x - 5 < x1 && y - 1 > y0 && y - 5 < y1) return e;
   }
@@ -393,6 +396,7 @@ stage.addEventListener('pointerdown', e => {
   if (concert.on) { concertTap(); return; }
   if (care.on) { const b = e.target.closest('[data-c]'); careTap(b ? b.dataset.c : null); return; }
   if (roll.on) { rollTap(); return; }
+  if (fest.on) { const b = e.target.closest('[data-f]'); festTap(b ? b.dataset.f : null); return; }
   if (paint.open) {
     const b = e.target.closest('[data-p]'); if (b) { paintTap(b.dataset.p); return; }
     const cv = e.target.closest('#paintcv'); if (cv) { const r = cv.getBoundingClientRect(); paintAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
@@ -431,6 +435,7 @@ addEventListener('keydown', e => {
   if (tg.on) { if (ok) tgTap(); return; }
   if (concert.on) { if (ok) concertTap(); return; }
   if (roll.on) { if (ok) rollTap(); return; }
+  if (fest.on) { const k = ['rice', 'egg', 'ketchup', 'fish', 'carrot'][+e.key - 1]; if (k || ok) festTap(k || null); return; }
   if (care.on) { const k = ['towel', 'water', 'kayu', 'blanket', 'hand'][+e.key - 1]; if (k || ok) careTap(k || null); return; }
   if (paint.open) { if (e.key === 'Escape') paintTap('#close'); return; }
   if (deco.open) { if (e.key === 'Escape') decoTap('#done'); return; }
@@ -555,6 +560,12 @@ async function campCheck() {
     await say(HAMO, ['ねえ、 @。 こんど みんなで {キャンプ|きゃんぷ} しない?', '{メロ|めろ}さんも さそって、 まちの ひがしの はらっぱで!', 'いちど おうちに かえって、 {メロ|めろ}さんに はなして みようよ。']);
   }
 }
+// しょうたいじょうを わたす
+async function deliver(flag) { flags.add(flag); bagRemove('しょうたいじょう'); save(); sfx('get'); }
+async function inviteLeft() {
+  const n = ['inv1', 'inv2', 'inv3'].filter(f => flags.has(f)).length;
+  await say('', [n < 3 ? `しょうたいじょうを わたした! (あと ${3 - n}まい)` : 'しょうたいじょうを ぜんぶ わたした! {モグ|もぐ}に しらせよう。']);
+}
 // あらしの かげの たてに ひびを いれる おもいで(もっている かけら だけ)
 const MEMORY = [
   ['かたぐるまのかけら', '@', 'ハモの かたぐるま、 たかくて とおくまで みえたよ'],
@@ -592,6 +603,7 @@ async function kageEnd() {
   await say('@', ['きれい……!']);
   await say('{メロ|めろ}', ['みて、 とおくに まちの あかりが みえるわ。']);
   await say(HAMO, ['あきの おまつりの じゅんびを してるのかな。']);
+  await say('{メロ|めろ}', ['そうだわ、 もうすぐ {ネコン|ねこん}{村|むら}の あきの おまつりね。', 'みんなで いえに かえりましょう。']);
   await fade(() => { view.on = false; view.kind = null; playBgm(bgmFor()); });
   await say('', ['だい3しょう 「あらしの せかい」 おしまい。', 'つづく……']);
 }
@@ -929,6 +941,90 @@ const EVENTS = {
     await say('{メロ|めろ}', ['@、 すぐ もどって くるからね。']);
     await say('@', ['……うん。 まってる……']);
     await say('', ['ここからは しばらく、 {ハモ|はも}と {メロ|めろ}の ふたりで ぼうけんだ!']);
+  },
+  // ===== 第4章 かぞくの おまつり: 1回目 おまつりの じゅんび =====
+  async autumn() {
+    await say('', ['{ネコン|ねこん}{村|むら}に かえって きた!']);
+    await fade(() => { flags.add('ch4start'); applySwaps(cur); syncParty(); chipText = ''; trail.length = 0; updateCamera(); });
+    await say('', ['むらは すっかり あきの いろ。', 'もみじが まっかに そまっている。']);
+    await say('{メロ|めろ}', ['あら、 おまつりの じゅんびが はじまってるわ!']);
+    await say(HAMO, ['ほんとうだ。 ちょうちんが いっぱい!']);
+    await say('むらの おじいさん', ['おお、 おかえり! ちょうど よかった。', 'おまつりの やぐらを たてるのに、 ちからが いるんじゃ。', '{ハモ|はも}、 {メロ|めろ}、 てつだって くれんか?']);
+    await say(HAMO, ['もちろん!']);
+    await say('{メロ|めろ}', ['@は むらを みて まわって おいで。 たのしんでね。']);
+    syncParty(); chipText = ''; save();
+    await say('', ['……あれ? むらの ひだりしたに、 あたらしい おみせが できている。', 'いって みよう!']);
+  },
+  async sneak() {
+    await say(HAMO, ['あっ、 @! ……あれ? その てがみ、 なあに?']);
+    await say('@', ['えっ!? な、 なんでもない!']);
+    await say('', ['@は あわてて てがみを せなかに かくした。']);
+    await say('{メロ|めろ}', ['ふふ、 なにか ないしょごと かしら?']);
+    await say(HAMO, ['うーん、 きになるなあ……']);
+    await say('@', ['ひ、 ひみつ!']);
+    await say('', ['ふたりは くびを かしげながら、 やぐらの ほうへ もどって いった。', '……ふう、 あぶなかった!']);
+  },
+  async hamoWork(o) {
+    if (flags.has('prep1')) { await say(o.name, ['やぐら、 もうすぐ できるよ!', '@、 さいきん にこにこ してるね。 いい ことでも あった?']); await say('@', ['ふふふ、 ひみつ!']); return; }
+    await say(o.name, ['よいしょ、 よいしょ……', 'やぐら、 だいぶ できてきたよ!', '@は なにを してるの?']);
+    await say('@', ['えっと…… むらを たんけん!']);
+  },
+  async meloWork(o) {
+    await say(o.name, ['ちょうちんを つるしてるの。 きれいでしょう?', 'おまつりの ひ、 3にんで まわりましょうね。']);
+  },
+  // モグ: ないしょの けっこんしきの そうだん / りょうりの てつだい
+  async mogu(o) {
+    if (!flags.has('mogu')) {
+      await say(o.name, ['@! いらっしゃい! あたらしい おみせ、 どう?', 'ようしょくやさんと、 はなやさんを はじめたの。']);
+      await say(o.name, ['ねえ @、 ないしょの そうだん なんだけど……', '{ハモ|はも}と {メロ|めろ}、 まだ けっこんしきを してないでしょう?', 'おまつりの ひに、 この おみせで けっこんしきを しない?', 'ふたりには ないしょで!']);
+      await say('@', ['する!! ぜったい する!']);
+      await say(o.name, ['やった! じゃあ、 じゅんびを てつだって くれる?', '1. しょうたいじょうを とどける', '2. {パシャ|ぱしゃ}と しゃしんの れんしゅう', '3. ここで りょうりの てつだい']);
+      flags.add('mogu'); flags.add('inviteGot'); bag.push('しょうたいじょう', 'しょうたいじょう', 'しょうたいじょう', 'ワープのはね', 'ワープのはね'); save(); sfx('get');
+      await say(o.name, ['しょうたいじょうは 3まい。', '{ポポ|ぽぽ}ばあちゃんと、', '{パルル|ぱるる}{町|まち}に きている {メロ|めろ}の かぞくと、 {ハモ|はも}の ふるさとの ねこに わたしてね。', '♪しょうたいじょう 3まいと {ワープ|わーぷ}の はね 2まいを もらった!']);
+      await say(o.name, ['あ、 ふたりには ぜったい ないしょ だよ!']);
+      return;
+    }
+    if (!flags.has('cook')) {
+      await say(o.name, ['りょうりの てつだい、 して くれる?', 'けっこんしきで だす、 とくせい オムライス!'.replace('オムライス', '{オムライス|おむらいす}'), '{レシピ|れしぴ}を よく よんでね。']);
+      await startCook();
+      flags.add('cook'); save();
+      await say(o.name, ['わあ、 おいしそう! ケチャップの ハートも かわいい!'.replace('ケチャップ', '{ケチャップ|けちゃっぷ}').replace('ハート', '{ハート|はーと}'), 'これを けっこんしきで だそうね!']);
+    }
+    const left = [!flags.has('inv1') || !flags.has('inv2') || !flags.has('inv3') ? 'しょうたいじょうを とどける' : null, !flags.has('photo') ? '{パシャ|ぱしゃ}と しゃしんの れんしゅう' : null].filter(Boolean);
+    if (left.length) { await say(o.name, ['のこりの じゅんびは……', ...left.map(t => '・' + t)]); return; }
+    if (!flags.has('prep1')) {
+      flags.add('prep1'); save(); sfx('get');
+      await say(o.name, ['じゅんび、 ばっちり! ありがとう、 @!', 'あとは おみせの かざりつけ なんだけど……', 'もみじの あかい はっぱと、 きらきら ひかる いしで かざりたいの。', 'どこで とれるか、 しらべて おくね!']);
+      return;
+    }
+    await say(o.name, ['かざりの はっぱと いし、 どこで とれるか しらべてるからね!']);
+  },
+  async pasha(o) {
+    if (!flags.has('mogu')) { await say(o.name, ['ぼくは {パシャ|ぱしゃ}。 しゃしんを とるのが だいすきなんだ。', 'おまつりの しゃしんを とりに きたよ。']); return; }
+    if (flags.has('photo')) { await say(o.name, ['けっこんしきの ひは、 いっぱい とるからね!', '@の えがお、 また みせてね。']); return; }
+    await say(o.name, ['{モグ|もぐ}から きいたよ! けっこんしきの しゃしんは まかせて!', 'でも そのまえに、 えがおの しゃしんの れんしゅうを したいんだ。', 'みんな はずかしがりで、 なかなか わらって くれなくて……', '@の えがおで、 みんなを にっこり させて くれる?']);
+    await say('@', ['うん! やってみる!']);
+    const n = await startPhoto();
+    flags.add('photo'); save();
+    await say(o.name, [`${n}まいとも ばっちり!`, 'すごいなあ。 @が わらうと、 みんなも わらうんだね。', 'けっこんしきでも、 その えがお たのむよ!']);
+  },
+  async popo(o) {
+    if (!flags.has('mogu')) { await say(o.name, ['おや、 @。 おかえり。', 'もみじが きれいだねえ。']); return; }
+    if (flags.has('inv1')) { await say(o.name, ['けっこんしき、 たのしみだねえ。', 'いちばん まえの せきで、 にこにこ みているからね。']); return; }
+    await deliver('inv1');
+    await say('@', ['{ポポ|ぽぽ}ばあちゃん、 これ!']);
+    await say(o.name, ['まあ、 しょうたいじょう……', '{ハモ|はも}と {メロ|めろ}の けっこんしき? まあ、 まあ。', 'うれしいねえ。 かならず いくよ。', 'いちばん まえの せきで、 にこにこ みているからね。']);
+    await inviteLeft();
+  },
+  async invite(o) {
+    const fam = o.flag === 'inv2';
+    if (!flags.has('mogu')) { await say(o.name, fam ? ['{メロ|めろ}は げんき? よろしく つたえてね。'] : ['{ハモ|はも}は げんきに たびを してるかい?']); return; }
+    if (flags.has(o.flag)) { await say(o.name, ['おまつりの ひ、 かならず いくよ!']); return; }
+    await deliver(o.flag);
+    await say('@', ['あの、 これ…… ないしょの しょうたいじょう!']);
+    if (fam) await say(o.name, ['えっ、 {メロ|めろ}が けっこんしき!?', '……まあ、 まあ! なんて うれしいの!', 'かぞく みんなで かならず いくわ!']);
+    else await say(o.name, ['{ハモ|はも}が けっこんしき!?', 'あの たびばかりの {ハモ|はも}が…… そうか、 そうか。', 'ふるさとの みんなで おいわいに いくよ!']);
+    await inviteLeft();
   },
   // ===== 第3章の おてつだい =====
   // こやの ねこの あかい かさ
@@ -1320,7 +1416,7 @@ function updateCamera() {
 // ===== 毎フレームの更新 =====
 let tm = 0, chipText = '';
 function updateChip() {
-  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open && !deco.open && !paint.open && !jump.on && !stageShow.on && !care.on;
+  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open && !deco.open && !paint.open && !jump.on && !stageShow.on && !care.on && !fest.on;
   $('hpchip').style.display = show ? 'block' : 'none';
   $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
   $('decobtn').style.display = show && !dlg.open && cur.deco ? 'block' : 'none';
@@ -1343,6 +1439,7 @@ function update(dt) {
   if (concert.on) { updateConcert(dt); hideAct(); return; }
   if (care.on) { updateCare(dt); hideAct(); return; }
   if (roll.on) { hideAct(); return; }
+  if (fest.on) { updateFest(dt); hideAct(); return; }
   if (trans.on || nameEntry.open || menu.open || shop.open || deco.open || paint.open || jump.on) { hideAct(); if (jump.on) jump.t += dt; return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
@@ -1431,8 +1528,8 @@ function update(dt) {
 // ===== 描画 =====
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
-  if (battle.on) drawBattle(ctx); else if (care.on) drawCare(ctx, tm); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : view.kind === 'rainbow' ? drawRainbow() : drawView()); else drawField();
-  if (!battle.on && !stageShow.on && !view.on && !care.on) { if (rainy()) drawRain(); if (cur.snow) drawSnow(); drawDark(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
+  if (battle.on) drawBattle(ctx); else if (care.on) drawCare(ctx, tm); else if (fest.on) drawFest(ctx, tm); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : view.kind === 'rainbow' ? drawRainbow() : drawView()); else drawField();
+  if (!battle.on && !stageShow.on && !view.on && !care.on && !fest.on) { if (rainy()) drawRain(); if (cur.snow) drawSnow(); drawDark(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
 }

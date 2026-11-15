@@ -64,9 +64,12 @@ export default {
     { kind: 'deco', x: 28.5, y: 18, pic: 'tent', show: 'campGo', hide: 'camp' },
     { kind: 'deco', x: 26.5, y: 17.4, pic: 'fire', light: 56, show: 'campGo', hide: 'camp' },
     { kind: 'npc', x: 25, y: 18.4, pal: 'melo', name: '{メロ|めろ}', label: 'はなす', show: 'campGo', hide: 'camp', event: 'camp', lines: [] },
+    // 第4章: けっこんしきの しょうたいじょうを とどける あいて
+    { kind: 'npc', x: 19, y: 14, pal: 'mfam', name: '{メロ|めろ}の かぞく', label: 'はなす', show: 'ch4start', event: 'invite', flag: 'inv2' },
+    { kind: 'npc', x: 10, y: 14, pal: 'hfam', name: '{ハモ|はも}の ふるさとの ねこ', label: 'はなす', show: 'ch4start', event: 'invite', flag: 'inv3' },
     { kind: 'npc', x: 26.5, y: 13, pal: 'oji', name: 'としよりの ねこ', label: 'はなす',
       talk: [{ need: 'kumo', not: 'ch3', lines: ['かみなりぐもを しずめたのかい! たいしたもんじゃ。', 'じゃが あめは まだ やまんのう……', 'くらい もりの おくに、 なにかが おるのかも しれん。'] },
-        { need: 'ch3', lines: ['あらしが やんだのう。 おまえさんたちの おかげじゃ。', 'あきに なったら、 まちで おまつりが あるんじゃよ。 たのしみに しておれ。'] },
+        { need: 'ch3', lines: ['あらしが やんだのう。 おまえさんたちの おかげじゃ。', '{ネコン|ねこん}{村|むら}では、 もうすぐ あきの おまつり じゃそうな。 たのしみじゃのう。'] },
         { need: 'ch3start', not: 'ch3', lines: ['ひがしの のはらを ずっと いくと、 かみなりの おかが ある。', 'あらしは どうやら、 そこから きて おるようじゃ。', 'のはらは かぜが つよい。 いわの かげで ひとやすみ しながら いくんじゃよ。'] },
         { need: 'owl', lines: ['{ミミズク|みみずく}を ゆるして あげたんじゃな。', 'やさしい こたちじゃ。 まちの みんなも よろこんで おるよ。'] }],
       lines: ['よるに なると、 おおきな {ミミズク|みみずく}が\nまちの うえを とんでいくんじゃ。', 'あいつが まちの おとを もっていって しまったのかも しれん。', 'きたの もりの おくに すんでいると いう はなしじゃが……'] },

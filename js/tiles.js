@@ -118,6 +118,8 @@ TILE.srock = mk(g => { snow(g); rockOn(g); px(g, 4, 3, 6, 2, '#ffffff'); px(g, 3
 TILE.scliff = mk(g => { px(g, 0, 0, 16, 16, '#8a8a9a'); px(g, 0, 0, 16, 3, '#ffffff'); px(g, 0, 3, 16, 1, '#c4d4e4');   // 9 ゆきの がけ(かたぐるまで のぼれる)
   for (const [x, y, w] of [[1, 6, 6], [9, 5, 6], [3, 10, 7], [11, 11, 4], [0, 14, 5]]) { px(g, x, y, w, 1, '#5a5a6a'); px(g, x, y - 1, w, 1, '#dce8f4'); } });
 TILE.iwall = mk(g => { snow(g); px(g, 1, 1, 14, 15, '#7ab8e0'); px(g, 2, 2, 12, 13, '#bfe8ff'); px(g, 3, 3, 3, 8, '#ffffff'); px(g, 9, 5, 2, 6, '#e6f8ff'); px(g, 1, 14, 14, 2, '#5a8ab0'); });   // & ぶあつい こおりの かべ(ぬくもりの かけらで とける)
+TILE.agrass = [0, 1, 2].map(() => mk(g => { grass(g); for (let i = 0; i < 4; i++) px(g, rnd() * 15, rnd() * 15, 2, 1, ['#e8803a', '#d8483c', '#f2c230'][rnd() * 3 | 0]); }));   // ; あきの くさ(おちば)
+TILE.atree = [0, 1].map(p => mk(g => { g.drawImage(TILE.agrass[0], 0, 0); px(g, 6, 11, 4, 5, '#7a4a2a'); px(g, 6, 11, 1, 5, '#5a341c'); circle(g, 8, 6, 6, p ? '#a8341c' : '#b8601e'); circle(g, 8, 6, 5, p ? '#e04838' : '#e8803a'); circle(g, 6, 4, 2, p ? '#ff8a6a' : '#f2c230'); }));   // ! もみじの き
 TILE.fire = [0, 1, 2].map(p => mk(g => { px(g, 0, 0, 16, 16, '#7a7a86'); for (let y = 0; y < 16; y += 4) for (let x = (y / 4 % 2) * 3; x < 16; x += 6) px(g, x, y, 1, 4, '#5a5a66');
   px(g, 0, 0, 16, 2, '#4a4a56'); px(g, 3, 6, 10, 10, '#1a1414'); px(g, 4, 13, 8, 2, '#6a3a1a');
   const f = [[5, 9, '#ff5a2a'], [7, 7 + p, '#ffa02a'], [9, 9 - p, '#ff5a2a'], [7, 10, '#ffd23f'], [8 - p, 11, '#fff3a0']]; for (const [x, y, c] of f) px(g, x, y, 2, 13 - y, c); }));
@@ -155,8 +157,9 @@ TILE.mat = mk(g => { floor(g); px(g, 2, 2, 12, 12, '#4f9a52'); px(g, 3, 3, 10, 1
 // あらしの のはら  a ぬれた くさ  A いわ  ^ いわばの いわ  M ぬま  j いたの みち  d かれた き  y たおれた き
 // こわい もり  t つりばし  0 たにぞこ  % くろい きり(ゆうきの かけらで とおれる)
 // ゆきの やま  * ゆき  1 こおり(すべる)  2 ゆきの き  3 こおりの いわ  4 つめたい みず  5 ゆきの いわ  6 まるたの かべ  7 ゆきの やね  8 だんろ  9 ゆきの がけ(かたぐるま)  & こおりの かべ(ぬくもり)
+// あきの むら  ! もみじの き  ; おちばの くさ
 // 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  C お店のカウンター  E 出口のマット
-export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e', 'c', 'A', 'M', 'd', 'y', '^', '0', '2', '3', '4', '5', '6', '7', '8', '&']);
+export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e', 'c', 'A', 'M', 'd', 'y', '^', '0', '2', '3', '4', '5', '6', '7', '8', '&', '!']);
 
 export function tileImg(c, x, y, t) {
   const v = (x * 7 + y * 13) % 3;
@@ -178,7 +181,7 @@ export function tileImg(c, x, y, t) {
     case 'a': return TILE.wgrass[(x * 5 + y * 3) % 7 === 0 ? 2 : v % 2]; case 'A': return TILE.rock; case '^': return TILE.rockC; case 'M': return TILE.swamp[(Math.floor(t * 1.5) + x + y) % 2];
     case 't': return TILE.rope; case '0': return TILE.chasm[(x * 3 + y) % 2]; case '%': return TILE.fog[(Math.floor(t * 2) + x + y) % 2];
     case '*': return TILE.snow[v]; case '1': return TILE.ice[(x + y) % 2]; case '2': return TILE.stree; case '3': return TILE.irock; case '4': return TILE.cold[(Math.floor(t * 1.5) + x) % 2];
-    case '&': return TILE.iwall; case '5': return TILE.srock; case '9': return TILE.scliff; case '6': return TILE.logw; case '7': return TILE.sroof; case '8': return TILE.fire[Math.floor(t * 6) % 3];
+    case '!': return TILE.atree[(x + y) % 2]; case ';': return TILE.agrass[v]; case '&': return TILE.iwall; case '5': return TILE.srock; case '9': return TILE.scliff; case '6': return TILE.logw; case '7': return TILE.sroof; case '8': return TILE.fire[Math.floor(t * 6) % 3];
     case 'j': return TILE.board; case 'd': return TILE.dead; case 'y': return TILE.log;
     default: return TILE.grass[v];
   }

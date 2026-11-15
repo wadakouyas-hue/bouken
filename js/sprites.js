@@ -35,6 +35,11 @@ export const PAL = {
   shop2: { k: '#2a1e1a', h: '#8a8a96', g: '#5a5a66', s: '#c8c8d2', e: '#2a1e1a', p: '#f08aa0', r: '#8a96a4', b: '#4a4a5a', o: '#2a2a2a' },
   shop3: { k: '#2a1e1a', h: '#f0dca0', t: '#d0a860', s: '#fff4d8', e: '#2a1e1a', p: '#f08aa0', r: '#e8a040', b: '#7a4a24', o: '#4a3a2a' },
   paint: { k: '#2a1e1a', h: '#d8c0a0', g: '#8a5a3a', s: '#fff4e0', e: '#2a1e1a', p: '#f08aa0', r: '#e04848', b: '#3a3a6a', o: '#2a2a2a' },   // えかきの ねこ
+  mogu:  { skirt: true, k: '#2a1e1a', h: '#f4f2ec', g: '#e09a4a', t: '#4a3a3a', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#ffffff', b: '#4fb07a', o: '#4a3a2a' },   // モグ(みけ。 しろい エプロン)
+  pasha: { k: '#15101a', h: '#3a3a46', s: '#ffffff', e: '#7ad87a', p: '#f08aa0', r: '#f2c230', b: '#3a3a5a', o: '#1a1a1a' },   // パシャ(くろねこ。 カメラ)
+  popo:  { skirt: true, k: '#2a1e1a', h: '#e8e4dc', g: '#b8b4ac', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#b07ab8', b: '#8a5a9a', o: '#4a3a2a' },   // ポポばあちゃん(やさしい おばあちゃん)
+  mfam:  { k: '#2a1e1a', h: '#f4f2ec', g: '#9a9aa8', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#5a8ad8', b: '#3a4a6a', o: '#4a3a2a' },   // メロの かぞく(メロと おなじ もよう)
+  hfam:  { k: '#2a1e1a', h: '#f0a050', t: '#b8601e', s: '#ffe2b8', e: '#2a1e1a', p: '#e07a6a', r: '#d8a040', b: '#5a4a3a', o: '#3a2a1a' },   // ハモの ふるさとの ねこ(ちゃトラ)
   bank:  { k: '#15101a', h: '#2e2e38', s: '#ffffff', e: '#ffd23f', p: '#f08aa0', r: '#2a3a6a', b: '#2a3a6a', o: '#1a1a1a' },
   obj:  { k: '#2a1e1a', w: '#e0ab62', d: '#8a5a2a', p: '#8a5a2a', c: '#b5652a', y: '#f2c230', x: '#3a2210',
           g: '#dff4ff', l: '#4fd16a', L: '#c8ffd0', n: '#b07a40' }};
@@ -63,6 +68,8 @@ export function charSprite(palName, dir, f) {
   const base = PAL[palName] || PAL.oji, legs = legsOf(side, f, base.skirt), pal = { g: base.h, t: base.h, p: '#f08aa0', ...base };   // ぶち・しまが ない ねこは 毛の いろ
   const c = build([...head, ...body, ...legs], pal, dir === 'left');
   if (palName === 'hamo') drawGuitar(c.getContext('2d'), dir);
+  if (palName === 'pasha' && dir !== 'up') { const g = c.getContext('2d'); g.fillStyle = '#2a2a2a'; g.fillRect(side ? (dir === 'left' ? 1 : 6) : 3, 7, 5, 4); g.fillStyle = '#9fd2ff'; g.fillRect(side ? (dir === 'left' ? 2 : 8) : 5, 8, 2, 2); }   // カメラ
+  if (palName === 'popo' && dir !== 'up') { const g = c.getContext('2d'); g.fillStyle = '#c84a6a'; g.fillRect(side ? 3 : 2, 6, side ? 6 : 8, 1); }   // かたかけ
   return cache[key] = c;
 }
 // ハモが せなかに しょっている ギター
@@ -641,6 +648,12 @@ export function enemySprite(look) {
 }
 export const ENEMY_ROWS = ENEMY;
 DECO.owl = enemySprite('ミミズク');   // パルル町に いる ミミズク(かざり)
+// 第4章 おまつり: ちょうちん・やたい・はなかご・しょうたいじょう
+DECO.chochin = paintCv(32, 12, p => { p(0, 1, 32, 1, '#5a3418'); ['#ff5a5a', '#ffd23f', '#ff8ad0', '#ffa02a'].forEach((c, i) => { const x = 2 + i * 8; p(x + 1, 2, 4, 1, '#3a2210'); p(x, 3, 6, 6, c); p(x, 5, 6, 1, '#ffffff'); p(x + 1, 9, 4, 1, '#3a2210'); }); });
+DECO.yatai = paintCv(32, 28, p => { p(0, 0, 32, 3, '#e04848'); for (let x = 0; x < 32; x += 8) p(x, 3, 4, 4, '#ffffff'), p(x + 4, 3, 4, 4, '#e04848'); p(1, 7, 2, 21, '#7a4a24'); p(29, 7, 2, 21, '#7a4a24');
+  p(0, 16, 32, 10, '#b8783e'); p(0, 16, 32, 2, '#d8985e'); for (let x = 4; x < 28; x += 6) { p(x, 12, 4, 4, ['#ffd23f', '#ff8a6a', '#7ad87a', '#ff5a5a'][x % 4]); } });
+DECO.flowers = paintCv(16, 14, p => { p(2, 8, 12, 6, '#a8744a'); p(2, 8, 12, 1, '#d8a878'); for (const [x, y, c] of [[3, 3, '#ff5a6e'], [7, 1, '#ffd23f'], [11, 3, '#ff8ad0'], [5, 5, '#ffffff'], [9, 5, '#ff8a3a']]) { p(x, y, 3, 3, c); p(x + 1, y + 1, 1, 1, '#ffd23f'); } p(4, 6, 1, 2, '#3a8a3e'); p(10, 6, 1, 2, '#3a8a3e'); });
+SPR.letter = paintCv(12, 16, p => { p(1, 6, 10, 7, '#ffffff'); p(1, 6, 10, 1, '#d8c8b0'); for (let i = 0; i < 5; i++) p(1 + i, 7 + i, 1, 1, '#c8b8a0'), p(10 - i, 7 + i, 1, 1, '#c8b8a0'); p(5, 9, 2, 2, '#ff5a7a'); });
 // 第3章の おてつだい: こおばけ・おばけび・ゆきうさぎの こ・できた ゆきだるま・あかい かさ
 DECO.kobake = enemySprite('おばけ'); DECO.wisp = enemySprite('おばけび'); DECO.usako = enemySprite('ゆきうさぎ'); DECO.snowman = enemySprite('ゆきだるま');
 SPR.kasa = paintCv(12, 16, p => { for (let y = 0; y < 5; y++) p(5 - y, 3 + y, 2 + y * 2, 1, y % 2 ? '#e04848' : '#ff5a5a'); p(0, 8, 12, 1, '#a8283a'); p(5, 1, 2, 2, '#ffd23f');
