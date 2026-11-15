@@ -1,6 +1,6 @@
 // 戦闘(ターン制のコマンド戦闘)。 みかたは 主人公と なかま(ハモ)
 import { byId } from './data.js';
-import { hero, bag, members, gainExp, heal, bagCount, bagRemove, equipLook } from './hero.js';
+import { hero, bag, members, gainExp, heal, bagCount, bagRemove, equipLook, equippedBy } from './hero.js';
 import { heroSprite, enemySprite, charSprite } from './sprites.js';
 import { sfx, playBgm } from './audio.js';
 import { rubyHTML } from './dialog.js';
@@ -122,10 +122,10 @@ function chooseCommand(m, first) {
         } })), { html: 'もどる', fn: main }], true);
     };
     const items = () => {
-      const ids = [...new Set(bag)].filter(id => ['かいふく', 'なおす'].includes(byId('items', id)?.kind));
+      const ids = [...new Set(bag)].filter(id => ['かいふく', 'なおす', 'なげる'].includes(byId('items', id)?.kind));
       if (!ids.length) { note('つかえる どうぐが ないよ'); return; }
       setButtons([...ids.map(id => { const it = byId('items', id); return { html: `${rubyHTML(it.name)}<small>×${bagCount(id)}</small>`,
-        fn: () => pickAlly(t => done({ type: 'item', item: it, target: t }), items, it.kind === 'なおす' ? 'だれを なおす? タップしてね' : undefined) }; }),
+        fn: () => it.kind === 'なげる' ? (it.look === 'くすぐり' ? pick(t => done({ type: 'item', item: it, target: t }), items) : done({ type: 'item', item: it })) : pickAlly(t => done({ type: 'item', item: it, target: t }), items, it.kind === 'なおす' ? 'だれを なおす? タップしてね' : undefined) }; }),
         { html: 'もどる', fn: main }], true);
     };
     main();
@@ -295,6 +295,9 @@ async function memberAct(m, cmd) {
     await say(`${m.name}の こうげき!`, 0.6); await lunge(m);
     await effect('slash', [t]);
     await hitEnemy(t, calc(s0, null, t.d, atkMul(m)));
+    const wl = equippedBy(m.key, 'ぶき')?.look;
+    if (wl === 'スネア' && t.alive && Math.random() < 0.25) { sfx('snare'); await say('タタン! スネアの おとが ひびいた!'.replace('スネア', '{スネア|すねあ}'), 0.9); await inflict(t, { status: 'しびれ', chance: 100 }); }   // ゆうしゃの スネア
+    if (wl === 'ギター' && alive().length && Math.random() < 0.25) { const t2 = t.alive ? t : alive()[0]; sfx('guitar'); await say('ジャーン! もう いっかい!'.replace('ジャーン', '{ジャーン|じゃーん}'), 0.9); await effect('slash', [t2]); await hitEnemy(t2, calc(s0, null, t2.d, atkMul(m))); }   // ハモの ギター
   } else if (cmd.type === 'skill') {
     const s = cmd.skill;
     m.s.mp -= s.mp; updateStat();
@@ -316,10 +319,27 @@ async function memberAct(m, cmd) {
   } else if (cmd.type === 'item') {
     const it = cmd.item;
     if (!bag.includes(it.id)) { await say(`${it.name}は もう ないよ…`); return; }
+    if (it.kind === 'なげる') { await throwItem(m, it, cmd.target); return; }
     bagRemove(it.id);
     await say(`${m.name}は ${it.name}を つかった!`, 1);
     if (it.kind === 'なおす') await cureMember(cmd.target || m); else await healMember(cmd.target || m, it.val);
   }
+}
+// なげる どうぐ: おならだま(てき ぜんぶ くさい)・くすぐり はね(ひとり わらい)・ねこじゃらし(たたかいが おわる。 ボスには きかない)
+async function throwItem(m, it, target) {
+  if (it.look === 'じゃらし' && B.boss) { await say('ボスは ねこじゃらしに みむきも しない!'.replace('ボス', '{ボス|ぼす}')); return; }
+  bagRemove(it.id); await say(`${m.name}は ${it.name}を なげた!`, 1); await lunge(m);
+  if (it.look === 'じゃらし') {
+    await effect('notes', alive()); sfx('boing');
+    await say('まものたちは ねこじゃらしに むちゅう!', 1.4); await say('そのすきに、 そっと はなれた……', 1.4);
+    B.escape = true; return;
+  }
+  const s = it.look === 'おなら' ? { status: 'くさい', chance: 85, fx: 'stink', name: 'おなら' } : { status: 'わらい', chance: 85, fx: 'notes', name: 'くすぐり' };
+  const targets = it.look === 'おなら' ? alive() : [target?.alive ? target : alive()[0]];
+  if (it.look === 'おなら') { sfx('stink'); await say('ぷう〜〜〜っ!', 1.2); }
+  else { sfx('lick'); await say('こちょこちょ こちょこちょ!', 1.2); }
+  await effect(s.fx, targets);
+  for (const t of targets) { const before = Object.keys(t.cond).length; await inflict(t, s); if (Object.keys(t.cond).length === before) await say(`${t.name}には きかなかった!`, 0.9); }
 }
 // がっそう: 3にんで えんそうして てき ぜんぶに こうげき + みんな すこし かいふく。 かけらが おおいほど つよい
 const GASSOU_MP = 4;
@@ -399,6 +419,7 @@ async function run() {
     actors.sort((a, b) => (b.cmd?.skill?.effect === 'まもる') - (a.cmd?.skill?.effect === 'まもる') || b.spd - a.spd);   // まもるは いちばん さきに
     for (const a of actors) {
       if (a.cmd) { if (a.who.s.hp > 0) await memberAct(a.who, a.cmd); } else if (a.who.alive) await enemyAct(a.who);
+      if (B.escape) return finish('run');   // ねこじゃらしで そっと はなれた
       if (!alive().length) return victory();
       if (!up().length) return defeat();
     }

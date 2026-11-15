@@ -4,17 +4,33 @@ import { T, px } from './tiles.js';
 import { colorAt } from './paint.js';
 
 // みため → おおきさ(マス)と はたらき
-const SIZE = { ベッド: [1, 2], テーブル: [2, 1], じゅうたん: [2, 2], き: [1, 2] };
+const SIZE = { ベッド: [1, 2], テーブル: [2, 1], じゅうたん: [2, 2], き: [1, 2], ねこタワー: [1, 2], ハンモック: [2, 1], こたつ: [2, 1], にじ: [2, 2] };
 export const furnSize = look => SIZE[look] || [1, 1];
-export const isFlat = look => look === 'じゅうたん';            // うえを あるける
-export const furnWork = look => look === 'ベッド' ? 'ねる' : look === 'さぎょうだい' ? 'つくる' : '';
+export const isFlat = look => look === 'じゅうたん' || look === 'にじ';            // うえを あるける
+const WORK = { ベッド: 'ねる', さぎょうだい: 'つくる', こたつ: 'はいる', ハンモック: 'のる', ねこタワー: 'のぼる', ペット: 'なでる' };
+export const furnWork = look => WORK[look] || (look.startsWith('おもいで') ? 'みる' : '');
 
 // もっている かぐ: placed = おいてある もの(マップごと)、 stash = しまってある もの(id の ならび)
 export const room = { placed: {}, stash: [], paint: null };   // paint: ぬりえの いろ(かぐの 「え」)
 
 // ===== 絵(うしろは すきとおり) =====
 function circle(g, cx, cy, r, col) { g.fillStyle = col; for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r * .6) g.fillRect(cx + x, cy + y, 1, 1); }
+function frame(g) { px(g, 1, 1, 14, 14, '#b07a3a'); px(g, 2, 2, 12, 12, '#d8a868'); px(g, 3, 3, 10, 10, '#fff8e8'); px(g, 7, 0, 2, 1, '#5a3418'); }   // おもいでの がくぶち
 const PAINT = {
+  おもいでかたぐるま: g => { frame(g); px(g, 6, 6, 4, 4, '#f0a050'); px(g, 6, 3, 4, 3, '#f4f2ec'); px(g, 5, 10, 6, 2, '#7a5a3a'); },
+  おもいでトランポリン: g => { frame(g); px(g, 3, 10, 10, 2, '#3a5ad8'); px(g, 6, 4, 4, 4, '#f4f2ec'); px(g, 7, 8, 1, 1, '#ffd23f'); },
+  おもいでえかき: g => { frame(g); px(g, 4, 4, 8, 7, '#ffffff'); px(g, 5, 5, 3, 3, '#e04848'); px(g, 8, 7, 3, 3, '#5ab0ff'); },
+  おもいでこうさく: g => { frame(g); px(g, 5, 6, 6, 5, '#d8a060'); px(g, 4, 5, 8, 2, '#c84a3a'); px(g, 7, 8, 2, 2, '#3a2210'); },
+  おもいでキャンプ: g => { frame(g); px(g, 4, 9, 8, 2, '#7a4a24'); px(g, 6, 5, 4, 4, '#ff8a2a'); px(g, 7, 4, 2, 3, '#ffd23f'); },
+  おもいでがっそう: g => { frame(g); px(g, 4, 4, 2, 6, '#2a1e1a'); px(g, 3, 9, 3, 2, '#2a1e1a'); px(g, 9, 3, 2, 6, '#2a1e1a'); px(g, 8, 8, 3, 2, '#2a1e1a'); px(g, 4, 3, 7, 1, '#2a1e1a'); },
+  おもいでゆうき: g => { frame(g); px(g, 3, 8, 10, 2, '#8a6a42'); px(g, 3, 7, 1, 1, '#c8a878'); px(g, 12, 7, 1, 1, '#c8a878'); px(g, 7, 4, 2, 4, '#f4f2ec'); },
+  おもいでぬくもり: g => { frame(g); px(g, 4, 5, 3, 3, '#ff5a7a'); px(g, 9, 5, 3, 3, '#ff5a7a'); px(g, 4, 7, 8, 2, '#ff5a7a'); px(g, 6, 9, 4, 2, '#ff5a7a'); px(g, 7, 11, 2, 1, '#ff5a7a'); },
+  ねこタワー: g => { px(g, 7, 6, 2, 24, '#c8a878'); for (let y = 8; y < 30; y += 3) px(g, 7, y, 2, 1, '#a8885a'); px(g, 2, 4, 12, 3, '#8a5a9a'); px(g, 3, 16, 10, 3, '#8a5a9a'); px(g, 1, 29, 14, 3, '#8a5a9a'); px(g, 4, 1, 6, 3, '#b07ab8'); px(g, 12, 19, 1, 4, '#ffd23f'); px(g, 11, 23, 3, 2, '#ffd23f'); },
+  こたつ: g => { px(g, 1, 3, 30, 9, '#e04848'); for (let x = 3; x < 30; x += 6) px(g, x, 3, 3, 9, '#c83838'); px(g, 3, 1, 26, 3, '#b07a3a'); px(g, 3, 1, 26, 1, '#d8a868'); circle(g, 22, 1, 2, '#ff8a2a'); circle(g, 9, 1, 2, '#ff8a2a'); px(g, 1, 12, 30, 1, '#8a2828'); },
+  ハンモック: g => { px(g, 1, 0, 2, 16, '#7a4a24'); px(g, 29, 0, 2, 16, '#7a4a24'); for (let x = 3; x < 29; x++) { const y = 6 + Math.round(Math.sin((x - 3) / 26 * Math.PI) * 5); px(g, x, y, 1, 3, x % 4 < 2 ? '#5ab0a0' : '#f2c230'); } px(g, 3, 5, 1, 1, '#c8a878'); px(g, 28, 5, 1, 1, '#c8a878'); },
+  にじ: g => { const c = ['#ff5a5a', '#ffa03a', '#ffe04a', '#6ad86a', '#5ab0ff', '#7a6ae8']; for (let i = 0; i < 6; i++) px(g, 0, i * 5 + 1, 32, 5, c[i]); px(g, 0, 0, 32, 1, '#ffffff'); px(g, 0, 31, 32, 1, '#ffffff'); },
+  ほしランプ: g => { px(g, 7, 9, 2, 5, '#3a3a5a'); px(g, 5, 14, 6, 2, '#3a3a5a'); px(g, 6, 1, 4, 8, '#fff3a0'); px(g, 3, 3, 10, 4, '#ffd23f'); px(g, 7, 0, 2, 10, '#ffffff'); px(g, 4, 4, 8, 2, '#fff8d0'); },
+  ペット: g => { px(g, 3, 9, 10, 6, '#f0a050'); px(g, 3, 9, 10, 1, '#b8601e'); px(g, 6, 11, 4, 1, '#b8601e'); px(g, 10, 5, 5, 5, '#f0a050'); px(g, 10, 4, 1, 2, '#f0a050'); px(g, 14, 4, 1, 2, '#f0a050'); px(g, 11, 7, 1, 1, '#2a1e1a'); px(g, 13, 7, 1, 1, '#2a1e1a'); px(g, 12, 8, 1, 1, '#f08aa0'); px(g, 1, 8, 2, 2, '#f0a050'); px(g, 0, 6, 2, 2, '#f0a050'); },
   かぼちゃ: g => { circle(g, 8, 10, 6, '#c8601e'); circle(g, 8, 10, 5, '#e8803a'); px(g, 7, 2, 2, 3, '#3a8a3e'); px(g, 5, 8, 2, 2, '#ffd23f'); px(g, 9, 8, 2, 2, '#ffd23f'); px(g, 5, 12, 6, 1, '#ffd23f'); px(g, 6, 13, 1, 1, '#ffd23f'); px(g, 9, 13, 1, 1, '#ffd23f'); },
   ゆきだるま: g => { circle(g, 8, 11, 5, '#ffffff'); circle(g, 8, 4, 3, '#ffffff'); px(g, 6, 3, 1, 1, '#2a2a3a'); px(g, 9, 3, 1, 1, '#2a2a3a'); px(g, 8, 5, 2, 1, '#ff8a2a'); px(g, 5, 7, 6, 1, '#e04848'); px(g, 5, 0, 6, 2, '#3a3a4a'); px(g, 3, 14, 10, 1, '#c4d4e4'); },
   かかし: g => { px(g, 7, 6, 2, 10, '#7a4a24'); px(g, 2, 7, 12, 2, '#7a4a24'); circle(g, 8, 4, 3, '#f0d8a0'); px(g, 4, 0, 8, 2, '#d8b060'); px(g, 6, 3, 1, 1, '#2a1e1a'); px(g, 9, 3, 1, 1, '#2a1e1a'); px(g, 7, 5, 2, 1, '#e04848'); px(g, 5, 8, 6, 5, '#5a8ad8'); px(g, 1, 9, 2, 3, '#d8b060'); px(g, 13, 9, 2, 3, '#d8b060'); },

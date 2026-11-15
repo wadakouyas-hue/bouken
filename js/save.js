@@ -13,7 +13,7 @@ export function clearSave() {
 }
 
 // 中身が正しい形かを確かめる(おかしければ null)
-const eqOf = e => e && typeof e === 'object' ? { ぶき: typeof e.ぶき === 'string' ? e.ぶき : null, よろい: typeof e.よろい === 'string' ? e.よろい : null } : { ぶき: null, よろい: null };
+const eqOf = e => e && typeof e === 'object' ? { ぶき: typeof e.ぶき === 'string' ? e.ぶき : null, よろい: typeof e.よろい === 'string' ? e.よろい : null, かざり: typeof e.かざり === 'string' ? e.かざり : null } : { ぶき: null, よろい: null, かざり: null };
 const ally = a => a && Number.isFinite(a.hp) && a.hp >= 0 && Number.isFinite(a.mp) && a.mp >= 0 ? { hp: a.hp, mp: a.mp, equip: eqOf(a.equip) } : null;
 function check(d) {
   if (!d || typeof d !== 'object' || d.v !== 1) return null;

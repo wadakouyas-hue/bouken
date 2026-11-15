@@ -316,7 +316,17 @@ function goExit(e) {
   }, runEnter);
 }
 // マップに はいった ときの できごと(enter: [{ need, once, event }]。 once の フラグが つくと もう おきない)
+// おもいでの かざり: かけらを もって いえに かえると、 かざれる がくぶちが とどいている
+const MEMO = ['かたぐるま', 'トランポリン', 'えかき', 'こうさく', 'キャンプ', 'がっそう', 'ゆうき', 'ぬくもり'];
+async function giveMemories() {
+  const got = MEMO.filter(k => bag.includes(k + 'のかけら') && !flags.has('memo:' + k) && byId('furniture', 'おもいで' + k));
+  if (!got.length) return;
+  for (const k of got) { flags.add('memo:' + k); room.stash.push('おもいで' + k); }
+  save(); sfx('get');
+  await say('', ['いえの なかに、 ちいさな がくぶちが とどいていた!', ...got.map(k => `♪${byId('furniture', 'おもいで' + k).name}を {手|て}に いれた!`), '「もようがえ」で かざれるよ。']);
+}
 function runEnter() {
+  if (cur === MAPS.home) giveMemories();
   const e = (cur.enter || []).find(e => has(e.need) && !flags.has(e.once));
   if (e) { flags.add(e.once); save(); EVENTS[e.event]?.(); }
 }
@@ -361,12 +371,12 @@ function encounter(o, opt = {}) {
         cur = MAPS[home.map]; beaten.clear(); Object.values(MAPS).forEach(resetEnemies);
         Object.assign(player, { x: home.x, y: home.y, dir: 'up' }); trail.length = 0; ice.dx = ice.dy = 0;
         healFull();
-        lost = hero.gold - Math.floor(hero.gold / 2); hero.gold -= lost;
+        lost = bag.includes('かえるおまもり') ? 0 : hero.gold - Math.floor(hero.gold / 2); hero.gold -= lost;   // かえる おまもりが あれば へらない
       }
       updateCamera(); save();
       playBgm(bgmFor());
     }, result === 'lose' ? () => openDialog('', ['……はっ!', party.away ? 'こやで {目|め}が さめた。 なんとか もどって こられた みたい。' : MAPS.yama3 === cur ? 'たきびの そばで {目|め}が さめた。' : 'おうちで {目|め}が さめた。 だれかが はこんで くれたみたい。', 'みんなの HPが ぜんぶ もどった!',
-      ...(lost > 0 ? [`でも、 おかねを ${lost}{円|えん} おとして しまった…`] : [])]) : result === 'win' && opt.afterWin ? opt.afterWin : null));
+      ...(lost > 0 ? [`でも、 おかねを ${lost}{円|えん} おとして しまった…`] : bag.includes('かえるおまもり') ? ['かえる おまもりの おかげで、 おかねは ぶじだった!'] : [])]) : result === 'win' && opt.afterWin ? opt.afterWin : null));
   });
 }
 
@@ -1334,6 +1344,11 @@ function useFurn(o) {
     fadeTo(() => { healFull(); if (night) { toMorning(); nightChanged(); } save(); },
       () => openDialog('', ['ぐっすり ねむった…', ...(night ? ['あさに なった! いい {天気|てんき}だ!'] : []), '@の HPと MPが ぜんぶ もどった!', 'きょうの ぼうけんを きろくしたよ。']));
   } else if (o.work === 'つくる') openShop({ name: f?.name || 'さぎょうだい', craft: true }, () => { chipText = ''; save(); });
+  else if (o.work === 'はいる') openDialog('', ['こたつに はいった。', 'ぬくぬく…… あったかいなあ。', 'なんだか ねむく なってきた……']);
+  else if (o.work === 'のる') { sfx('boing'); openDialog('', ['ハンモックに のった!'.replace('ハンモック', '{ハンモック|はんもっく}'), 'ゆーら ゆーら…… いい きもち!']); }
+  else if (o.work === 'のぼる') openDialog('', ['ねこ タワーの てっぺんまで のぼった!'.replace('タワー', '{タワー|たわー}'), 'たかい たかい! へやじゅうが よく みえる!']);
+  else if (o.work === 'なでる') { sfx('note'); o.purr = 1.5; openDialog('', ['こねこを なでなで した。', 'にゃーん! ごろごろ……']); }
+  else if (o.work === 'みる') { const k = byId('items', furnLook(o.furn.id).replace('おもいで', '') + 'のかけら'); openDialog('', [`${f?.name || ''}`, k?.desc || f?.desc || '']); }
   else openDialog('', [f?.desc || 'かぐ']);
 }
 function advance() { sfx('next'); advanceDlg(); }
@@ -1663,7 +1678,7 @@ function drawDark() {
   const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: hand.alone ? 30 : cur.lightR || (bag.includes('キャンプのかけら') ? 80 : 40) }];
   if (hand.alone) { const w = at(...hand.alone.wait); lights.push({ x: w.x - cam.x, y: w.y - 8 - cam.y, r: 30 }); }   // まっている ハモの ところも すこし あかるい
   for (const o of live()) if (o.light) lights.push({ x: o.x - cam.x, y: o.y - 6 - cam.y, r: o.light + Math.sin(tm * 9) * 2 });   // たきび など
-  if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ' || furnLook(f.id) === 'かぼちゃ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
+  if (cur.deco) for (const f of placed(cur)) if (['ランプ', 'かぼちゃ', 'ほしランプ'].includes(furnLook(f.id))) lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
   dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, VW, VH);
   dg.fillStyle = `rgba(6,8,32,${a})`; dg.fillRect(0, 0, VW, VH);
   dg.globalCompositeOperation = 'destination-out';
@@ -1773,6 +1788,8 @@ function drawField() {
   // かぐ(じゅうたん → ほかの かぐ の じゅん)
   if (cur.deco) for (const flat of [true, false]) for (const f of placed(cur)) {
     const lk = furnLook(f.id); if (isFlat(lk) !== flat) continue;
+    if (lk === 'ペット') { const ph = (tm * 0.5 + f.x) % 4, dx = ph < 2 ? Math.round(Math.sin(ph * Math.PI) * 3) : 0, hop = ph < 2 ? -Math.round(Math.abs(Math.sin(tm * 6)) * 1) : 0;   // ペットの ねこは ときどき うごく
+      ctx.save(); if (Math.floor(tm * 0.25 + f.x) % 2) { ctx.translate(f.x * T - cam.x + 16 + dx, 0); ctx.scale(-1, 1); ctx.drawImage(furnImg(lk), 0, f.y * T - cam.y + hop); } else ctx.drawImage(furnImg(lk), f.x * T - cam.x + dx, f.y * T - cam.y + hop); ctx.restore(); continue; }
     ctx.drawImage(furnImg(lk), f.x * T - cam.x, f.y * T - cam.y);
   }
   if (deco.open) drawDeco(ctx, cam, tm);

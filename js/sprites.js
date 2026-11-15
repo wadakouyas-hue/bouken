@@ -803,12 +803,24 @@ function drawWeapon(g, look, x, flip, side) {
     else if (look === 'けん') { p(4, 8, 1, '#7a4a24'); p(5, 8, 1, '#7a4a24'); p(6, 7, 3, '#f2c230'); for (let i = 7; i <= 11; i++) { p(i, 8, 1, '#eef3f8'); p(i, 9, 1, '#8a96a4'); } }
     return;
   }
+  if (look === 'スネア') { p(x, 6, 6, '#e8d8b0'); p(x + 1, 5, 1, '#c8a878'); return; }   // ドラムの スティック
   if (look === 'ぼう') { p(x, 3, 10, '#a06a36'); p(x + 1, 3, 10, '#5a3418'); }
   else if (look === 'けん') { p(x, 1, 8, '#eef3f8'); p(x + 1, 1, 8, '#8a96a4'); p(x - 1, 9, 1, '#f2c230'); p(x, 9, 1, '#f2c230'); p(x + 1, 9, 1, '#f2c230'); p(x, 10, 3, '#7a4a24'); }
 }
+// かざり(みためだけ): あたまや むねに かく
+function drawAcc(g, acc, dir, flip) {
+  const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(flip ? 12 - x - w : x, y, w, h); };
+  const side = dir === 'left' || dir === 'right';
+  if (acc === 'おうかん') { p(3, 0, 6, 2, '#f2c230'); p(3, 0, 1, 1, '#f2c230'); p(5, 0, 2, 1, '#fff3a0'); p(6, 1, 1, 1, '#e04848'); p(3, 2, 6, 1, '#c89a20'); }
+  else if (acc === 'リボン') { p(side ? 7 : 8, 0, 4, 2, '#ff5a7a'); p(side ? 8 : 9, 0, 1, 2, '#c8284a'); }
+  else if (acc === 'はなかんむり') { for (let i = 0; i < 5; i++) p(2 + i * 2, 1, 2, 1, ['#ff8ad0', '#ffd23f', '#ffffff', '#ff5a6e', '#7ac8ff'][i]); p(2, 2, 8, 1, '#4fb14f'); }
+  else if (acc === 'むぎわら') { p(0, 2, 12, 1, '#d8b060'); p(3, 0, 6, 2, '#e8c878'); p(3, 1, 6, 1, '#e04848'); }
+  else if (acc === 'サングラス' && dir !== 'up') { if (side) { p(7, 4, 4, 1, '#1a1a1a'); p(8, 4, 2, 1, '#3a3a5a'); } else { p(2, 4, 3, 1, '#1a1a1a'); p(7, 4, 3, 1, '#1a1a1a'); p(5, 4, 2, 1, '#1a1a1a'); } }
+  else if (acc === 'ちょうネクタイ' && dir !== 'up') { if (side) p(6, 6, 3, 2, '#e04848'); else { p(3, 6, 2, 2, '#e04848'); p(7, 6, 2, 2, '#e04848'); p(5, 6, 2, 1, '#a8283a'); } }
+}
 const hcache = {};
 export function heroSprite(dir, f, look = {}) {
-  const key = dir + f + (look.armor || '') + '/' + (look.weapon || '');
+  const key = dir + f + (look.armor || '') + '/' + (look.weapon || '') + '/' + (look.acc || '');
   if (hcache[key]) return hcache[key];
   const side = dir === 'left' || dir === 'right', flip = dir === 'left';
   const legs = legsOf(side, f, true);   // 主人公は スカート
@@ -817,5 +829,6 @@ export function heroSprite(dir, f, look = {}) {
   const g = c.getContext('2d');
   if (a.belt) { g.fillStyle = a.belt; if (side) g.fillRect(flip ? 4 : 3, 9, 5, 1); else g.fillRect(2, 9, 8, 1); }
   if (look.weapon) drawWeapon(g, look.weapon, dir === 'down' ? 10 : 0, flip, side);
+  if (look.acc) drawAcc(g, look.acc, dir, flip);
   return hcache[key] = c;
 }

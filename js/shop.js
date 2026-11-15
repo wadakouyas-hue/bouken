@@ -6,8 +6,9 @@ import { rubyHTML } from './dialog.js';
 import { sfx } from './audio.js';
 
 const $ = id => document.getElementById(id);
-const R = s => rubyHTML(String(s));
+const R = s => rubyHTML(String(s).replace(/@/g, hero.name));
 const YEN = n => `${n}{円|えん}`;
+const ONLY = { スネア: 'hero', ギター: 'hamo', マイク: 'melo' }, ONLY_NAME = { hero: '@', hamo: '{ハモ|はも}', melo: '{メロ|めろ}' };   // せんようの ぶき
 export const shop = { open: false };
 let S = null;   // { name, list(売る物の id), bank, craft, furn, mode, sel, ask, msg, onChange }
 
@@ -38,6 +39,7 @@ export function shopTap(k) {
   else if (k === 'sell') sell();
   else if (k === 'make') make();
   else if (k.startsWith('wear')) { const it = byId('items', S.ask); if (!it) { render(); return; } const who = members().find(m => m.key === (k.slice(5) || 'hero')) || members()[0];
+    const only = ONLY[it.look]; if (only && who.key !== only) { S.msg = `${it.name}は ${ONLY_NAME[only]} せんようだよ。`; render(); return; }
     equipOf(who.key)[it.kind] = it.id; sfx('get'); S.msg = `${who.name}は ${it.name}を そうびした!`; S.ask = null; changed(); }
   else if (k === 'later') { S.ask = null; S.msg = '{メニュー|めにゅー}の 「そうび」で いつでも きがえられるよ。'; }
   else if (k.startsWith('dep:')) bank(k.slice(4), +1);
@@ -52,7 +54,7 @@ function buy() {
   if (isFurn(it.id)) { room.stash.push(it.id); S.msg = `${it.name}を かった! ${FURN_NOTE}`; }
   else {
     bag.push(it.id); S.msg = `${it.name}を かった! まいど ありがとう!`;
-    if (it.kind === 'ぶき' || it.kind === 'よろい') S.ask = it.id;   // いま そうびする?
+    if (it.kind === 'ぶき' || it.kind === 'よろい' || it.kind === 'かざり') S.ask = it.id;   // いま そうびする?
   }
   changed();
 }

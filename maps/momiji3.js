@@ -20,6 +20,7 @@ export default {
     '!!!!!!!!;;!!!!!!!!',
   ],
   objs: [
+    { kind: 'chest', x: 14, y: 9, label: 'あける', give: 'おうかん', lines: ['たからばこを あけた!', '♪きらきらの おうかんを {手|て}に いれた!', '{メニュー|めにゅー}の 「そうび」の 「かざり」で つけられるよ。'], after: ['もう からっぽだ。'] },
     { kind: 'boss', x: 8.5, y: 5, bw: 16, look: 'いたずらリス', party: 'いたずらリス', event: 'risu', hide: 'risu', name: 'いたずら リス', label: 'はなす', lines: ['だれ? この あかい はっぱは ぜんぶ ぼくの!', 'ひとつも あげないもん!'] },
     { kind: 'deco', x: 8.5, y: 3, pic: 'leafpile', show: 'risu', hide: 'leafGot', label: 'もらう', event: 'leafGot' },
   ],

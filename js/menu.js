@@ -40,7 +40,7 @@ const who = key => members().find(m => m.key === key) || members()[0];
 function useItem(key) {
   const it = byId('items', sel); if (!it || !bag.includes(it.id)) return;
   const m = who(key);
-  if (it.kind !== 'かいふく') { msg = it.kind === 'だいじ' ? 'だいじに もっておこう。' : it.kind === 'ざいりょう' ? 'おうちの さぎょうだいで つかうよ。' : it.kind === 'なおす' ? 'たたかいの ときに つかうよ。' : '「そうび」で つかうよ。'; return; }
+  if (it.kind !== 'かいふく') { msg = it.kind === 'だいじ' ? 'だいじに もっておこう。' : it.kind === 'ざいりょう' ? 'おうちの さぎょうだいで つかうよ。' : it.kind === 'なおす' || it.kind === 'なげる' ? 'たたかいの ときに つかうよ。' : '「そうび」で つかうよ。'; return; }
   if (m.s.hp >= m.st.maxhp) { msg = `${m.name}の HPは まんたんだよ。`; return; }
   bagRemove(it.id); const n = heal(it.val, m); sfx('heal');
   msg = `${it.name}を つかった! ${m.name}の HPが ${n} かいふくした!`;
@@ -70,6 +70,8 @@ function warp(map) {
 const warpBtns = () => menu.towns().map(t => btn('warp:' + t.map, `${R(t.name)}へ`, 'go')).join('');
 function equip(id) {
   const it = byId('items', id); if (!it) return;
+  const only = { スネア: 'hero', ギター: 'hamo', マイク: 'melo' }[it.look];
+  if (only && eqWho !== only) { msg = `${it.name}は ${{ hero: '@', hamo: '{ハモ|はも}', melo: '{メロ|めろ}' }[only]} せんようだよ。`; return; }
   const mine = equipOf(eqWho)[slot] === id;
   if (!mine && bagCount(id) <= wearCount(id)) { msg = 'ほかの ひとが そうびしているよ。 もう ひとつ あれば そうび できるよ。'; return; }
   equipOf(eqWho)[slot] = id; sfx('get');
@@ -131,15 +133,15 @@ function equipView() {
     const list = own.map(it => {
       const diff = it.val - (cur?.val || 0), free = bagCount(it.id) - wearCount(it.id) + (cur?.id === it.id ? 1 : 0);
       const note = cur?.id === it.id ? ' そうびちゅう' : free <= 0 ? ' ほかの ひとが そうび' : diff > 0 ? ' ▲' : diff < 0 ? ' ▼' : '';
-      return btn('equip:' + it.id, `${R(it.name)}<small>${slot === 'ぶき' ? 'こうげき' : 'ぼうぎょ'} +${it.val}${note}</small>`, cur?.id === it.id ? 'on' : '');
+      return btn('equip:' + it.id, `${R(it.name)}<small>${slot === 'かざり' ? 'みためが かわる' : `${slot === 'ぶき' ? (it.look === 'マイク' ? 'まりょく' : 'こうげき') : 'ぼうぎょ'} +${it.val}`}${note}</small>`, cur?.id === it.id ? 'on' : '');
     }).join('');
     return tabs + `<div class="mtop">${R(m.name)}の ${slot}を えらんでね</div><div class="mlist">${list || '<div class="mempty">もっていないよ</div>'}</div>` +
       `<div class="mrow">${cur ? btn('unequip', 'はずす') : ''}${btn('back', 'もどる')}</div>`;
   }
-  const w = equippedBy(eqWho, 'ぶき'), a = equippedBy(eqWho, 'よろい');
+  const w = equippedBy(eqWho, 'ぶき'), a = equippedBy(eqWho, 'よろい'), c = equippedBy(eqWho, 'かざり');
   const pic = eqWho === 'hero' ? heroCanvas('mbig') : `<canvas data-pal="${m.pal}" width="12" height="16" class="mbig"></canvas>`;
   return tabs + `<div class="mequip">${pic}<div class="mslots">` +
-    btn('slot:ぶき', `ぶき<b>${w ? R(w.name) : 'なし'}</b>`) + btn('slot:よろい', `よろい<b>${a ? R(a.name) : 'なし'}</b>`) +
+    btn('slot:ぶき', `ぶき<b>${w ? R(w.name) : 'なし'}</b>`) + btn('slot:よろい', `よろい<b>${a ? R(a.name) : 'なし'}</b>`) + btn('slot:かざり', `かざり<b>${c ? R(c.name) : 'なし'}</b>`) +
     `<div class="mnums">こうげき ${m.st.atk}  ぼうぎょ ${m.st.def}</div></div></div>`;
 }
 function statsView() {

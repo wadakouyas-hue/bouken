@@ -3,11 +3,12 @@ export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: 
 export const dataErrors = [];
 export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね', 'からす', 'かえる', 'スカンク', 'いのしし', 'こうもり', 'ミミズク', 'ねずみ', 'つむじかぜ', 'かさおばけ', 'うなぎ', 'あまぐも', 'かみなりぐも', 'いわごろ', 'おばけび', 'びっくりきのこ', 'もりぐも', 'おばけ', 'ゆきだるま', 'つららこうもり', 'ゆきうさぎ', 'ペンギン', 'こおりのぬし', 'くろもや', 'ふぶきどり', 'あらしのかげ', 'くりいが', 'もみじっこ', 'みのむし', 'ほしむし', 'いたずらリス', 'ねぼすけモグラ', 'おばけランタン', 'こうもりねこ', 'ゆきおにねこ', 'かみなりねこ', 'かかしねこ', 'こがらしねこ'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
 export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ', 'レイン', 'マフラー', 'ゆき', 'はっぴ', 'よぞら'];     // よろいの「みため」
-export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
+export const WEAPON_LOOKS = ['ぼう', 'けん', 'スネア', 'ギター', 'マイク'];   // スネア=リズ、 ギター=ハモ、 マイク=メロ せんよう
+export const ACC_LOOKS = ['おうかん', 'リボン', 'はなかんむり', 'むぎわら', 'サングラス', 'ちょうネクタイ'];   // かざりの「みため」            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
 export const STATUSES = ['ねむり', 'どく', 'しびれ', 'わらい', 'くさい'];   // ステータス いじょう
 export const FX_TYPES = ['slash', 'fire', 'water', 'thunder', 'wind', 'magic', 'heal', 'impact', 'drum', 'notes', 'wave', 'star', 'song', 'stink', 'lick', 'spit', 'spore', 'leaf', 'butt'];   // わざの エフェクト(js/battle.js の drawFx)
-export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい', 'ランプ', 'ほねのいす', 'き', 'え', 'トランポリン', 'トロフィー', 'かぼちゃ', 'ゆきだるま', 'かかし'];   // かぐの「みため」(js/furniture.js にある絵)
+export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい', 'ランプ', 'ほねのいす', 'き', 'え', 'トランポリン', 'トロフィー', 'かぼちゃ', 'ゆきだるま', 'かかし', 'ねこタワー', 'こたつ', 'ハンモック', 'にじ', 'ほしランプ', 'ペット', 'おもいでかたぐるま', 'おもいでトランポリン', 'おもいでえかき', 'おもいでこうさく', 'おもいでキャンプ', 'おもいでがっそう', 'おもいでゆうき', 'おもいでぬくもり'];   // かぐの「みため」(js/furniture.js にある絵)
 
 const SPEC = {
   party: { file: 'data/party.csv', label: 'みかた',
@@ -23,7 +24,7 @@ const SPEC = {
     choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく', 'なおす', 'まもる', 'ワープ', 'じょうたい'], status: ['', ...STATUSES], fx: ['', ...FX_TYPES], target: ['ひとり', 'ぜんぶ', 'じぶん', 'みんな'] } },
   items: { file: 'data/items.csv', label: 'どうぐ・そうび',
     cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', price: 'ねだん', desc: 'せつめい' },
-    nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'なおす', 'テント', 'よろい', 'ぶき', 'ざいりょう', 'ワープ', 'だいじ'] } },
+    nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'なおす', 'テント', 'よろい', 'ぶき', 'かざり', 'なげる', 'ざいりょう', 'ワープ', 'だいじ'] } },
   furniture: { file: 'data/furniture.csv', label: 'かぐ',
     cols: { id: 'id', name: 'なまえ', look: 'みため', price: 'ねだん', desc: 'せつめい' },
     nums: ['price'], optional: ['desc', 'price'], choices: { look: FURN_LOOKS } },
@@ -120,7 +121,7 @@ async function loadAll() {
   }
   for (const s of DATA.skills) if (!s.elem) s.elem = 'なし';
   for (const it of DATA.items) {
-    const ok = it.kind === 'よろい' ? ARMOR_LOOKS : it.kind === 'ぶき' ? WEAPON_LOOKS : null;
+    const ok = it.kind === 'よろい' ? ARMOR_LOOKS : it.kind === 'ぶき' ? WEAPON_LOOKS : it.kind === 'かざり' ? ACC_LOOKS : null;
     if (ok && it.look && !ok.includes(it.look)) { dataErrors.push(`どうぐ(items.csv)「${it.id}」: みためは ${ok.join(' / ')} のどれかにしてください。`); it.look = ''; }
   }
   for (const e of DATA.enemies) if (e.drop && !byId('items', e.drop)) { dataErrors.push(`てき(enemies.csv)「${e.id}」: おとすもの「${e.drop}」が items.csv に ありません。`); e.drop = ''; }

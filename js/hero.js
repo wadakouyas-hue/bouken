@@ -2,7 +2,7 @@
 import { DATA, byId } from './data.js';
 
 export const START_GOLD = 200;   // さいしょの おかね
-export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null }, gold: START_GOLD, bank: 0, hamo: null, melo: null, pasha: null, mogu: null };   // hamo: なかまの ハモ({hp, mp})。 いなければ null   // gold: もっている おかね  bank: ぎんこうに あずけた おかね   // hp が -1 なら「まだ はじめていない」
+export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null, かざり: null }, gold: START_GOLD, bank: 0, hamo: null, melo: null, pasha: null, mogu: null };   // hamo: なかまの ハモ({hp, mp})。 いなければ null   // gold: もっている おかね  bank: ぎんこうに あずけた おかね   // hp が -1 なら「まだ はじめていない」
 export const bag = [];                                             // 持ち物(items.csv の id)
 
 const rows = (id = 'hero') => DATA.party.filter(r => r.id === id).sort((a, b) => a.lv - b.lv);
@@ -20,7 +20,8 @@ export function allyStats(id) {
   const rs = rows(id); let row = rs[0] || FALLBACK;
   const skills = [];
   for (const r of rs) if (r.lv <= hero.lv) { row = r; for (const s of r.learn) if (!skills.includes(s)) skills.push(s); }
-  return { maxhp: row.hp, maxmp: row.mp, atk: row.atk + (equippedBy(id, 'ぶき')?.val || 0), def: row.def + (equippedBy(id, 'よろい')?.val || 0), mag: row.mag, spr: row.spr, spd: row.spd, skills, baseAtk: row.atk, baseDef: row.def };
+  const w = equippedBy(id, 'ぶき'), mic = w?.look === 'マイク';   // マイクは まりょくが あがる
+  return { maxhp: row.hp, maxmp: row.mp, atk: row.atk + (mic ? 0 : w?.val || 0), def: row.def + (equippedBy(id, 'よろい')?.val || 0), mag: row.mag + (mic ? w.val : 0), spr: row.spr, spd: row.spd, skills, baseAtk: row.atk, baseDef: row.def };
 }
 const ALLY_NAME = { hamo: '{ハモ|はも}', melo: '{メロ|めろ}', pasha: '{パシャ|ぱしゃ}', mogu: '{モグ|もぐ}' };
 // パーティ: [{ key, name, pal, s(hp・mp が 入っている もの), st(つよさ) }]
@@ -46,7 +47,7 @@ export function equippedBy(key, slot) {
 export const wearCount = id => ORDER.filter(k => (k === 'hero' || hero[k]) && Object.values(equipOf(k)).includes(id)).length;
 // そうびしている物(主人公)
 export function equipped(slot) { return equippedBy('hero', slot); }
-export const equipLook = () => ({ armor: equipped('よろい')?.look || '', weapon: equipped('ぶき')?.look || '' });
+export const equipLook = () => ({ armor: equipped('よろい')?.look || '', weapon: equipped('ぶき')?.look || '', acc: equipped('かざり')?.look || '' });   // acc: かざり(みためだけ)
 // つぎの レベルまでの けいけんち(もう 上がらなければ null)
 export function toNext() { const n = rows().find(r => r.lv === hero.lv + 1); return n ? Math.max(0, n.exp - hero.exp) : null; }
 
