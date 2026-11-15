@@ -1,11 +1,12 @@
 // キャラと物のドット絵(12×16ドット)
+// ねこの あたま(g ぶち t しま s くちもと e め p はな)
 const HEAD = {
-  down: ["...kkkkkk...", "..khhhhhhk..", ".khhhhhhhhk.", ".khhssssshk.", ".khsesseshk.", "..kssssssk.."],
-  up:   ["...kkkkkk...", "..khhhhhhk..", ".khhhhhhhhk.", ".khhhhhhhhk.", ".khhhhhhhhk.", "..khhhhhhk.."],
-  side: ["...kkkkkk...", "..khhhhhhk..", ".khhhhhhhhk.", ".khhhhsssk..", ".khhhssesk..", "..khsssssk.."]};
+  down: [".kk......kk.", ".kgkkkkkkhk.", "kgghthhthhhk", "kghhhhhhhhhk", "khehhsshhehk", ".khhsppshhk."],
+  up:   [".kk......kk.", ".khkkkkkkgk.", "khhhthhthggk", "khhhhhhhhhgk", "khhhhhhhhhhk", ".khhhhhhhhk."],
+  side: ["...kk....kk.", "..kgkkkkkhk.", ".kgghthhthhk", ".kghhhhhhhhk", ".khhhhhhehsk", "..khhhhhsspk"]};
 const BODY = {
   front: ["..krrrrrrk..", ".krrrrrrrrk.", ".ksrrrrrrsk.", ".kkrrrrrrkk."],
-  side:  ["...krrrrk...", "..krrrrrk...", "..krrsrrk...", "..kkrrrkk..."]};
+  side:  ["...krrrrk...", ".hkrrrrrk...", ".hkrrsrrk...", "..kkrrrkk..."]};   // h = しっぽ
 const LEGS = {
   fA: ["..kbbbbbbk..", "..kbbkkbbk..", "..kbk..kbk..", ".kook..kook.", ".kkkk..kkkk.", "............"],
   fB: ["..kbbbbbbk..", "..kbbkkbbk..", "..kbk..kbk..", ".kook..kbk..", ".kkkk..kook.", ".......kkkk."],
@@ -13,16 +14,18 @@ const LEGS = {
   sB: ["...kbbbk....", "..kbk.kbk...", ".kbk...kbk..", ".kook..kook.", ".kkkk..kkkk.", "............"]};
 LEGS.fC = LEGS.fB.map(r => r.split('').reverse().join(''));
 
-// 色 (k 輪郭 h 髪 s 肌 e 目 r 上着 b ズボン o くつ)
+// 色 (k 輪郭 h 毛 g ぶち t しま s くちもと・手 e 目 p はな r 上着 b ズボン o くつ)
 export const PAL = {
-  hero: { k: '#2a1e1a', h: '#6b3b1f', s: '#f6c9a0', e: '#2a1e1a', r: '#e04848', b: '#3a5ad8', o: '#5a3a22' },
-  oji:  { k: '#2a1e1a', h: '#e6e6e6', s: '#f0c49a', e: '#2a1e1a', r: '#4f9a52', b: '#7a6a50', o: '#4a3a2a' },
-  girl: { k: '#2a1e1a', h: '#3a2a40', s: '#f8d0aa', e: '#2a1e1a', r: '#f07ab0', b: '#f5a8cf', o: '#c04060' },
-  oba:  { k: '#2a1e1a', h: '#c8c8d2', s: '#f0c49a', e: '#2a1e1a', r: '#8a5ab8', b: '#6a4a8a', o: '#4a3a2a' },
-  shop1: { k: '#2a1e1a', h: '#8a4a2a', s: '#f6c9a0', e: '#2a1e1a', r: '#4fb07a', b: '#e8e0c8', o: '#4a3a2a' },
-  shop2: { k: '#2a1e1a', h: '#2a2a2a', s: '#e8b88a', e: '#2a1e1a', r: '#8a96a4', b: '#4a4a5a', o: '#2a2a2a' },
-  shop3: { k: '#2a1e1a', h: '#c87a3a', s: '#f6c9a0', e: '#2a1e1a', r: '#e8a040', b: '#7a4a24', o: '#4a3a2a' },
-  bank:  { k: '#2a1e1a', h: '#4a3a2a', s: '#f6c9a0', e: '#2a1e1a', r: '#2a3a6a', b: '#2a3a6a', o: '#1a1a1a' },
+  hero:  { k: '#2a1e1a', h: '#f4f2ec', g: '#9a9aa8', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#e04848', b: '#3a5ad8', o: '#5a3a22' },   // しろに はいいろの ぶち
+  melo:  { k: '#2a1e1a', h: '#f4f2ec', g: '#9a9aa8', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#5ab0a0', b: '#3a7a70', o: '#4a3a2a' },   // メロ(主人公と おなじ もよう)
+  hamo:  { k: '#2a1e1a', h: '#f0a050', t: '#b8601e', s: '#ffe2b8', e: '#2a1e1a', p: '#e07a6a', r: '#7a5a3a', b: '#3a4a6a', o: '#3a2a1a' },   // ハモ(ちゃトラ)
+  oji:   { k: '#2a1e1a', h: '#a8a8b4', t: '#787884', s: '#e8e8ee', e: '#2a1e1a', p: '#f08aa0', r: '#4f9a52', b: '#7a6a50', o: '#4a3a2a' },
+  girl:  { k: '#15101a', h: '#3a3a46', s: '#5a5a6a', e: '#ffd23f', p: '#f08aa0', r: '#f07ab0', b: '#f5a8cf', o: '#c04060' },
+  oba:   { k: '#2a1e1a', h: '#f6f0e0', g: '#e09a4a', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#8a5ab8', b: '#6a4a8a', o: '#4a3a2a' },
+  shop1: { k: '#2a1e1a', h: '#a87a4a', t: '#7a5230', s: '#f0dcc0', e: '#2a1e1a', p: '#e07a6a', r: '#4fb07a', b: '#e8e0c8', o: '#4a3a2a' },
+  shop2: { k: '#2a1e1a', h: '#8a8a96', g: '#5a5a66', s: '#c8c8d2', e: '#2a1e1a', p: '#f08aa0', r: '#8a96a4', b: '#4a4a5a', o: '#2a2a2a' },
+  shop3: { k: '#2a1e1a', h: '#f0dca0', t: '#d0a860', s: '#fff4d8', e: '#2a1e1a', p: '#f08aa0', r: '#e8a040', b: '#7a4a24', o: '#4a3a2a' },
+  bank:  { k: '#15101a', h: '#2e2e38', s: '#ffffff', e: '#ffd23f', p: '#f08aa0', r: '#2a3a6a', b: '#2a3a6a', o: '#1a1a1a' },
   obj:  { k: '#2a1e1a', w: '#e0ab62', d: '#8a5a2a', p: '#8a5a2a', c: '#b5652a', y: '#f2c230', x: '#3a2210',
           g: '#dff4ff', l: '#4fd16a', L: '#c8ffd0', n: '#b07a40' }};
 
@@ -48,7 +51,17 @@ export function charSprite(palName, dir, f) {
   const head = side ? HEAD.side : HEAD[dir];
   const body = side ? BODY.side : BODY.front;
   const legs = side ? [LEGS.sA, LEGS.sB, LEGS.sA, LEGS.sB][f] : [LEGS.fA, LEGS.fB, LEGS.fA, LEGS.fC][f];
-  return cache[key] = build([...head, ...body, ...legs], PAL[palName] || PAL.oji, dir === 'left');
+  const base = PAL[palName] || PAL.oji, pal = { g: base.h, t: base.h, p: '#f08aa0', ...base };   // ぶち・しまが ない ねこは 毛の いろ
+  const c = build([...head, ...body, ...legs], pal, dir === 'left');
+  if (palName === 'hamo') drawGuitar(c.getContext('2d'), dir);
+  return cache[key] = c;
+}
+// ハモが せなかに しょっている ギター
+function drawGuitar(g, dir) {
+  const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  if (dir === 'up') { p(5, 2, 2, 6, '#5a3418'); p(3, 7, 6, 3, '#d0782a'); p(3, 10, 6, 3, '#e08a3a'); p(5, 9, 2, 2, '#3a2210'); p(2, 8, 1, 4, '#2a1e1a'); p(9, 8, 1, 4, '#2a1e1a'); }
+  else if (dir === 'down') { p(10, 1, 1, 7, '#5a3418'); p(9, 0, 2, 1, '#2a1e1a'); }
+  else { const x = dir === 'left' ? 9 : 1; p(x, 0, 1, 8, '#5a3418'); p(x + (dir === 'left' ? 0 : 0), 7, 2, 4, '#d0782a'); }
 }
 export const SPR = { sign: build(SIGN, PAL.obj), chest: build(CHEST, PAL.obj), chestOpen: build(CHEST_OPEN, PAL.obj), potion: build(POTION, PAL.obj), branch: build(BRANCH, PAL.obj) };
 
@@ -175,7 +188,7 @@ export function heroSprite(dir, f, look = {}) {
   const side = dir === 'left' || dir === 'right', flip = dir === 'left';
   const legs = side ? [LEGS.sA, LEGS.sB, LEGS.sA, LEGS.sB][f] : [LEGS.fA, LEGS.fB, LEGS.fA, LEGS.fC][f];
   const a = ARMOR[look.armor] || {};
-  const c = build([...(side ? HEAD.side : HEAD[dir]), ...(side ? BODY.side : BODY.front), ...legs], { ...PAL.hero, ...a }, flip);
+  const c = build([...(side ? HEAD.side : HEAD[dir]), ...(side ? BODY.side : BODY.front), ...legs], { t: PAL.hero.h, ...PAL.hero, ...a }, flip);
   const g = c.getContext('2d');
   if (a.belt) { g.fillStyle = a.belt; if (side) g.fillRect(flip ? 4 : 3, 9, 5, 1); else g.fillRect(2, 9, 8, 1); }
   if (look.weapon) drawWeapon(g, look.weapon, dir === 'down' ? 10 : 0, flip, side);
