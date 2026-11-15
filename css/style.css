@@ -207,3 +207,10 @@ rt{font-size:.5em;}
 /* とけい(タップで こたえあわせ) */
 #clockcv{position:absolute;left:calc(var(--u)*4);top:calc(var(--u)*22);width:calc(var(--u)*36);height:calc(var(--u)*36);pointer-events:auto;display:none;
   filter:drop-shadow(0 calc(var(--u)*.6) 0 rgba(0,0,0,.35));}
+
+/* 戦闘: みかたが ふたり */
+#bstat.two{width:calc(var(--u)*170);display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*4);}
+#bstat .bmem{border-radius:calc(var(--u)*2);padding:0 calc(var(--u)*1);}
+#bstat.two .bmem.on{background:rgba(255,210,63,.25);box-shadow:0 0 0 calc(var(--u)*.75) #ffd23f;}
+#bstat .bmem.down{opacity:.5;}
+#clockcv.two{top:calc(var(--u)*34);}

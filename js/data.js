@@ -1,7 +1,7 @@
 // data/ フォルダの CSV を読み込む(書き方がまちがっていても止まらず、まちがいを知らせる)
 export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [], time: [] };
 export const dataErrors = [];
-export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
+export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね', 'からす'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
 export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ'];     // よろいの「みため」
 export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
@@ -18,7 +18,7 @@ const SPEC = {
   skills: { file: 'data/skills.csv', label: 'わざ・じゅもん',
     cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', elem: 'ぞくせい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい' },
     nums: ['mp', 'pow'], optional: ['desc', 'elem'],
-    choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく'], target: ['ひとり', 'ぜんぶ', 'じぶん'] } },
+    choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく', 'まもる'], target: ['ひとり', 'ぜんぶ', 'じぶん'] } },
   items: { file: 'data/items.csv', label: 'どうぐ・そうび',
     cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', price: 'ねだん', desc: 'せつめい' },
     nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'よろい', 'ぶき', 'ざいりょう', 'だいじ'] } },

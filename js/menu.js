@@ -1,7 +1,7 @@
 // フィールドの メニュー(どうぐ・じゅもん・そうび・つよさ・なかま・だいじな もの)
 import { DATA, byId } from './data.js';
-import { hero, bag, heroStats, heal, bagCount, bagRemove, equipped, equipLook, toNext } from './hero.js';
-import { heroSprite } from './sprites.js';
+import { hero, bag, heroStats, heal, bagCount, bagRemove, equipped, equipLook, toNext, members } from './hero.js';
+import { heroSprite, charSprite } from './sprites.js';
 import { rubyHTML } from './dialog.js';
 import { sfx } from './audio.js';
 
@@ -24,8 +24,8 @@ export function menuTap(k) {
   if (k === '#close') { close(); return; }
   if (k.startsWith('tab:')) { tab = k.slice(4); sel = null; slot = null; msg = ''; }
   else if (k.startsWith('sel:')) { sel = k.slice(4); msg = ''; }
-  else if (k === 'use') useItem();
-  else if (k === 'cast') castSpell();
+  else if (k.startsWith('use')) useItem(k.slice(4));
+  else if (k.startsWith('cast')) castSpell(k.slice(5));
   else if (k.startsWith('slot:')) { slot = k.slice(5); msg = ''; }
   else if (k.startsWith('equip:')) equip(k.slice(6));
   else if (k === 'unequip') { const it = equipped(slot); hero.equip[slot] = null; if (it) msg = `${it.name}を はずした。`; slot = null; changed(); }
@@ -33,22 +33,25 @@ export function menuTap(k) {
   render();
 }
 
-function useItem() {
+const who = key => members().find(m => m.key === key) || members()[0];
+function useItem(key) {
   const it = byId('items', sel); if (!it || !bag.includes(it.id)) return;
+  const m = who(key);
   if (it.kind !== 'かいふく') { msg = it.kind === 'だいじ' ? 'だいじに もっておこう。' : it.kind === 'ざいりょう' ? 'おうちの さぎょうだいで つかうよ。' : '「そうび」で つかうよ。'; return; }
-  if (hero.hp >= heroStats().maxhp) { msg = 'HPは まんたんだよ。'; return; }
-  bagRemove(it.id); const n = heal(it.val); sfx('heal');
-  msg = `${it.name}を つかった! HPが ${n} かいふくした!`;
+  if (m.s.hp >= m.st.maxhp) { msg = `${m.name}の HPは まんたんだよ。`; return; }
+  bagRemove(it.id); const n = heal(it.val, m); sfx('heal');
+  msg = `${it.name}を つかった! ${m.name}の HPが ${n} かいふくした!`;
   if (!bag.includes(it.id)) sel = null;
   changed();
 }
-function castSpell() {
+function castSpell(key) {
   const s = byId('skills', sel); if (!s) return;
+  const m = who(key);
   if (s.effect !== 'かいふく') { msg = 'たたかいの ときに つかうよ。'; return; }
   if (hero.mp < s.mp) { msg = 'MPが たりないよ。'; return; }
-  if (hero.hp >= heroStats().maxhp) { msg = 'HPは まんたんだよ。'; return; }
-  hero.mp -= s.mp; const n = heal(s.pow + Math.floor(heroStats().mag / 2)); sfx('heal');
-  msg = `「${s.name}」! HPが ${n} かいふくした!`;
+  if (m.s.hp >= m.st.maxhp) { msg = `${m.name}の HPは まんたんだよ。`; return; }
+  hero.mp -= s.mp; const n = heal(s.pow + Math.floor(heroStats().mag / 2), m); sfx('heal');
+  msg = `「${s.name}」! ${m.name}の HPが ${n} かいふくした!`;
   changed();
 }
 function equip(id) {
@@ -74,7 +77,13 @@ function render() {
     const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 12, 16);
     g.drawImage(heroSprite('down', 0, equipLook()), 0, 0);
   });
+  $('menu').querySelectorAll('canvas[data-pal]').forEach(cv => {
+    const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 12, 16);
+    g.drawImage(charSprite(cv.dataset.pal, 'down', 0), 0, 0);
+  });
 }
+// だれに つかう?(みかたが ふたりなら なまえの ボタン)
+const forWho = (k, label) => members().length > 1 ? members().map(m => btn(`${k}:${m.key}`, `${R(m.name)}に`, 'go')).join('') : btn(k, label, 'go');
 const heroCanvas = cls => `<canvas data-hero width="12" height="16" class="${cls}"></canvas>`;
 
 function itemsView() {
@@ -85,7 +94,7 @@ function itemsView() {
     return btn('sel:' + id, `${R(it.name)}<small>${eq ? 'そうびちゅう' : '×' + bagCount(id)}</small>`, sel === id ? 'on' : '');
   }).join('');
   const it = byId('items', sel);
-  const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? btn('use', 'つかう', 'go') : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
+  const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? forWho('use', 'つかう') : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
   return `<div class="mtop">おかね ${R(`${hero.gold}{円|えん}`)}</div><div class="mlist">${list}</div>${detail}`;
 }
 function spellsView() {
@@ -94,7 +103,7 @@ function spellsView() {
   if (!list.length) return '<div class="mempty">まだ じゅもんを おぼえていないよ</div>';
   const s = byId('skills', sel);
   return `<div class="mtop">MP ${hero.mp}/${st.maxmp}</div><div class="mlist">${list.map(x => btn('sel:' + x.id, `${R(x.name)}<small>MP ${x.mp}</small>`, sel === x.id ? 'on' : '')).join('')}</div>` +
-    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'かいふく' ? btn('cast', 'となえる', 'go') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
+    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'かいふく' ? forWho('cast', 'となえる') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
 }
 function equipView() {
   const st = heroStats();
@@ -124,10 +133,9 @@ function statsView() {
     row('けいけんち', hero.exp) + row('おかね', `${hero.gold}{円|えん}`) + row('つぎの {レベル|れべる}まで', nx === null ? '-' : nx) + `</div></div>`;
 }
 function partyView() {
-  const st = heroStats();
-  const card = `<div class="mcard">${heroCanvas('msmall')}<div><div class="mname">${R(hero.name)}</div>` +
-    `<div>${R('{レベル|れべる}')} ${hero.lv}</div><div>HP ${hero.hp}/${st.maxhp}</div>${bar(hero.hp, st.maxhp, '#6cdc5a')}<div>MP ${hero.mp}/${st.maxmp}</div>${bar(hero.mp, st.maxmp, '#5ab0ff')}</div></div>`;
-  return `<div class="mparty">${card}</div><div class="mhint">いまは ひとりで ぼうけん しているよ</div>`;
+  const cards = members().map(m => `<div class="mcard">${m.key === 'hero' ? heroCanvas('msmall') : `<canvas data-pal="${m.pal}" width="12" height="16" class="msmall"></canvas>`}<div><div class="mname">${R(m.name)}</div>` +
+    `<div>${R('{レベル|れべる}')} ${hero.lv}</div><div>HP ${m.s.hp}/${m.st.maxhp}</div>${bar(m.s.hp, m.st.maxhp, '#6cdc5a')}<div>MP ${m.s.mp}/${m.st.maxmp}</div>${bar(m.s.mp, m.st.maxmp, '#5ab0ff')}</div></div>`).join('');
+  return `<div class="mparty">${cards}</div>` + (members().length > 1 ? '' : '<div class="mhint">いまは ひとりで ぼうけん しているよ</div>');
 }
 function keyItemsView() {
   const ids = [...new Set(bag)].filter(id => byId('items', id)?.kind === 'だいじ');

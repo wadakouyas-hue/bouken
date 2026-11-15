@@ -37,6 +37,10 @@ TILE.mush = mk(g => { fgrass(g); px(g, 4, 8, 5, 2, '#e04848'); px(g, 5, 7, 3, 1,
   px(g, 10, 11, 3, 1, '#e8a040'); px(g, 11, 10, 1, 1, '#e8a040'); px(g, 11, 12, 1, 1, '#f1e2c3'); });
 TILE.bush = mk(g => { fgrass(g); circle(g, 8, 9, 6, '#1f5a24'); circle(g, 7, 8, 5, '#2f7a34'); circle(g, 6, 6, 2, '#4a9a4a'); px(g, 10, 9, 1, 1, '#e04848'); px(g, 5, 11, 1, 1, '#e04848'); });
 
+// たかい だんさ(がけ)。 かたぐるまの かけらが あると のぼれる
+TILE.cliff = mk(g => { px(g, 0, 0, 16, 16, '#9a8a6a'); px(g, 0, 0, 16, 3, '#6cc24a'); px(g, 0, 3, 16, 1, '#4a8a32');
+  for (const [x, y, w] of [[1, 6, 6], [9, 5, 6], [3, 10, 7], [11, 11, 4], [0, 14, 5]]) { px(g, x, y, w, 1, '#6a5a44'); px(g, x, y - 1, w, 1, '#b8a888'); } });
+
 // --- 家の中 ---
 TILE.inTop = mk(g => { px(g, 0, 0, 16, 16, '#5a3a24'); px(g, 0, 0, 16, 1, '#7a5034'); px(g, 0, 15, 16, 1, '#3a2414'); });
 function paper(g) { px(g, 0, 0, 16, 16, '#efdcb4'); for (let x = 2; x < 16; x += 5) px(g, x, 0, 1, 13, '#e2c998'); px(g, 0, 13, 16, 3, '#8a5a32'); px(g, 0, 13, 16, 1, '#a8744a'); }
@@ -62,6 +66,7 @@ TILE.counter = mk(g => { px(g, 0, 0, 16, 16, '#7a4a24'); px(g, 0, 0, 16, 4, '#c8
 TILE.mat = mk(g => { floor(g); px(g, 2, 2, 12, 12, '#4f9a52'); px(g, 3, 3, 10, 10, '#6cc24a'); for (let x = 4; x < 12; x += 2) px(g, x, 5, 1, 6, '#4f9a52'); });
 
 // 文字 → タイルの絵
+// がけ L たかい だんさ(かたぐるまの かけらで のぼれる)
 // 村  . 草  , 花  T 木  = 道  ~ 川  B b 橋  R 屋根  U 青い屋根  H h 壁  W 窓  D ドア
 // 森  g 森の草  Y 森の木  m きのこ  o しげみ
 // 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  C お店のカウンター  E 出口のマット
@@ -70,6 +75,7 @@ export const BLOCK = new Set(['U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 
 export function tileImg(c, x, y, t) {
   const v = (x * 7 + y * 13) % 3;
   switch (c) {
+    case 'L': return TILE.cliff;
     case 'T': return TILE.tree; case ',': return TILE.flower[v]; case '=': return TILE.path[(x + y) % 2];
     case '~': return TILE.water[(Math.floor(t * 2) + x) % 2]; case 'B': return TILE.bridgeT; case 'b': return TILE.bridgeB;
     case 'R': return TILE.roof; case 'U': return TILE.roofB; case 'C': return TILE.counter; case 'H': return TILE.wallU; case 'h': return TILE.wallL; case 'W': return TILE.window; case 'D': return TILE.door;

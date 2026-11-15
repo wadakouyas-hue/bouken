@@ -3,11 +3,11 @@ export default {
   outside: true,   // そと(ひると よるが ある)
   bgm: 'forest',   // 流す曲(js/music.js)
   rows: [
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
-    'YYYYYYgggggggggYYYYYYYYYYYYYYY',
-    'YYYYYYYggggogggYYYYYYYYYYYYYYY',
-    'YYYYYYYmgg==ggggYYYYYYYYYYYYYY',
-    'YYYYYYmggg==gggYYYYYYYYggYggYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYggYYYY',
+    'YYYYYYgggggggggYYYYYYYYYggYYYY',
+    'YYYYYYYggggogggYYYYYYYYYggYYYY',
+    'YYYYYYYmgg==ggggYYYYYYYYggYYYY',
+    'YYYYYYmggg==gggYYYYYYYYgggggYY',
     'YYYYYgYYgg==YYgYYYYYYYYggggggY',
     'YgYYgmYYYY==ggYYmYYYYYYggggggY',
     'YmmggogYgY==ogggggYYYYgggggggY',
@@ -52,5 +52,7 @@ export default {
   ],
   exits: [
     { x: 0, y: 9, h: 2, to: 'village', at: [28, 9.5], dir: 'left' },  // 左はしの道 → 村
+    { x: 24, y: 0, w: 2, to: 'deep', at: [11.5, 16], dir: 'up', need: 'hamo',   // うえ → 森の おく(ハモが なかまに なってから)
+      block: ['この さきは {森|もり}の おく。 くらくて こわそう……', 'ひとりで いくのは やめておこう。'] },
   ],
 };
