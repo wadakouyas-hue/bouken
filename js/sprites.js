@@ -270,6 +270,24 @@ const ENEMY = {
     '................',
     '................',
     '................'] },
+  // ちゅうちゅう ねずみ(パルル町の ちかしつ)
+  ねずみ: { eye: [5, 9, 6], glow: '#ff4a4a', pal: { k: '#2a1e2a', g: '#a8a4b8', p: '#ff9ab0', w: '#ffffff', e: '#2a1e2a' }, rows: [
+    '................',
+    '.kkk........kkk.',
+    'kgggk......kgggk',
+    'kgppk......kppgk',
+    'kgppkkkkkkkkppgk',
+    '.kkggggggggggkk.',
+    '..kggeeggeeggk..',
+    '..kggeeggeeggk..',
+    '..kggggppggggk..',
+    '.wkgggkkkkgggkw.',
+    '..kggggggggggk..',
+    '...kgggwwgggk...',
+    '..kggggwwggggk..',
+    '...kggggggggk.pp',
+    '...kkgk..kgkk.p.',
+    '....kk....kk....'] },
   // おとどろぼうの ミミズク(ボス)
   ミミズク: { eye: [4, 10, 5], glow: '#ffd23f', pal: { k: '#1e140c', b: '#8a5a32', B: '#6a4224', w: '#e8d8b8', y: '#ffd23f', o: '#e8a040', f: '#f2c230' }, rows: [
     '.kk..........kk.',

@@ -29,6 +29,9 @@ import north1 from '../maps/north1.js';
 import north2 from '../maps/north2.js';
 import cave from '../maps/cave.js';
 import nest from '../maps/nest.js';
+import cellar from '../maps/cellar.js';
+import house2 from '../maps/house2.js';
+import house3 from '../maps/house3.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -52,7 +55,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3 };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -363,8 +366,9 @@ function interact(o) {
   if (o.event) { EVENTS[o.event]?.(o); return; }
   if (o.kind === 'furn') { useFurn(o); return; }
   if (o.taken) { openDialog(o.name, o.after || ['もう なにも ない。']); return; }
-  if (o.give) {
-    o.taken = true; bag.push(o.give);
+  if (o.give || o.gold) {            // gold: おかねが もらえる(つぼ など)
+    o.taken = true; if (o.give) bag.push(o.give);
+    if (o.gold) { hero.gold += o.gold; chipText = ''; }
     markTaken(o);
     save();
   }
@@ -592,6 +596,33 @@ const EVENTS = {
         sfx('chord');
         await say('', ['ミミズクが つばさを ひろげると、'.replace('ミミズク', '{ミミズク|みみずく}'), 'たくさんの おとが きらきら ひかりながら、\nまちの ほうへ とんでいった!', '♪まちの おとが もどった!']);
         await say(HAMO, ['やったね、 @!', '{パルル|ぱるる}{町|まち}へ かえろう!']);
+      } });
+  },
+  // ===== パルル町の おてつだい: ちかしつの オルゴール =====
+  async orgel(o) {
+    const OR = '{オルゴール|おるごーる}';
+    if (flags.has('orgelDone')) {
+      if (flags.has('owl')) { sfx('note'); await say(o.name, [`きいて。 ${OR}が なるように なったのよ。`, '♪ ポロン ポロロン……'.replace('ポロン ポロロン', '{ポロン|ぽろん} {ポロロン|ぽろろん}'), 'ありがとうね。']); }
+      else await say(o.name, [`${OR}、 ありがとうね。`, 'まちの おとが もどったら、 きっと また なるわ。']);
+      return;
+    }
+    if (bag.includes('オルゴール')) {
+      bag.splice(bag.indexOf('オルゴール'), 1); bag.push('げんきのみず'); hero.gold += 800; flags.add('orgelDone'); chipText = ''; save(); sfx('get');
+      await say(o.name, [`まあ、 わたしの ${OR}! ありがとう!`, 'ねずみたちを おいはらって くれたのね。', 'ならして みようかしら…… あら、 おとが でないわ。', 'まちの おとが もどったら、 きっと なるわね。 これは おれいよ。']);
+      await say('', ['♪げんきの みずを もらった!', '♪800{円|えん} もらった!']);
+      return;
+    }
+    if (flags.has('orgelAsk')) { await say(o.name, [`ちかしつの おくに ${OR}が あるの。`, 'ねずみの まものに きを つけてね。']); return; }
+    flags.add('orgelAsk'); save();
+    await say(o.name, ['いらっしゃい。 ちょっと こまって いるの。', 'ちかしつに、 ねずみの まものが すみついて しまったのよ。', `おくに だいじな ${OR}を しまって あるの。\nとってきて くれないかしら?`, 'かいだんは あそこよ。']);
+  },
+  // おやぶん ねずみ
+  mouse(o) {
+    encounter({ party: [o.party] }, { boss: true, onWin: () => { flags.add('mouse'); save(); },
+      afterWin: async () => {
+        await say(o.name, ['ま、 まいった チュー!', 'そとが さむくて、 ここに すみついて しまった チュー……', 'ごめんなさい チュー!']);
+        await say(HAMO, ['そうだったんだ。 こんどは ちゃんと おばあさんに たのんでみなよ。']);
+        await say('', ['ねずみたちは チューチュー いいながら にげていった。'.replace('チューチュー', '{チューチュー|ちゅーちゅー}'), 'おくに たからばこが ある!']);
       } });
   },
   // ===== 第1章の おてつだい =====

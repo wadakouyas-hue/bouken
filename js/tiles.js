@@ -76,6 +76,10 @@ TILE.broken = [0, 1].map(p => mk(g => { g.drawImage(TILE.water[p], 0, 0); px(g, 
 // くらい どうくつ: n ゆか  N いわかべ
 TILE.cfloor = [0, 1, 2].map(() => mk(g => { px(g, 0, 0, 16, 16, '#5a4e44'); for (let i = 0; i < 9; i++) px(g, rnd() * 16, rnd() * 16, 1 + (rnd() * 2 | 0), 1, rnd() < .5 ? '#4a4036' : '#6e6254'); }));
 TILE.cwall = [0, 1].map(p => mk(g => { px(g, 0, 0, 16, 16, '#2e2622'); for (const [x, y, w, h] of [[1, 1, 6, 5], [8, 2, 7, 6], [2, 8, 5, 6], [9, 10, 6, 5]]) { px(g, x + p, y, w, h, '#3e342e'); px(g, x + p, y, w, 1, '#56483e'); } }));
+// ちかしつ: c にもつの はこ  u のぼりの かいだん  s くだりの かいだん(いえの ゆか)
+TILE.crate = mk(g => { px(g, 0, 0, 16, 16, '#5a4e44'); px(g, 1, 2, 14, 13, '#5a3418'); px(g, 2, 3, 12, 11, '#b07a42'); px(g, 2, 8, 12, 1, '#7a4a24'); px(g, 7, 3, 1, 11, '#7a4a24'); px(g, 2, 3, 12, 1, '#d8a060'); });
+TILE.stairsUp = mk(g => { px(g, 0, 0, 16, 16, '#5a4e44'); for (let i = 0; i < 4; i++) { px(g, 1, 1 + i * 4, 14, 3, ['#d8c0a0', '#b8a080', '#98805e', '#7a6448'][i]); px(g, 1, 4 + i * 4, 14, 1, '#3a2e24'); } });
+TILE.stairsDown = mk(g => { floor(g); px(g, 1, 1, 14, 14, '#2a1e16'); for (let i = 0; i < 4; i++) px(g, 2, 2 + i * 3, 12, 2, ['#a87440', '#8a5a2a', '#6a4220', '#4a2e16'][i]); });
 // おおきな きの みき(I)と はしご(l)・こわれた はしご(e)
 function bark(g) { px(g, 0, 0, 16, 16, '#7a4a24'); for (let x = 1; x < 16; x += 4) px(g, x, 0, 1, 16, '#5a3418'); px(g, 3, 5, 2, 3, '#9a6234'); px(g, 10, 11, 2, 3, '#9a6234'); }
 TILE.trunk = mk(bark);
@@ -111,9 +115,9 @@ TILE.mat = mk(g => { floor(g); px(g, 2, 2, 12, 12, '#4f9a52'); px(g, 3, 3, 10, 1
 // パルル町  p 石の ひろば  F ふんすい(2×2)  J トランポリン(2×2)  V むらさきの 屋根  G ステージの ゆか
 // 村  . 草  , 花  T 木  = 道  ~ 川  B b 橋  R 屋根  U 青い屋根  H h 壁  W 窓  D ドア
 // 森  g 森の草  Y 森の木  m きのこ  o しげみ
-// きたの もり  f もりの はな  q i x X はいいろの くさ・はな・き・しげみ  k こわれた はし  n N どうくつの ゆか・かべ  I みき  l はしご  e こわれた はしご
+// きたの もり  f もりの はな  q i x X はいいろの くさ・はな・き・しげみ  k こわれた はし  n N どうくつの ゆか・かべ  I みき  l はしご  e こわれた はしご  c はこ  u s かいだん
 // 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  C お店のカウンター  E 出口のマット
-export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e']);
+export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e', 'c']);
 
 export function tileImg(c, x, y, t) {
   const v = (x * 7 + y * 13) % 3;
@@ -130,6 +134,7 @@ export function tileImg(c, x, y, t) {
     case 'Z': return TILE.bedT; case 'z': return TILE.bedB; case 'P': return TILE.pot; case 'E': return TILE.mat;
     case 'q': return TILE.ggrass[v]; case 'i': return TILE.gflower; case 'f': return TILE.fflower; case 'x': return TILE.gtree[(x + y) % 2]; case 'X': return TILE.ghedge;
     case 'k': return TILE.broken[(Math.floor(t * 2) + x) % 2]; case 'n': return TILE.cfloor[v]; case 'N': return TILE.cwall[(x + y) % 2];
+    case 'c': return TILE.crate; case 'u': return TILE.stairsUp; case 's': return TILE.stairsDown;
     case 'I': return TILE.trunk; case 'l': return TILE.ladder; case 'e': return TILE.ladderX;
     default: return TILE.grass[v];
   }
