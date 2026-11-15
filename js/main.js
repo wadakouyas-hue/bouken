@@ -365,15 +365,16 @@ const jump = { on: false, t: 0 };     // トランポリンで とんでいる
 // ===== トランポリンの ミニゲーム: おりてきて つく ときに タップ =====
 const rec = {};                       // きろく(セーブ される)
 const tg = { on: false };
-const TG_EARLY = 0.24, TG_LATE = 0.16;   // タップが まにあう はば(びょう)
+const TG_EARLY = 0.12, TG_LATE = 0.08;   // タップが まにあう はば(びょう。 ぜんぶで 0.2びょう)
 function playTramp() {
   return new Promise(res => {
-    Object.assign(tg, { on: true, t: 0, ph: 0, n: 0, early: -9, pending: null, msg: '', msgT: 0, wait: 1.6, done: res });
+    Object.assign(tg, { on: true, t: 0, ph: 0, n: 0, h: 20, early: -9, pending: null, msg: '', msgT: 0, wait: 1.6, done: res });
     tgShow('じゅんび……');
   });
 }
-const tgPeriod = () => Math.max(0.55, 1.0 - tg.n * 0.025);   // とぶ じかん(だんだん はやく)
-const tgHeight = () => 16 + Math.min(tg.n, 20) * 1.5;        // たかさ(だんだん たかく)
+// たかさは まいかい ランダム。 たかいほど ながく とぶ(タイミングが かわる)。 かいすうが ふえると すこし はやく
+const tgPeriod = () => (0.45 + (tg.h - 10) / 30 * 0.6) * Math.max(0.75, 1 - tg.n * 0.004);
+const tgHeight = () => tg.h;
 function tgShow(hint) { $('mini').style.display = 'block'; $('mini').innerHTML = `<div class="mcount">${tg.n}<small>かい</small></div><div class="mhint">${rubyHTML(hint)}</div>` + (tg.msg ? `<div class="mpop">${rubyHTML(tg.msg)}</div>` : ''); }
 function tgTap() {
   if (!tg.on || tg.wait > 0) return;
@@ -382,7 +383,7 @@ function tgTap() {
   else if (tg.ph > 0.12) { tg.msg = 'はやすぎ!'; tgShow(''); tgEnd(); }   // まだ たかい ときに タップ(れんだ よけ)
 }
 function tgOk(off) {
-  tg.n++; tg.pending = null; tg.early = -9; tg.ph = 0;
+  tg.n++; tg.pending = null; tg.early = -9; tg.ph = 0; tg.h = 10 + Math.random() * 30;
   tg.msg = Math.abs(off) < 0.07 ? 'ぴったり!' : 'ぽよーん!'; tg.msgT = 0.6;
   sfx('next'); if (flags.has('owl')) sfx('boing');            // まちの おとが もどったら ぽよん
   tgShow('おりてきて つく ときに タップ!');
@@ -441,9 +442,11 @@ const EVENTS = {
       await say('', ['@の むねの なかで、 なにかが あたたかく ひかった。', '♪「{トランポリン|とらんぽりん}」の かけらを {手|て}に いれた!', 'あなや かわを とびこえられる ように なった!']);
       await campCheck();
     }
-    for (const [k, need, item] of [['tramp10', 10, 'かいふくやく'], ['tramp20', 20, 'げんきのみず']]) if (n >= need && !flags.has(k)) {
-      flags.add(k); bag.push(item); save(); const it = byId('items', item);
-      await say('こねこ', [`${need}かいも とべた! これ あげる!`, `♪${it.name}を もらった!`]);
+    // ごほうび(data/tramp.csv)
+    for (const r of DATA.tramp) { const need = +r.id, k = 'tramp' + need; if (!(n >= need) || flags.has(k)) continue;
+      const it = byId('items', r.prize), fu = !it && byId('furniture', r.prize); if (!it && !fu) continue;
+      flags.add(k); if (it) bag.push(it.id); else room.stash.push(fu.id); save();
+      await say('こねこ', [`${need}かいも とべた! これ あげる!`, `♪${(it || fu).name}を もらった!`, ...(fu ? ['おうちの 「もようがえ」で おけるよ。'] : [])]);
     }
   },
   // えかき: ぬりえを する
