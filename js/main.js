@@ -1,7 +1,7 @@
 // ぼうけんの たび — 本体
 import { T, BLOCK, tileImg } from './tiles.js';
 import { charSprite, SPR, enemySprite, heroSprite, eyeColor } from './sprites.js';
-import { clock, tick, toMorning, darkness, isNight } from './clock.js';
+import { clock, tick, toMorning, darkness, isNight, hourNow, timeWords } from './clock.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import { ready, dataErrors, byId, DATA } from './data.js';
@@ -215,6 +215,7 @@ stage.addEventListener('pointerdown', e => {
   }
   if (dlg.open) { advance(); return; }
   if (e.target.closest('#menubtn')) { openFieldMenu(); return; }
+  if (e.target.closest('#clockcv')) { sfx('ok'); openDialog('', [timeWords()]); return; }   // とけいの こたえあわせ
   if (e.target.closest('#decobtn')) { startDeco(); return; }
   if (e.target.closest('#act') || e.target.closest('#actbtn')) { if (near) interact(near); return; }
   const p = local(e), wx = p.x / S + cam.x, wy = p.y / S + cam.y;
@@ -427,8 +428,10 @@ function updateChip() {
   $('hpchip').style.display = show ? 'block' : 'none';
   $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
   $('decobtn').style.display = show && !dlg.open && cur.deco ? 'block' : 'none';
+  $('clockcv').style.display = show ? 'block' : 'none';
+  if (show) drawClock();
   if (!show) return;
-  const st = heroStats(), t = `${isNight() ? '🌙' : '☀'} ${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}  ${hero.gold}{円|えん}`;
+  const st = heroStats(), t = `${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}  ${hero.gold}{円|えん}`;
   if (t !== chipText) { chipText = t; $('hpchip').innerHTML = rubyHTML(t); $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
 }
 function update(dt) {
@@ -519,6 +522,34 @@ function draw() {
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
 }
+// とけい(はりで よむ。 タップで こたえあわせ)
+let clockKey = '';
+function drawClock() {
+  const cvs = $('clockcv'), px = Math.round(36 * S * (globalThis.devicePixelRatio || 1));
+  const h = hourNow(), night = isNight(), key = `${px}|${Math.floor(h * 60)}|${night}`;
+  if (key === clockKey) return;
+  clockKey = key;
+  if (cvs.width !== px) { cvs.width = px; cvs.height = px; }
+  const g = cvs.getContext('2d'), r = px / 2, c = r;
+  g.clearRect(0, 0, px, px);
+  g.beginPath(); g.arc(c, c, r * 0.96, 0, Math.PI * 2); g.fillStyle = night ? '#1a2350' : '#ffffff'; g.fill();
+  g.lineWidth = r * 0.07; g.strokeStyle = night ? '#ffd23f' : '#18224f'; g.stroke();
+  const ink = night ? '#e8ecff' : '#18224f';
+  for (let i = 0; i < 60; i++) {           // めもり
+    const a = i / 60 * Math.PI * 2, big = i % 5 === 0, r0 = r * (big ? 0.8 : 0.85);
+    g.beginPath(); g.moveTo(c + Math.sin(a) * r0, c - Math.cos(a) * r0); g.lineTo(c + Math.sin(a) * r * 0.9, c - Math.cos(a) * r * 0.9);
+    g.lineWidth = r * (big ? 0.045 : 0.02); g.strokeStyle = ink; g.stroke();
+  }
+  g.fillStyle = ink; g.font = `bold ${Math.round(r * 0.26)}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let n = 1; n <= 12; n++) { const a = n / 12 * Math.PI * 2; g.fillText(String(n), c + Math.sin(a) * r * 0.62, c - Math.cos(a) * r * 0.62 + r * 0.02); }
+  g.font = `${Math.round(r * 0.22)}px sans-serif`; g.fillText(night ? '🌙' : '☀', c, c + r * 0.36);
+  const hand = (turn, len, w, col) => { const a = turn * Math.PI * 2; g.beginPath(); g.moveTo(c, c); g.lineTo(c + Math.sin(a) * len, c - Math.cos(a) * len);
+    g.lineWidth = w; g.lineCap = 'round'; g.strokeStyle = col; g.stroke(); };
+  hand((h % 12) / 12, r * 0.45, r * 0.12, '#e04848');     // みじかい はり(なんじ)
+  hand((h % 1), r * 0.72, r * 0.07, '#3a7ae0');           // ながい はり(なんぷん)
+  g.beginPath(); g.arc(c, c, r * 0.07, 0, Math.PI * 2); g.fillStyle = ink; g.fill();
+}
+
 // よるの くらやみ: 主人公(と ランプ)の まわりだけ あかるい
 const darkCv = document.createElement('canvas'); darkCv.width = VW; darkCv.height = VH;
 const dg = darkCv.getContext('2d');

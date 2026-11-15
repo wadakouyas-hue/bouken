@@ -203,3 +203,7 @@ rt{font-size:.5em;}
 #shop .smats{flex:1;display:flex;flex-wrap:wrap;gap:calc(var(--u)*2) calc(var(--u)*5);}
 #shop .smats .ok{color:#8ef08a;}
 #shop .smats .ng{color:#ff9a9a;}
+
+/* とけい(タップで こたえあわせ) */
+#clockcv{position:absolute;left:calc(var(--u)*4);top:calc(var(--u)*22);width:calc(var(--u)*36);height:calc(var(--u)*36);pointer-events:auto;display:none;
+  filter:drop-shadow(0 calc(var(--u)*.6) 0 rgba(0,0,0,.35));}
