@@ -86,6 +86,19 @@ TILE.trunk = mk(bark);
 TILE.ladder = mk(g => { bark(g); px(g, 2, 0, 2, 16, '#d8a060'); px(g, 12, 0, 2, 16, '#d8a060'); for (const y of [2, 7, 12]) { px(g, 2, y, 12, 2, '#e8b878'); px(g, 2, y + 2, 12, 1, '#8a5a2a'); } });
 TILE.ladderX = mk(g => { bark(g); px(g, 2, 6, 2, 10, '#a87a4a'); px(g, 12, 0, 2, 5, '#a87a4a'); px(g, 3, 12, 7, 2, '#a87a4a'); px(g, 8, 3, 5, 2, '#a87a4a'); });
 
+// --- あらしの のはら(第3章) ---
+// a ぬれた くさ  A いわ  M ぬま  j いたの みち  d かれた き  y たおれた き
+function wgrass(g) { px(g, 0, 0, 16, 16, '#4a7a52'); for (let i = 0; i < 10; i++) px(g, rnd() * 16, rnd() * 16, 1, 1 + (rnd() * 2 | 0), rnd() < .6 ? '#3e6a46' : '#5e9264'); }
+TILE.wgrass = [0, 1, 2].map(i => mk(g => { wgrass(g); if (i === 2) { px(g, 3, 9, 6, 2, '#5a7aa0'); px(g, 4, 9, 3, 1, '#8aaad0'); } }));
+function rockOn(g) { circle(g, 8, 9, 7, '#4a4a54'); circle(g, 7, 8, 6, '#7a7a86'); circle(g, 5, 6, 2, '#a4a4b0'); px(g, 9, 11, 3, 1, '#5a5a66'); }
+TILE.rockC = mk(g => { g.drawImage(TILE.cfloor[0], 0, 0); rockOn(g); px(g, 3, 14, 10, 1, '#3a302a'); });   // ^ いわばの いわ
+TILE.rock = mk(g => { wgrass(g); circle(g, 8, 9, 7, '#4a4a54'); circle(g, 7, 8, 6, '#7a7a86'); circle(g, 5, 6, 2, '#a4a4b0'); px(g, 9, 11, 3, 1, '#5a5a66'); px(g, 2, 14, 12, 1, '#2e3a32'); });
+TILE.swamp = [0, 1].map(p => mk(g => { px(g, 0, 0, 16, 16, '#3a4a3a'); for (let i = 0; i < 7; i++) px(g, rnd() * 15, rnd() * 15, 2, 1, rnd() < .5 ? '#2c3a2e' : '#4a5e48');
+  px(g, (3 + p * 6) % 14, 5, 3, 1, '#6a8a6a'); px(g, (10 + p * 4) % 14, 12, 2, 1, '#6a8a6a'); }));
+TILE.board = mk(g => { px(g, 0, 0, 16, 16, '#3a4a3a'); px(g, 1, 0, 14, 16, '#8a6a42'); for (let y = 0; y < 16; y += 4) { px(g, 1, y, 14, 1, '#5a4228'); } px(g, 1, 0, 1, 16, '#6a4e30'); px(g, 14, 0, 1, 16, '#6a4e30'); px(g, 4, 2, 1, 1, '#3a2a1a'); px(g, 11, 6, 1, 1, '#3a2a1a'); px(g, 6, 10, 1, 1, '#3a2a1a'); });
+TILE.dead = mk(g => { wgrass(g); px(g, 7, 4, 2, 12, '#4a3a2e'); px(g, 4, 3, 3, 1, '#4a3a2e'); px(g, 3, 1, 1, 2, '#4a3a2e'); px(g, 9, 6, 4, 1, '#4a3a2e'); px(g, 12, 3, 1, 3, '#4a3a2e'); px(g, 6, 2, 1, 2, '#4a3a2e'); px(g, 7, 15, 3, 1, '#2e2420'); });
+TILE.log = mk(g => { wgrass(g); px(g, 0, 5, 16, 8, '#6a4224'); px(g, 0, 5, 16, 1, '#9a6234'); px(g, 0, 12, 16, 1, '#3a2210'); for (let x = 2; x < 16; x += 5) px(g, x, 7, 3, 1, '#4a2e16'); px(g, 5, 3, 1, 2, '#3a6a3a'); px(g, 11, 2, 2, 3, '#3a6a3a'); });
+
 // --- 家の中 ---
 TILE.inTop = mk(g => { px(g, 0, 0, 16, 16, '#5a3a24'); px(g, 0, 0, 16, 1, '#7a5034'); px(g, 0, 15, 16, 1, '#3a2414'); });
 function paper(g) { px(g, 0, 0, 16, 16, '#efdcb4'); for (let x = 2; x < 16; x += 5) px(g, x, 0, 1, 13, '#e2c998'); px(g, 0, 13, 16, 3, '#8a5a32'); px(g, 0, 13, 16, 1, '#a8744a'); }
@@ -116,8 +129,9 @@ TILE.mat = mk(g => { floor(g); px(g, 2, 2, 12, 12, '#4f9a52'); px(g, 3, 3, 10, 1
 // 村  . 草  , 花  T 木  = 道  ~ 川  B b 橋  R 屋根  U 青い屋根  H h 壁  W 窓  D ドア
 // 森  g 森の草  Y 森の木  m きのこ  o しげみ
 // きたの もり  f もりの はな  q i x X はいいろの くさ・はな・き・しげみ  k こわれた はし  n N どうくつの ゆか・かべ  I みき  l はしご  e こわれた はしご  c はこ  u s かいだん
+// あらしの のはら  a ぬれた くさ  A いわ  ^ いわばの いわ  M ぬま  j いたの みち  d かれた き  y たおれた き
 // 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  C お店のカウンター  E 出口のマット
-export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e', 'c']);
+export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e', 'c', 'A', 'M', 'd', 'y', '^']);
 
 export function tileImg(c, x, y, t) {
   const v = (x * 7 + y * 13) % 3;
@@ -136,6 +150,8 @@ export function tileImg(c, x, y, t) {
     case 'k': return TILE.broken[(Math.floor(t * 2) + x) % 2]; case 'n': return TILE.cfloor[v]; case 'N': return TILE.cwall[(x + y) % 2];
     case 'c': return TILE.crate; case 'u': return TILE.stairsUp; case 's': return TILE.stairsDown;
     case 'I': return TILE.trunk; case 'l': return TILE.ladder; case 'e': return TILE.ladderX;
+    case 'a': return TILE.wgrass[(x * 5 + y * 3) % 7 === 0 ? 2 : v % 2]; case 'A': return TILE.rock; case '^': return TILE.rockC; case 'M': return TILE.swamp[(Math.floor(t * 1.5) + x + y) % 2];
+    case 'j': return TILE.board; case 'd': return TILE.dead; case 'y': return TILE.log;
     default: return TILE.grass[v];
   }
 }

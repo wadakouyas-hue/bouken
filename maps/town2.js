@@ -5,6 +5,8 @@ export default {
   outside: true,
   bgm: 'park',
   quiet: 'owl',
+  rain: { need: 'ch3start', stop: 'ch3' },          // 第3章: あらしで あめが ふる
+  enter: [{ need: 'ch2', once: 'ch3start', event: 'stormCome' }],
   town: { name: '{パルル|ぱるる}{町|まち}', at: [15.5, 19] },
   rows: [
     'TTTTTTTTTTTTTTTTTTTTTTTTTTTT==TT',
@@ -24,15 +26,16 @@ export default {
     'T.......ppppppppppppppp........T',
     'T...,...ppppppp==pppppp..,..T..T',
     'T...JJ.........==..............T',
-    'T...JJT........==..........,...T',
-    'T.............,==..............T',
+    'T...JJT........==..........,...=',
+    'T.............,==..............=',
     'T..............==,.............T',
     'T..............==....,.........T',
     'TTTTTTTTTTTTTTT==TTTTTTTTTTTTTTT',
   ],
   objs: [
     { kind: 'npc', x: 12, y: 12, pal: 'shop3', name: 'まちの ねこ', label: 'はなす',
-      talk: [{ need: 'owl', lines: ['きこえる? ふんすいの おと! ことりの うたも!', 'ありがとう! まちが にぎやかに なったわ。'] }],
+      talk: [{ need: 'ch3start', not: 'ch3', lines: ['あめが ちっとも やまないの……', 'ふんすいの まわりも みずたまり だらけよ。'] },
+        { need: 'owl', lines: ['きこえる? ふんすいの おと! ことりの うたも!', 'ありがとう! まちが にぎやかに なったわ。'] }],
       lines: ['ここは {パルル|ぱるる}{町|まち}。 ふんすいの ある こうえんの まちよ。', 'でも さいきん、 ふんすいの おとも\nとりの うたも きこえないの……'] },
     // ===== おてつだい1: トランポリン =====
     { kind: 'npc', x: 7, y: 16, pal: 'girl', name: 'こねこ', label: 'はなす', wander: true,
@@ -62,7 +65,9 @@ export default {
     { kind: 'deco', x: 26.5, y: 17.4, pic: 'fire', light: 56, show: 'campGo', hide: 'camp' },
     { kind: 'npc', x: 25, y: 18.4, pal: 'melo', name: '{メロ|めろ}', label: 'はなす', show: 'campGo', hide: 'camp', event: 'camp', lines: [] },
     { kind: 'npc', x: 26.5, y: 13, pal: 'oji', name: 'としよりの ねこ', label: 'はなす',
-      talk: [{ need: 'owl', lines: ['{ミミズク|みみずく}を ゆるして あげたんじゃな。', 'やさしい こたちじゃ。 まちの みんなも よろこんで おるよ。'] }],
+      talk: [{ need: 'kumo', not: 'ch3', lines: ['かみなりぐもを しずめたのかい! たいしたもんじゃ。', 'じゃが あめは まだ やまんのう……', 'くらい もりの おくに、 なにかが おるのかも しれん。'] },
+        { need: 'ch3start', not: 'ch3', lines: ['ひがしの のはらを ずっと いくと、 かみなりの おかが ある。', 'あらしは どうやら、 そこから きて おるようじゃ。', 'のはらは かぜが つよい。 いわの かげで ひとやすみ しながら いくんじゃよ。'] },
+        { need: 'owl', lines: ['{ミミズク|みみずく}を ゆるして あげたんじゃな。', 'やさしい こたちじゃ。 まちの みんなも よろこんで おるよ。'] }],
       lines: ['よるに なると、 おおきな {ミミズク|みみずく}が\nまちの うえを とんでいくんじゃ。', 'あいつが まちの おとを もっていって しまったのかも しれん。', 'きたの もりの おくに すんでいると いう はなしじゃが……'] },
     // ミミズク(おとが もどった あと、 こうえんに いる)
     { kind: 'deco', x: 21, y: 15.2, pic: 'owl', show: 'owl', name: '{ミミズク|みみずく}', label: 'はなす',
@@ -76,6 +81,7 @@ export default {
     { x: 26, y: 10, to: 'shop2', at: [6.5, 7], dir: 'up' },                 // パルル町の おみせ
     { x: 4, y: 5, to: 'house2', at: [5.5, 7], dir: 'up' },                  // えかきの いえ
     { x: 23, y: 4, to: 'house3', at: [5.5, 7], dir: 'up' },                 // まちの いえ(ちかしつ)
+    { x: 31, y: 17, h: 2, to: 'storm1', at: [1, 7.5], dir: 'right', need: 'ch3start', block: ['この さきは ひがしの のはら。', 'いまは いく ようじが ないみたい。'] },   // みぎ → あらしの のはら(第3章)
     { x: 28, y: 0, w: 2, to: 'north1', at: [12.5, 16], dir: 'up', need: 'ch2gate', block: ['この さきは きたの もり。', 'まずは まちの ねこたちを てつだって あげよう。'] },   // うえ → きたの もり
   ],
 };

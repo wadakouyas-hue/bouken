@@ -202,6 +202,36 @@ export const SONGS = {
     ],
     drums: { kick: 'x...............', snare: '................', hat: '........g.......', kickFill: 'x.......x.......', snareFill: '................' },
   },
+  // あらしの のはら(第3章)— マイナーの はりつめた ファンク
+  storm: {
+    bpm: 104,
+    swing: 0.04,
+    bassSound: 'slap',
+    //   Dm9 | Dm9 | Bbmaj7(#11) | A7(b9)
+    chords: ['F4 A4 C5 E5', 'F4 A4 C5 E5', 'Bb3 D4 E4 A4', 'C#4 G4 Bb4 E5'],
+    comp:  'x..x....x..x....',
+    comp2: 'x.....x...x.....',
+    bass: [
+      'D2:3 D2:1 r:2 D2:2 F2:2 r:2 D2:2 C2:2',
+      'D2:3 D2:1 r:2 D2:2 A2:2 r:2 C3:2 A2:2',
+      'Bb1:3 Bb1:1 r:2 Bb1:2 F2:2 r:2 Bb2:2 A2:2',
+      'A1:3 A1:1 r:2 A1:2 E2:2 G2:2 C#3:2 A2:2',
+    ],
+    melody: [
+      'r:2 A4:2 D5:2 E5:2 F5:4 E5:2 D5:2',
+      'C5:2 D5:2 A4:8 r:4',
+      'r:2 Bb4:2 D5:2 F5:2 E5:4 D5:2 E5:2',
+      'C#5:4 E5:4 A4:6 r:2',
+      '', '', '', '',
+    ],
+    drums: {
+      kick:  'x..x..x...x.....',
+      snare: '....x.......x..g',
+      hat:   'x.xgx.xgx.xgx.xg',
+      kickFill:  'x..x..x...x.x...',
+      snareFill: '....x.......xgxx',
+    },
+  },
   // パルル町(おとが もどったあと)— あかるい ポップ・ファンク
   park: {
     bpm: 112,

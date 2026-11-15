@@ -33,6 +33,11 @@ import nest from '../maps/nest.js';
 import cellar from '../maps/cellar.js';
 import house2 from '../maps/house2.js';
 import house3 from '../maps/house3.js';
+import storm1 from '../maps/storm1.js';
+import storm2 from '../maps/storm2.js';
+import hut from '../maps/hut.js';
+import storm3 from '../maps/storm3.js';
+import storm4 from '../maps/storm4.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -56,7 +61,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3 };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4 };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -85,6 +90,35 @@ function resetEnemies(m) {
     if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
     if (o.again) { o.taken = false; o.gone = false; }   // また おちている もの(きの えだ など)
   }
+}
+
+// ===== あめ・かみなり・かぜ(第3章 あらし) =====
+// rain: { need, stop } … need の フラグが あって stop の フラグが ない あいだ あめが ふる
+const rainy = () => !!cur.rain && has(cur.rain.need) && !flags.has(cur.rain.stop);
+const storm = { next: 4, flash: 0, wind: 0 };
+function updateWeather(dt) {
+  storm.flash = Math.max(0, storm.flash - dt);
+  if (rainy()) {
+    const [a, b] = cur.thunder || (cur.town ? [12, 20] : [6, 11]);
+    if ((storm.next -= dt) <= 0) { storm.next = a + Math.random() * (b - a); storm.flash = 0.6; sfx('thunder'); }
+  }
+  if (!cur.wind) return;
+  const w = cur.wind, was = gusting();
+  storm.wind = (storm.wind + dt) % (w.off + w.on);
+  if (!was && gusting()) sfx('wind');
+  if (gusting() && !sheltered()) {
+    const nx = player.x + w.dx * w.push * dt;
+    if (!hits(nx, player.y) && !exitAt(nx, player.y)) { player.x = nx; const l = trail[0]; if (!l || Math.abs(l.x - nx) >= 2) { trail.unshift({ x: nx, y: player.y, dir: player.dir }); trail.length = Math.min(trail.length, 20); } }
+  }
+}
+const gusting = () => !!cur.wind && storm.wind >= cur.wind.off;
+const gustSoon = () => !!cur.wind && storm.wind >= cur.wind.off - 0.7;
+// かぜよけ: かぜが ふいてくる ほう(2マス いない)に いわや きが あると おされない
+function sheltered() {
+  const tx = Math.floor(player.x / T), ty = Math.floor((player.y - 3) / T);
+  if (ty < 0 || ty >= cur.h) return false;
+  for (let k = 1; k <= 2; k++) { const x = tx - cur.wind.dx * k; if (x < 0 || x >= cur.w) break; if (BLOCK.has(cur.rows[ty][x])) return true; }
+  return false;
 }
 
 // ===== ひると よる =====
@@ -203,7 +237,12 @@ function goExit(e) {
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false; trail.length = 0;
     updateCamera(); visit(); save();
     playBgm(bgmFor());
-  });
+  }, runEnter);
+}
+// マップに はいった ときの できごと(enter: [{ need, once, event }]。 once の フラグが つくと もう おきない)
+function runEnter() {
+  const e = (cur.enter || []).find(e => has(e.need) && !flags.has(e.once));
+  if (e) { flags.add(e.once); save(); EVENTS[e.event]?.(); }
 }
 function updateTrans(dt) {
   const before = trans.t;
@@ -230,7 +269,7 @@ menu.warp = name => {
     cur = m; resetEnemies(cur);
     Object.assign(player, at(m.town.at[0], m.town.at[1]), { dir: 'down', anim: 0, moving: false }); trail.length = 0;
     updateCamera(); visit(); save(); playBgm(bgmFor());
-  }, () => openDialog('', [`${m.town.name}に ついた!`]));
+  }, () => openDialog('', [`${m.town.name}に ついた!`], runEnter));
 };
 
 // ===== 戦闘へ =====
@@ -238,7 +277,7 @@ function encounter(o, opt = {}) {
   let lost = 0;
   sfx('encounter');
   fadeTo(() => {
-    startBattle(o.party, opt).then(result => fadeTo(() => {
+    startBattle(o.party, { bg: rainy() ? 'storm' : null, ...opt }).then(result => fadeTo(() => {
       if (result === 'win') { if (opt.onWin) opt.onWin(); else { o.gone = true; o.spawnT = null; } }
       if (result === 'run') o.cool = 3;          // にげたあと 少しの間は ぶつからない
       if (result === 'lose') {                   // まけたら 村で 目が さめる。 もっている おかねは はんぶんに
@@ -553,11 +592,11 @@ const EVENTS = {
     await say(HAMO, ['ミミズクが、 おとと いっしょに いろも すいとって いたのかな。'.replace('ミミズク', '{ミミズク|みみずく}')]);
   },
   // こわれた はしを なおす
-  async bridge() {
+  async bridge(o) {
     await say('', ['はしが こわれていて わたれない……']);
     if (!bag.includes('こうさくのかけら')) return;
     await say(HAMO, ['ことりの いえを つくった みたいに、 みんなで なおそう!']);
-    await fade(() => { flags.add('nfBridge'); applySwaps(cur); });
+    await fade(() => { flags.add(o.flag || 'nfBridge'); applySwaps(cur); });
     sfx('get'); save();
     await say('', ['こうさくの かけらが ひかった!', '{トントン|とんとん}、 {カンカン|かんかん}……', 'はしが なおった!']);
   },
@@ -640,6 +679,35 @@ const EVENTS = {
     await say('', ['ゴロゴロ……'.replace('ゴロゴロ', '{ゴロゴロ|ごろごろ}')]);
     await fade(() => { view.on = false; view.kind = null; });
     await say('', ['だい2しょう 「たのしい まいにち」 おしまい。', 'つづく……']);
+  },
+  // ===== 第3章: あらしの せかい =====
+  // パルル町に あらしが くる(第2章の あと、 まちに でた とき)
+  async stormCome() {
+    storm.flash = 0.6; sfx('thunder');
+    await say('', ['{ゴロゴロ|ごろごろ}…… ピシャーン!'.replace('ピシャーン', '{ピシャーン|ぴしゃーん}'), 'くろい くもが、 まちの うえまで きていた。', 'つめたい あめが ふりだした……']);
+    await say(HAMO, ['すごい あらしだ……', 'ひがしの のはらの ほうから、 くもが どんどん くるよ。']);
+    await say('{メロ|めろ}', ['このままじゃ、 まちの みんなが こまって しまうわ。']);
+    await say(HAMO, ['あらしの もとを さがしに いこう!', 'まちの ひがしから、 のはらへ でられるよ。']);
+  },
+  async windHint() {
+    await say(HAMO, ['うわっ、 かぜが つよい!', 'かぜが ふくと、 うしろに おされちゃう。', 'いわの かげに かくれながら すすもう!']);
+  },
+  async swampHint() {
+    await say('', ['あたりは まっくらだ。 あめで あかりも ちいさい……']);
+    await say('{メロ|めろ}', ['かみなりが ひかると、 まわりが よく みえるわ。', 'いたの みちを よく みて すすみましょう。']);
+  },
+  // かみなりぐも(ボス)
+  kumo(o) {
+    encounter({ party: [o.party] }, { boss: true, onWin: () => { flags.add('kumo'); bag.push('げんきのみず', 'げんきのみず'); save(); },
+      afterWin: async () => {
+        await say(o.name, ['ゴロ…… まいった……'.replace('ゴロ', '{ゴロ|ごろ}'), 'ほんとうは ぼく、 あばれたく なかったんだ。', 'くろい かげが やってきて、\n「もっと あらしを おこせ」って いうから……']);
+        await say(HAMO, ['くろい かげ?']);
+        await say(o.name, ['かげは、 あの くらい もりの おくへ いったよ。', 'かげが いる かぎり、 あらしは やまないんだ。', 'ごめんね。 これ、 おわびの しるし。']);
+        await say('', ['♪げんきの みずを 2こ もらった!']);
+        await say('', ['かみなりぐもは、 ちいさく なって とんでいった。', '@は、 くらい もりを みて すこし ふるえていた。']);
+        await say('{メロ|めろ}', ['だいじょうぶよ、 @。']);
+        await say(HAMO, ['うん。 みんな いっしょだよ。', 'きょうは いちど まちへ もどって、 じゅんびを しよう。']);
+      } });
   },
   // ===== パルル町の おてつだい: ちかしつの オルゴール =====
   async orgel(o) {
@@ -888,6 +956,7 @@ function update(dt) {
   if (!started || !hero.name) return;
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
   if (cur.outside) tick(dt);                              // じかんは そとに いる ときだけ すすむ
+  updateWeather(dt);
   if (isNight() !== wasNight) nightChanged();
   // 入力
   let vx = stick.vx, vy = stick.vy;
@@ -966,7 +1035,7 @@ function update(dt) {
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
   if (battle.on) drawBattle(ctx); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : drawView()); else drawField();
-  if (!battle.on && !stageShow.on && !view.on) drawDark();
+  if (!battle.on && !stageShow.on && !view.on) { if (rainy()) drawRain(); drawDark(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
 }
@@ -1002,9 +1071,9 @@ function drawClock() {
 const darkCv = document.createElement('canvas'); darkCv.width = VW; darkCv.height = VH;
 const dg = darkCv.getContext('2d');
 function drawDark() {
-  const k = darkness(), a = cur.dark ? 1 : (cur.outside ? 1 : cur.deco ? 0.7 : 0) * k;   // そとの よると どうくつ(dark)は 明るい丸の そとは まっくら
+  const k = darkness(), a = (cur.dark ? 1 : (cur.outside ? 1 : cur.deco ? 0.7 : 0) * k) * (1 - Math.min(1, storm.flash / 0.3));   // そとの よると どうくつ(dark)は 明るい丸の そとは まっくら(かみなりが ひかると みえる)
   if (a <= 0.01) return;
-  const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: bag.includes('キャンプのかけら') ? 80 : 40 }];
+  const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: cur.lightR || (bag.includes('キャンプのかけら') ? 80 : 40) }];
   for (const o of live()) if (o.light) lights.push({ x: o.x - cam.x, y: o.y - 6 - cam.y, r: o.light + Math.sin(tm * 9) * 2 });   // たきび など
   if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
   dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, VW, VH);
@@ -1024,6 +1093,20 @@ function drawDark() {
     const look = byId('enemies', o.party[0])?.look, [ex1, ex2, ey] = eyePos(look);
     ctx.fillStyle = eyeColor(look);
     ctx.fillRect(sx + ex1, sy + ey + hop, 2, 2); ctx.fillRect(sx + ex2, sy + ey + hop, 2, 2);
+  }
+}
+// あめ(と かぜの すじ)
+function drawRain() {
+  ctx.fillStyle = 'rgba(20,30,60,.22)'; ctx.fillRect(0, 0, VW, VH);
+  const g = gusting(), side = cur.wind ? cur.wind.dx * (g ? 60 : 12) : -8;
+  ctx.fillStyle = 'rgba(190,210,255,.55)';
+  for (let i = 0; i < 70; i++) {
+    const y = ((i * 37 + tm * 230) % 230) - 20, x = ((i * 71 + 400 + (y + 20) * side / 230 + tm * side) % 340 + 340) % 340 - 10;
+    ctx.fillRect(Math.round(x), Math.round(y), 1, 5);
+  }
+  if (gustSoon()) {            // かぜの すじ(ふく まえに うすく みえる)
+    ctx.fillStyle = g ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)';
+    for (let i = 0; i < 14; i++) { const y = (i * 53) % 190 + 4, x = ((i * 97 - tm * 260 * -cur.wind.dx) % 360 + 360) % 360 - 30; ctx.fillRect(Math.round(x), y, 22 + (i % 3) * 8, 1); }
   }
 }
 // 第3章の よこく: とおくの そらに くろい くもが ひろがる
@@ -1126,7 +1209,7 @@ function drawField() {
 }
 
 // 確認用(Macのブラウザの開発ツールから bouken.player などを見られる)
-globalThis.bouken = { get tg() { return tg; }, player, bag, hero, battle, get map() { return mapName(); }, get near() { return near; }, get objs() { return cur.objs; } };
+globalThis.bouken = { get tg() { return tg; }, player, bag, hero, battle, get map() { return mapName(); }, get near() { return near; }, get objs() { return cur.objs; }, get rows() { return cur.rows; } };
 
 let last = performance.now();
 function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); }

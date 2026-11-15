@@ -32,7 +32,7 @@ export function startBattle(ids, opt = {}) {
   });
   const ms = members(), spots = SPOTS[Math.min(ms.length, 3) - 1];
   const party = ms.map((m, i) => ({ ...m, cond: {}, x: spots[i][0], y: spots[i][1], flash: 0, lunge: 0, guard: false }));   // cond: ステータス いじょう
-  B = { enemies, party, boss: !!opt.boss, waits: [], shake: 0, fx: [], flashScreen: 0, btns: [], t: 0, turnOf: null };
+  B = { enemies, party, boss: !!opt.boss, waits: [], shake: 0, fx: [], flashScreen: 0, btns: [], t: 0, turnOf: null, bg: opt.bg || null };
   battle.on = true;
   $('battle').style.display = 'block';
   setButtons([]); showMsg('');
@@ -411,13 +411,15 @@ export function updateBattle(dt) {
 export function drawBattle(ctx) {
   if (!B) return;
   const ox = B.shake > 0 ? (Math.random() * 4 - 2 | 0) : 0, oy = B.shake > 0 ? (Math.random() * 4 - 2 | 0) : 0;
-  // 森の けしき
-  ctx.fillStyle = '#163a1a'; ctx.fillRect(0, 0, 320, 200);
-  ctx.fillStyle = '#1f4a22'; for (let x = -10; x < 330; x += 28) { ctx.beginPath(); ctx.arc(x + ox, 34 + (x % 3) * 6, 26, 0, 7); ctx.fill(); }
-  ctx.fillStyle = '#2a5e2c'; ctx.fillRect(0, 62 + oy, 320, 4);
-  ctx.fillStyle = '#3f8f3a'; ctx.fillRect(0, 66 + oy, 320, 134);
-  ctx.fillStyle = '#4a9e44'; ctx.beginPath(); ctx.ellipse(110 + ox, 120 + oy, 120, 22, 0, 0, 7); ctx.fill();
+  // けしき(森 / あらし)
+  const rainBg = B.bg === 'storm', C = rainBg ? ['#2a3048', '#3a405a', '#2e4a3a', '#3e6a4a', '#4a7a56'] : ['#163a1a', '#1f4a22', '#2a5e2c', '#3f8f3a', '#4a9e44'];
+  ctx.fillStyle = C[0]; ctx.fillRect(0, 0, 320, 200);
+  ctx.fillStyle = C[1]; for (let x = -10; x < 330; x += 28) { ctx.beginPath(); ctx.arc(x + ox, 34 + (x % 3) * 6, 26, 0, 7); ctx.fill(); }
+  ctx.fillStyle = C[2]; ctx.fillRect(0, 62 + oy, 320, 4);
+  ctx.fillStyle = C[3]; ctx.fillRect(0, 66 + oy, 320, 134);
+  ctx.fillStyle = C[4]; ctx.beginPath(); ctx.ellipse(110 + ox, 120 + oy, 120, 22, 0, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.ellipse(266 + ox, 120 + oy, 44, 26, 0, 0, 7); ctx.fill();
+  if (rainBg) { ctx.fillStyle = 'rgba(190,210,255,.45)'; for (let i = 0; i < 50; i++) ctx.fillRect(((i * 71 - B.t * 20) % 330 + 330) % 330, ((i * 37 + B.t * 220) % 220) - 10, 1, 5); }
   // てき
   for (const e of B.enemies) {
     if (e.alpha <= 0) continue;
