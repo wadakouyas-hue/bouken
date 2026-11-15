@@ -444,7 +444,9 @@ stage.addEventListener('pointerdown', e => {
 addEventListener('pointermove', e => { if (e.pointerId === stick.id) stickMove(local(e)); });
 addEventListener('pointerup', e => { if (e.pointerId === stick.id) stickRelease(); holdCancel(); }); // 3秒より前に離したら やめる
 addEventListener('pointercancel', e => { if (e.pointerId === stick.id) stickRelease(); holdCancel(); });
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+// がめんが うごかない ように する。 ただし ならびの リスト(おみせ・メニュー・もようがえ)は ゆびで スクロール できる ように(iPad で うごかなかった)
+const SCROLLER = '.slist, .mlist, .dlist, #dataerr';
+document.addEventListener('touchmove', e => { if (!e.target.closest?.(SCROLLER)) e.preventDefault(); }, { passive: false });
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 // キーボード(Macで確認する用)

@@ -269,3 +269,6 @@ rt{font-size:.5em;}
 #fest .cbtns button.off{opacity:.55;}
 #fest .cbtns button.help{border-color:#ffd23f;background:#fff3a0;animation:fpulse .8s infinite alternate;}
 @keyframes fpulse{to{transform:scale(1.06);}}
+
+/* ならびの リストは ゆびで たてに スクロール(iPad など) */
+#shop .slist,#menu .mlist,#deco .dlist,#dataerr{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
