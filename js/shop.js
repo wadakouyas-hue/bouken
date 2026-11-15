@@ -1,6 +1,6 @@
 // おみせ(かう・うる)と ぎんこう(あずける・ひきだす)と さぎょうだい(つくる)
 import { DATA, byId } from './data.js';
-import { hero, bag, heroStats, bagCount, bagRemove, equipped } from './hero.js';
+import { hero, bag, heroStats, bagCount, bagRemove, equipped, equipOf, wearCount, members } from './hero.js';
 import { room } from './furniture.js';
 import { rubyHTML } from './dialog.js';
 import { sfx } from './audio.js';
@@ -37,7 +37,8 @@ export function shopTap(k) {
   else if (k === 'buy') buy();
   else if (k === 'sell') sell();
   else if (k === 'make') make();
-  else if (k === 'wear') { const it = byId('items', S.ask); if (!it) { render(); return; } hero.equip[it.kind] = it.id; sfx('get'); S.msg = `${it.name}を そうびした!`; S.ask = null; changed(); }
+  else if (k.startsWith('wear')) { const it = byId('items', S.ask); if (!it) { render(); return; } const who = members().find(m => m.key === (k.slice(5) || 'hero')) || members()[0];
+    equipOf(who.key)[it.kind] = it.id; sfx('get'); S.msg = `${who.name}は ${it.name}を そうびした!`; S.ask = null; changed(); }
   else if (k === 'later') { S.ask = null; S.msg = '{メニュー|めにゅー}の 「そうび」で いつでも きがえられるよ。'; }
   else if (k.startsWith('dep:')) bank(k.slice(4), +1);
   else if (k.startsWith('wd:')) bank(k.slice(3), -1);
@@ -58,7 +59,7 @@ function buy() {
 function sell() {
   const it = thing(S.sel); if (!it || !have(it.id)) return;
   if (it.kind === 'だいじ' || !it.price) { S.msg = 'それは うれないよ。'; return; }
-  if (!isFurn(it.id) && equipped(it.kind)?.id === it.id && bagCount(it.id) === 1) { S.msg = 'そうびしている ものは うれないよ。'; return; }
+  if (!isFurn(it.id) && bagCount(it.id) <= wearCount(it.id)) { S.msg = 'そうびしている ものは うれないよ。'; return; }
   if (isFurn(it.id)) room.stash.splice(room.stash.indexOf(it.id), 1); else bagRemove(it.id);
   hero.gold += sellPrice(it); sfx('get');
   S.msg = `${it.name}を ${YEN(sellPrice(it))}で うった!`;
@@ -116,7 +117,8 @@ function render() {
 function detail() {
   if (S.ask) {
     const it = byId('items', S.ask);
-    return `<div class="sdetail">いま ${R(it.name)}を そうびする?${btn('wear', 'そうびする', 'go')}${btn('later', 'あとで')}</div>`;
+    const ms = members();
+    return `<div class="sdetail">${ms.length > 1 ? 'だれが そうびする?' : `いま ${R(it.name)}を そうびする?`}${ms.length > 1 ? ms.map(m => btn('wear:' + m.key, R(m.name), 'go')).join('') : btn('wear', 'そうびする', 'go')}${btn('later', 'あとで')}</div>`;
   }
   const it = thing(S.sel);
   if (!it) return `<div class="sdetail shint">${S.mode === 'buy' ? 'ほしい ものを えらんでね' : 'うる ものを えらんでね'}</div>`;

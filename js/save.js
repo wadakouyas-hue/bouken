@@ -13,6 +13,8 @@ export function clearSave() {
 }
 
 // 中身が正しい形かを確かめる(おかしければ null)
+const eqOf = e => e && typeof e === 'object' ? { ぶき: typeof e.ぶき === 'string' ? e.ぶき : null, よろい: typeof e.よろい === 'string' ? e.よろい : null } : { ぶき: null, よろい: null };
+const ally = a => a && Number.isFinite(a.hp) && a.hp >= 0 && Number.isFinite(a.mp) && a.mp >= 0 ? { hp: a.hp, mp: a.mp, equip: eqOf(a.equip) } : null;
 function check(d) {
   if (!d || typeof d !== 'object' || d.v !== 1) return null;
   if (typeof d.map !== 'string' || !Number.isFinite(d.x) || !Number.isFinite(d.y)) return null;
@@ -29,8 +31,7 @@ function check(d) {
   const h = d.hero, num = (v, min) => Number.isFinite(v) && v >= min;
   d.hero = h && typeof h.name === 'string' && h.name && num(h.lv, 1) && num(h.exp, 0) && num(h.hp, 0) && num(h.mp, 0)
     ? { name: h.name.slice(0, 8), lv: Math.floor(h.lv), exp: h.exp, hp: h.hp, mp: h.mp,
-        hamo: h.hamo && num(h.hamo.hp, 0) && num(h.hamo.mp, 0) ? { hp: h.hamo.hp, mp: h.hamo.mp } : null,
-        melo: h.melo && num(h.melo.hp, 0) && num(h.melo.mp, 0) ? { hp: h.melo.hp, mp: h.melo.mp } : null,
+        hamo: ally(h.hamo), melo: ally(h.melo),
         gold: num(h.gold, 0) ? Math.floor(h.gold) : null, bank: num(h.bank, 0) ? Math.floor(h.bank) : 0,
         equip: h.equip && typeof h.equip === 'object' ? { ぶき: typeof h.equip.ぶき === 'string' ? h.equip.ぶき : null, よろい: typeof h.equip.よろい === 'string' ? h.equip.よろい : null } : null } : null;
   return d;

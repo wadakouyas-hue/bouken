@@ -234,3 +234,6 @@ rt{font-size:.5em;}
 #paint .pfoot{display:flex;justify-content:flex-end;gap:calc(var(--u)*4);}
 #paint .pfoot button{font:inherit;color:#fff;background:rgba(255,255,255,.15);border:calc(var(--u)*.75) solid rgba(255,255,255,.6);border-radius:calc(var(--u)*3);height:calc(var(--u)*18);padding:0 calc(var(--u)*10);}
 #paint .pfoot button.go{background:#ffd23f;color:#18224f;font-weight:bold;}
+#menu .mwho{margin-top:0;}
+#menu .mwho button{height:calc(var(--u)*16);padding:0 calc(var(--u)*6);}
+#menu .mwho button.on{background:#ffd23f;color:#18224f;}

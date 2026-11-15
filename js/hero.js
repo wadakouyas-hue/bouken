@@ -15,12 +15,12 @@ export function heroStats() {
   return { maxhp: row.hp, maxmp: row.mp, atk: row.atk + (equipped('ぶき')?.val || 0), def: row.def + (equipped('よろい')?.val || 0), mag: row.mag, spr: row.spr, spd: row.spd, skills,
     baseAtk: row.atk, baseDef: row.def };
 }
-// なかまの つよさ(レベルは 主人公と おなじ。 そうびは なし)
+// なかまの つよさ(レベルは 主人公と おなじ)
 export function allyStats(id) {
   const rs = rows(id); let row = rs[0] || FALLBACK;
   const skills = [];
   for (const r of rs) if (r.lv <= hero.lv) { row = r; for (const s of r.learn) if (!skills.includes(s)) skills.push(s); }
-  return { maxhp: row.hp, maxmp: row.mp, atk: row.atk, def: row.def, mag: row.mag, spr: row.spr, spd: row.spd, skills, baseAtk: row.atk, baseDef: row.def };
+  return { maxhp: row.hp, maxmp: row.mp, atk: row.atk + (equippedBy(id, 'ぶき')?.val || 0), def: row.def + (equippedBy(id, 'よろい')?.val || 0), mag: row.mag, spr: row.spr, spd: row.spd, skills, baseAtk: row.atk, baseDef: row.def };
 }
 const ALLY_NAME = { hamo: '{ハモ|はも}', melo: '{メロ|めろ}' };
 // パーティ: [{ key, name, pal, s(hp・mp が 入っている もの), st(つよさ) }]
@@ -29,9 +29,20 @@ export function members() {
   for (const k of ['hamo', 'melo']) if (hero[k]) list.push({ key: k, name: ALLY_NAME[k], pal: k, s: hero[k], st: allyStats(k) });
   return list;
 }
-export function joinAlly(id) { if (ALLY_NAME[id] && !hero[id]) { const st = allyStats(id); hero[id] = { hp: st.maxhp, mp: st.maxmp }; } }
-// そうびしている物(持っていなければ なし)
-export function equipped(slot) { const id = hero.equip[slot]; return id && bag.includes(id) ? byId('items', id) : null; }
+export function joinAlly(id) { if (ALLY_NAME[id] && !hero[id]) { hero[id] = { hp: 1, mp: 0, equip: { ぶき: null, よろい: null } }; const st = allyStats(id); hero[id].hp = st.maxhp; hero[id].mp = st.maxmp; } }
+// ===== そうび(みかた みんな。 おなじ ものを ふたりで つかうには 2こ ひつよう) =====
+const ORDER = ['hero', 'hamo', 'melo'];
+export const equipOf = key => key === 'hero' ? hero.equip : hero[key] ? (hero[key].equip ||= { ぶき: null, よろい: null }) : { ぶき: null, よろい: null };
+// key の ひとが そうびしている もの(もっている かずが たりなければ なし)
+export function equippedBy(key, slot) {
+  const id = equipOf(key)[slot]; if (!id) return null;
+  const before = ORDER.slice(0, ORDER.indexOf(key)).filter(k => (k === 'hero' || hero[k]) && equipOf(k)[slot] === id).length;
+  return bag.filter(b => b === id).length > before ? byId('items', id) : null;
+}
+// その どうぐを そうびしている ひとの かず
+export const wearCount = id => ORDER.filter(k => (k === 'hero' || hero[k]) && Object.values(equipOf(k)).includes(id)).length;
+// そうびしている物(主人公)
+export function equipped(slot) { return equippedBy('hero', slot); }
 export const equipLook = () => ({ armor: equipped('よろい')?.look || '', weapon: equipped('ぶき')?.look || '' });
 // つぎの レベルまでの けいけんち(もう 上がらなければ null)
 export function toNext() { const n = rows().find(r => r.lv === hero.lv + 1); return n ? Math.max(0, n.exp - hero.exp) : null; }
