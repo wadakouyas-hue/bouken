@@ -21,6 +21,9 @@ import deep from '../maps/deep.js';
 import hill from '../maps/hill.js';
 import mid1 from '../maps/mid1.js';
 import mid2 from '../maps/mid2.js';
+import town2 from '../maps/town2.js';
+import cafe from '../maps/cafe.js';
+import shop2 from '../maps/shop2.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -44,7 +47,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2 };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2 };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length;
   m.objs = m.objs.map(o => {
@@ -66,7 +69,7 @@ function resetEnemies(m) {
 
 // ===== ひると よる =====
 // そとの よるは よるの きょく
-const bgmFor = () => cur.outside && isNight() ? 'night' : cur.bgm || 'village';
+const bgmFor = () => cur.quiet && !flags.has(cur.quiet) ? 'silence' : cur.outside && isNight() ? 'night' : cur.bgm || 'village';   // quiet: おとを ぬすまれた まち
 let wasNight = false;
 // よるに なった / あさに なった
 function nightChanged() {
@@ -650,9 +653,9 @@ function drawClock() {
 const darkCv = document.createElement('canvas'); darkCv.width = VW; darkCv.height = VH;
 const dg = darkCv.getContext('2d');
 function drawDark() {
-  const k = darkness(), a = (cur.outside ? 0.86 : cur.deco ? 0.6 : 0) * k;
+  const k = darkness(), a = (cur.outside ? 0.95 : cur.deco ? 0.7 : 0) * k;
   if (a <= 0.01) return;
-  const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: bag.includes('キャンプのかけら') ? 80 : 44 }];
+  const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: bag.includes('キャンプのかけら') ? 80 : 40 }];
   if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
   dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, VW, VH);
   dg.fillStyle = `rgba(6,8,32,${a})`; dg.fillRect(0, 0, VW, VH);
