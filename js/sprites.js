@@ -126,6 +126,24 @@ const ENEMY = {
     '.....kkkkkk.....',
     '......k..k......',
     '.....kk..kk.....'] },
+  // ガラガラ おおがらす(ボス。 ひかる ものが すき)
+  からす: { pal: { k: '#15101a', b: '#2e2a40', B: '#4a4560', w: '#ffffff', y: '#f2c230', f: '#e8a040' }, rows: [
+    '................',
+    '......kkkkk.....',
+    '....kkbbbbbk....',
+    '...kbbbbbbbbk...',
+    '...kbbbbbkwbbk..',
+    '..kbbbbbbkkbbk..',
+    '.kbbbbbbbbbyyyyk',
+    'kbbbbBBbbbbyyyk.',
+    'kbbbBBBBbbbkkk..',
+    'kbbbBBBBBbbk....',
+    '.kbbbBBBbbbk....',
+    '..kbbbbbbbk.....',
+    '...kbbbbbk......',
+    '....kfkfk.......',
+    '...kffkffk......',
+    '...kkk.kkk......'] },
   // よるの まもの(目は 4〜5れつめ と 10〜11れつめ、 6〜7ぎょうめ。 くらやみで 光る)
   ゾンビねこ: { pal: { k: '#2a1e1a', f: '#86b07e', F: '#5f8a5a', s: '#3a2a2a', e: '#d8ff5a', p: '#c87a8a' }, rows: [
     '................',
