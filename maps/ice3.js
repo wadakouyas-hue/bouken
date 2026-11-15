@@ -4,8 +4,8 @@ export default {
   bgm: 'snow',
   snow: true,
   rows: [
-    '222222222222222222',
-    '222224444444422222',
+    '22222222**22222222',
+    '22222444**44422222',
     '2222**********2222',
     '2222**********2222',
     '22**************22',
@@ -23,9 +23,9 @@ export default {
     { kind: 'boss', x: 8.5, y: 5, bw: 16, look: 'こおりのぬし', party: 'こおりのぬし', event: 'nushi', hide: 'nushi', name: 'こおりの ぬし', label: 'はなす',
       lines: ['ヒュオオオ……'.replace('ヒュオオオ', '{ヒュオオオ|ひゅおおお}'), 'だれだ…… この やくそうは わたさない……', 'みんな みんな、 こおって しまえ……!'] },
     { kind: 'deco', x: 8.5, y: 2.6, pic: 'herb', float: true, label: 'とる', event: 'herb', show: 'nushi', hide: 'herb' },
-    { kind: 'look', x: 8.5, y: 1.2, label: 'しらべる', show: 'herb', lines: ['こおった みずうみの むこうに、 たかい やまが みえる。', 'やまの うえに、 くろい くもが うずまいている……'] },
   ],
   exits: [
     { x: 8, y: 13, w: 2, to: 'ice2', at: [9.5, 1], dir: 'down' },
+    { x: 8, y: 0, w: 2, to: 'yama1', at: [2.5, 12], dir: 'up', need: 'genki', block: ['まずは こやに いる @の ところへ もどろう。'] },   // うえ → あらしの やま
   ],
 };

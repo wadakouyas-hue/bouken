@@ -49,6 +49,10 @@ import ice1 from '../maps/ice1.js';
 import ice2 from '../maps/ice2.js';
 import ice3 from '../maps/ice3.js';
 import yama from '../maps/yama.js';
+import yama1 from '../maps/yama1.js';
+import yama2 from '../maps/yama2.js';
+import yama3 from '../maps/yama3.js';
+import yama4 from '../maps/yama4.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -72,7 +76,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama, yama1, yama2, yama3, yama4 };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -235,7 +239,7 @@ function tileSolid(x, y) {
   const tx = Math.floor(x / T), ty = Math.floor(y / T);
   if (tx < 0 || ty < 0 || tx >= cur.w || ty >= cur.h) return true;
   const c = cur.rows[ty][tx];
-  if (c === 'L') return !bag.includes('かたぐるまのかけら');      // たかい だんさ: かたぐるまの かけらが あると のぼれる
+  if (c === 'L' || c === '9') return !bag.includes('かたぐるまのかけら');      // たかい だんさ: かたぐるまの かけらが あると のぼれる
   if (c === '%') return !bag.includes('ゆうきのかけら');          // くろい きり: ゆうきの かけらが あると とおれる
   return BLOCK.has(c) || !!cur.solid?.has(tx + ',' + ty);
 }
@@ -333,7 +337,7 @@ function encounter(o, opt = {}) {
       if (result === 'win') { if (opt.onWin) opt.onWin(); else { o.gone = true; o.spawnT = null; } }
       if (result === 'run') o.cool = 3;          // にげたあと 少しの間は ぶつからない
       if (result === 'lose') {                   // まけたら 村で 目が さめる。 もっている おかねは はんぶんに(リズが ねている あいだは やまの こや)
-        const home = party.away ? { map: 'yama', ...at(4.5, 5) } : START;
+        const home = party.away ? { map: 'yama', ...at(4.5, 5) } : cur.lose ? { map: cur.lose[0], ...at(cur.lose[1], cur.lose[2]) } : START;   // lose: まけたら もどる ばしょ(あらしの やま)
         cur = MAPS[home.map]; Object.values(MAPS).forEach(resetEnemies);
         Object.assign(player, { x: home.x, y: home.y, dir: 'up' }); trail.length = 0; ice.dx = ice.dy = 0;
         healFull();
@@ -341,7 +345,7 @@ function encounter(o, opt = {}) {
       }
       updateCamera(); save();
       playBgm(bgmFor());
-    }, result === 'lose' ? () => openDialog('', ['……はっ!', party.away ? 'こやで {目|め}が さめた。 なんとか もどって こられた みたい。' : 'おうちで {目|め}が さめた。 だれかが はこんで くれたみたい。', 'みんなの HPが ぜんぶ もどった!',
+    }, result === 'lose' ? () => openDialog('', ['……はっ!', party.away ? 'こやで {目|め}が さめた。 なんとか もどって こられた みたい。' : MAPS.yama3 === cur ? 'たきびの そばで {目|め}が さめた。' : 'おうちで {目|め}が さめた。 だれかが はこんで くれたみたい。', 'みんなの HPが ぜんぶ もどった!',
       ...(lost > 0 ? [`でも、 おかねを ${lost}{円|えん} おとして しまった…`] : [])]) : result === 'win' && opt.afterWin ? opt.afterWin : null));
   });
 }
@@ -538,6 +542,46 @@ async function campCheck() {
     flags.add('campInvite'); save();
     await say(HAMO, ['ねえ、 @。 こんど みんなで {キャンプ|きゃんぷ} しない?', '{メロ|めろ}さんも さそって、 まちの ひがしの はらっぱで!', 'いちど おうちに かえって、 {メロ|めろ}さんに はなして みようよ。']);
   }
+}
+// あらしの かげの たてに ひびを いれる おもいで(もっている かけら だけ)
+const MEMORY = [
+  ['かたぐるまのかけら', '@', 'ハモの かたぐるま、 たかくて とおくまで みえたよ'],
+  ['トランポリンのかけら', '@', 'こうえんで いっしょに ぴょんぴょん とんだね'],
+  ['えかきのかけら', 'メロ', 'みんなで かいた え、 だいじに とってあるのよ'],
+  ['こうさくのかけら', 'ハモ', 'いっしょに つくった ものは、 こわれても また なおせる'],
+  ['キャンプのかけら', '@', 'たきびの まえで、 3にん くっついて ねたね'],
+  ['がっそうのかけら', 'メロ', '3にんの おとが ひとつに なったわ'],
+  ['ゆうきのかけら', 'ハモ', '@は ひとりで はしを わたれたね'],
+  ['', 'メロ', '@は ねつでも、 よく がんばったね'],
+];
+const R_ = { ハモ: '{ハモ|はも}', メロ: '{メロ|めろ}' };
+function memories() {
+  return MEMORY.filter(([k]) => !k || bag.includes(k)).map(([k, who, line]) => ({
+    title: k ? `「${byId('items', k)?.name || k}」が ひかった!` : 'こやで すごした よるの おもいでが ひかった!',
+    line: `${who === '@' ? '@' : who.replace(/ハモ|メロ/, m => R_[m])}「${line.replace(/ハモ|メロ/g, m => R_[m])}」`,
+  }));
+}
+// あらしの かげを たおした あと: かげは リズの こわい・かなしい・おこった きもち だった
+async function kageEnd() {
+  await say('', ['くろい もやが すうっと ちいさく なっていく……', 'なかから、 ちいさな くろい かげが でてきた。']);
+  await say('ちいさな かげ', ['……ひとりで、 さびしかったの。', 'あらしで みんな とびちって、 ずっと ひとりぼっち だった。', 'だから、 @を ひとりじめ したくて……', 'ひどい こと いって、 ごめんなさい。']);
+  await say('@', ['……あなた、 わたしの きもち なんだね。', 'こわい きもちと、 かなしい きもちと、 おこった きもち。']);
+  await say('', ['とおくから、 3つの ちいさな ひかりが とんできた。', 'かみなりぐもと、 おおおばけと、 こおりの ぬしの ところから……', 'ひかりは ちいさな かげに そっと かさなった。']);
+  await say('@', ['こわい きもちも、 わたしの いちぶ。', 'もう ひとりじゃ ないよ。 かえって おいで。']);
+  await say('', ['@は ちいさな かげを ぎゅっと だきしめた。', 'かげは あたたかい ひかりに なって、 @の むねに かえって いった。']);
+  await say(HAMO, ['……@。']);
+  await say('', ['{ハモ|はも}と {メロ|めろ}が、 りょうがわから @を ぎゅっと した。']);
+  await say('{メロ|めろ}', ['こわい きもちも、 かなしい きもちも、', 'ぜんぶ だいじな きもち。 いつでも はなしてね。']);
+  await say(HAMO, ['@の こころは、 まえより もっと つよく なったね。', 'それに、 さっきの ことば…… ありがとう。 すごく うれしかった。']);
+  bag.push('ぬくもりのかけら'); save(); sfx('get');
+  await say('', ['@の むねの なかで、 なにかが ぽかぽか ひかった。', '♪「ぬくもり」の かけらを {手|て}に いれた!', 'こおった ばしょを とかせる ように なった!']);
+  await fade(() => { view.on = true; view.kind = 'rainbow'; view.t0 = tm; playBgm('hill'); });
+  await say('', ['くろい くもが きえて、 あめが やんだ。', 'あおい そらに、 おおきな にじが かかった。']);
+  await say('@', ['きれい……!']);
+  await say('{メロ|めろ}', ['みて、 とおくに まちの あかりが みえるわ。']);
+  await say(HAMO, ['あきの おまつりの じゅんびを してるのかな。']);
+  await fade(() => { view.on = false; view.kind = null; playBgm(bgmFor()); });
+  await say('', ['だい3しょう 「あらしの せかい」 おしまい。', 'つづく……']);
 }
 // かんびょう: やくそうを のませて、 ミニゲーム → つぎの あさ リズが げんきに なる
 async function nurse() {
@@ -873,6 +917,41 @@ const EVENTS = {
     await say('{メロ|めろ}', ['@、 すぐ もどって くるからね。']);
     await say('@', ['……うん。 まってる……']);
     await say('', ['ここからは しばらく、 {ハモ|はも}と {メロ|めろ}の ふたりで ぼうけんだ!']);
+  },
+  // ===== 第3章 4回目: あらしの かげ =====
+  async kageHint() {
+    await say('{メロ|めろ}', ['すごい ふぶき……!']);
+    await say(HAMO, ['くろい くもは、 この やまの てっぺんだ。', 'かぜが つよい ときは、 いわの かげで まとう。']);
+    await say('@', ['3にんなら、 だいじょうぶ!']);
+  },
+  // たきびの ひろば: ハモと メロが リズに はなす(むすめの こころの ささえに なる ばめん)
+  async takibi() {
+    await say('', ['ふぶきが すこし やんだ。', '3にんは たきびを かこんで ひとやすみ した。']);
+    healFull(); chipText = ''; save();
+    await say('@', ['……ねえ。 てっぺんの かげ、 こわい こと いうかな。']);
+    await say('{メロ|めろ}', ['そうね。 いじわるな ことを いうかも しれないわ。', 'でもね、 @。']);
+    await say(HAMO, ['@が わらうと、 ぼくも げんきに なるんだ。']);
+    await say('{メロ|めろ}', ['@は こまってる ひとに やさしいね。', 'そういう ところ、 だいすきよ。']);
+    await say(HAMO, ['どんな きもちの @でも、', 'ぼくたちは ずっと @の みかただよ。']);
+    await say('@', ['……うん!', 'わたしも、 ふたりの みかた!']);
+    sfx('heal'); await say('', ['からだが ぽかぽか あったかく なった。', 'みんなの HPと MPが ぜんぶ もどった!']);
+  },
+  async warmFire() {
+    healFull(); chipText = ''; save(); sfx('heal');
+    await say('', ['たきびに あたった。 ぽかぽか あったかい。', 'みんなの HPと MPが ぜんぶ もどった!']);
+  },
+  // あらしの かげ(ボス): くろい たて → おもいでで ひび → 「そんなの うそだ!」で こわれる
+  async kage(o) {
+    await say(o.name, ['……{ハモ|はも}、 といったな。', 'おまえ、 もようが ちがうじゃ ないか。', 'おまえは ほんとうの かぞくじゃ ない。']);
+    await say(HAMO, ['……!']);
+    await say(o.name, ['さあ、 @。 そんな やつは ほうっておいて、', 'わたしと ずっと いっしょに いよう……!']);
+    encounter({ party: [o.party] }, { boss: true, shield: true, memories: memories(), onWin: () => { flags.add('kage'); flags.add('ch3'); save(); }, afterWin: () => kageEnd() });
+  },
+  // にじを ながめる(おわった あと)
+  async rainbow() {
+    await fade(() => { view.on = true; view.kind = 'rainbow'; view.t0 = tm; });
+    await say('', ['あらしの あとの そらに、 おおきな にじが かかっている。']);
+    await fade(() => { view.on = false; view.kind = null; });
   },
   // ===== 第3章 3回目: かぜと かんびょう =====
   async snowHint() {
@@ -1281,7 +1360,7 @@ function update(dt) {
 // ===== 描画 =====
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
-  if (battle.on) drawBattle(ctx); else if (care.on) drawCare(ctx, tm); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : drawView()); else drawField();
+  if (battle.on) drawBattle(ctx); else if (care.on) drawCare(ctx, tm); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : view.kind === 'rainbow' ? drawRainbow() : drawView()); else drawField();
   if (!battle.on && !stageShow.on && !view.on && !care.on) { if (rainy()) drawRain(); if (cur.snow) drawSnow(); drawDark(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
@@ -1379,6 +1458,23 @@ function drawStorm() {
     g.fillStyle = i % 3 ? '#1e1a2a' : '#2c2638'; g.beginPath(); g.arc(x, y, 16 + (i % 3) * 5, 0, 7); g.fill(); }
   // かみなり
   if (k > 0.5 && (tm * 0.7) % 2 < 0.08) { g.fillStyle = 'rgba(255,255,230,.5)'; g.fillRect(0, 0, VW, VH); g.fillStyle = '#fff6a0'; let x = 240, y = 50; for (let i = 0; i < 6; i++) { const nx = x + (i % 2 ? 8 : -6); g.fillRect(Math.min(x, nx), y, Math.abs(nx - x) + 2, 2); g.fillRect(nx, y, 2, 12); x = nx; y += 12; } }
+  // うしろすがたの 3にん
+  g.drawImage(charSprite('hamo', 'up', 0), 120, 156, 24, 32); g.drawImage(heroSprite('up', 0, equipLook()), 148, 158, 24, 32); g.drawImage(charSprite('melo', 'up', 0), 176, 156, 24, 32);
+}
+// 第3章の おわり: あらしの あとの にじ と、 とおくの おまつりの あかり(第4章の よこく)
+function drawRainbow() {
+  const g = ctx, k = Math.min(1, (tm - view.t0) / 3);
+  for (let y = 0; y < 140; y++) { const f = y / 140; g.fillStyle = `rgb(${90 + f * 120 | 0},${160 + f * 60 | 0},${235 - f * 20 | 0})`; g.fillRect(0, y, VW, 1); }
+  const cols = ['#ff5a5a', '#ffa03a', '#ffe04a', '#6ad86a', '#5ab0ff', '#7a6ae8', '#c07ae8'];
+  g.globalAlpha = 0.75 * k;
+  cols.forEach((c, i) => { g.strokeStyle = c; g.lineWidth = 4; g.beginPath(); g.arc(170, 150, 120 - i * 4, Math.PI, 0); g.stroke(); });
+  g.globalAlpha = 1;
+  g.fillStyle = '#ffffff'; for (const [x, y, r] of [[40, 30, 10], [56, 28, 13], [72, 32, 9], [250, 46, 11], [266, 42, 14], [284, 48, 9]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  // とおくの まち と おまつりの あかり
+  g.fillStyle = '#6a8ab0'; g.beginPath(); g.ellipse(160, 150, 230, 30, 0, 0, 7); g.fill();
+  for (let i = 0; i < 9; i++) { g.fillStyle = '#4a5a80'; g.fillRect(200 + i * 10, 132 - (i % 3) * 4, 8, 14 + (i % 3) * 4); g.fillStyle = (Math.floor(tm * 3) + i) % 3 ? '#ffd23f' : '#ff8a3a'; g.fillRect(202 + i * 10, 136, 2, 2); }
+  for (let i = 0; i < 7; i++) { g.fillStyle = ['#ff5a5a', '#ffd23f', '#ff8ad0'][i % 3]; g.fillRect(198 + i * 13, 126 + Math.round(Math.sin(i) * 2), 3, 3); }   // ちょうちん
+  g.fillStyle = '#eef4fb'; g.fillRect(0, 150, VW, 50); g.fillStyle = '#d4e2f2'; for (let x = 0; x < VW; x += 9) g.fillRect(x, 150 + (x % 4), 5, 1);
   // うしろすがたの 3にん
   g.drawImage(charSprite('hamo', 'up', 0), 120, 156, 24, 32); g.drawImage(heroSprite('up', 0, equipLook()), 148, 158, 24, 32); g.drawImage(charSprite('melo', 'up', 0), 176, 156, 24, 32);
 }

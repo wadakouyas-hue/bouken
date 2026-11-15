@@ -1,0 +1,35 @@
+// あらしの やま2 やまの どうくつ(22×16マス)。 まっくら(キャンプの かけらで すこし あかるい)。 くねくね みち
+export default {
+  lose: ['yama3', 7.5, 8],
+  dark: true,
+  bgm: 'cave',
+  rows: [
+    'NNNNNNNNNNNNNNNNNNnnNN',
+    'NnnnnnnNNNNNNNNNNnnnnN',
+    'NnNNNNnNNnnnnnnNNnNNnN',
+    'NnNnnnnNNnNNNNnNNnNNnN',
+    'NnNnNNNNNnNnnnnnnnNNnN',
+    'NnnnnnnnnnNnNNNNNNNNnN',
+    'NNNNNnNNNNNnNnnnnnnnnN',
+    'NnnnnnNnnnnnNnNNNNNNNN',
+    'NnNNNNNnNNNNNnnnnnnnnN',
+    'NnNnnnnnNnnnNNNNNNNNnN',
+    'NnNnNNNNNnNnnnnnnnNNnN',
+    'NnnnNnnnnnNNNNNNNnNNnN',
+    'NNNNNnNNNNnnnnnnnnNNnN',
+    'NnnnnnnnnNnNNNNNNNNNnN',
+    'NnNNnNNNnnnnnnnnnnnnnN',
+    'NnnNNNNNNNNNNNNNNNNNNN',
+  ],
+  objs: [
+    { kind: 'chest', x: 3, y: 3, label: 'あける', give: 'ほしのけん', lines: ['たからばこを あけた!', '♪ほしの けんを {手|て}に いれた!', '{メニュー|めにゅー}の 「そうび」で もてるよ。'], after: ['もう からっぽだ。'] },
+    { kind: 'chest', x: 4, y: 14, label: 'あける', give: 'げんきのみず', lines: ['たからばこを あけた!', '♪げんきの みずを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
+    { kind: 'enemy', x: 9, y: 5, party: 'くろもや くろもや' },
+    { kind: 'enemy', x: 15, y: 10, party: 'くろもや ふぶきどり ゆきだるま' },
+    { kind: 'enemy', x: 16, y: 6, party: 'くろもや ペンギン' },
+  ],
+  exits: [
+    { x: 1, y: 15, w: 2, to: 'yama1', at: [28.5, 1], dir: 'down' },
+    { x: 18, y: 0, w: 2, to: 'yama3', at: [7.5, 10], dir: 'up' },
+  ],
+};

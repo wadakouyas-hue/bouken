@@ -28,11 +28,11 @@ export function startBattle(ids, opt = {}) {
   const enemies = defs.map((d, i) => {
     let name = d.name;
     if (count[d.id] > 1) { seen[d.id] = (seen[d.id] || 0) + 1; name += ' ' + 'ABCDE'[seen[d.id] - 1]; }
-    return { d, name, cond: {}, hp: d.hp, mp: d.mp, scary: !!opt.scary, x: 105 + (i - (n - 1) / 2) * 66, y: opt.boss ? 132 : 118, size: opt.boss ? (opt.scary ? 68 : 56) : 32, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
+    return { d, name, cond: {}, hp: d.hp, mp: d.mp, scary: !!opt.scary, shield: !!opt.shield, x: 105 + (i - (n - 1) / 2) * 66, y: opt.boss ? 132 : 118, size: opt.boss ? (opt.scary ? 68 : 56) : 32, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
   });
   const ms = members(), spots = SPOTS[Math.min(ms.length, 3) - 1];
   const party = ms.map((m, i) => ({ ...m, cond: {}, x: spots[i][0], y: spots[i][1], flash: 0, lunge: 0, guard: false }));   // cond: ステータス いじょう
-  B = { enemies, party, boss: !!opt.boss, waits: [], shake: 0, fx: [], flashScreen: 0, btns: [], t: 0, turnOf: null, bg: opt.bg || null };
+  B = { enemies, party, boss: !!opt.boss, waits: [], shake: 0, fx: [], flashScreen: 0, btns: [], t: 0, turnOf: null, bg: opt.bg || null, memories: opt.memories ? [...opt.memories] : null, crack: 0, lie: false };   // memories: たてに ひびを いれる おもいで(あらしの かげ)
   battle.on = true;
   $('battle').style.display = 'block';
   setButtons([]); showMsg('');
@@ -105,7 +105,8 @@ function chooseCommand(m, first) {
       { html: 'じゅもん', fn: () => skills('じゅもん') },
       { html: 'わざ', fn: () => skills('わざ') },
       { html: 'どうぐ', fn: items },
-      ...(m.key === 'hero' && bag.includes('ゆうきのかけら') && B.enemies.some(e => e.alive && e.scary) ? [{ html: 'ゆうき', fn: () => done({ type: 'brave' }) }] : [{ html: 'にげる', off: !first || B.boss, fn: () => { if (B.boss) note('ボスからは にげられない!'.replace('ボス', '{ボス|ぼす}')); else if (!first) note('にげるは さいしょの ひとが えらぶよ'); else done({ type: 'run' }); } }]),
+      ...((m.key === 'hero' || !up().some(x => x.key === 'hero')) && B.lie && B.enemies.some(e => e.alive && e.shield) ? [{ html: 'そんなの うそだ!', fn: () => done({ type: 'truth' }) }] :
+        m.key === 'hero' && bag.includes('ゆうきのかけら') && B.enemies.some(e => e.alive && e.scary) ? [{ html: 'ゆうき', fn: () => done({ type: 'brave' }) }] : [{ html: 'にげる', off: !first || B.boss, fn: () => { if (B.boss) note('ボスからは にげられない!'.replace('ボス', '{ボス|ぼす}')); else if (!first) note('にげるは さいしょの ひとが えらぶよ'); else done({ type: 'run' }); } }]),
     ], canGassou ? 'six' : false);
     const skills = kind => {
       const list = st(m).skills.map(id => byId('skills', id)).filter(s => s && s.type === kind && s.effect !== 'ワープ');
@@ -154,7 +155,21 @@ async function canAct(x) {
 }
 async function wake(x) { if (x.cond.ねむり) { delete x.cond.ねむり; updateStat(); await say(`${nameOf(x)}は めを さました!`, 0.9); } }
 // ターンの おわり: どくの ダメージ、 じかんで なおる もの
+// おもいでが ひかって たてに ひびが はいる(1ターンに 2つ)
+async function memoryRound() {
+  if (!B.memories || !B.enemies.some(e => e.alive && e.shield) || B.lie) return;
+  for (let i = 0; i < 2 && B.memories.length; i++) {
+    const m = B.memories.shift();
+    sfx('magic'); B.flashScreen = 0.15;
+    await say(m.title, 1.1);
+    await say(m.line, 1.2 + m.line.length * 0.06);
+    B.crack++; sfx('hit'); B.shake = 0.2;
+    await say('くろい たてに ひびが はいった!', 0.9);
+  }
+  if (!B.memories.length) { B.lie = true; await say('たてが ぐらぐら ゆれている!', 1.0); await say('@の こころに、 いいたい ことばが うかんだ……', 1.5); }
+}
 async function endRound() {
+  await memoryRound();
   for (const x of [...up(), ...alive()]) {
     if (x.cond.どく) {
       const isM = !!x.s, max = isM ? x.st.maxhp : x.d.hp, n = Math.max(1, Math.floor(max / 10));
@@ -226,6 +241,12 @@ async function lunge(who) { who.lunge = 0.3; await wait(0.3); }
 
 async function hitEnemy(t, r) {
   if (r.miss) { sfx('miss'); await say(`${t.name}は ひらりと よけた!`); return; }
+  if (t.shield) {                            // くろい たて: こうげきが とどかない
+    sfx('miss'); t.flash = 0.2; popup(t.x, t.y - t.size - 8, 0, '');
+    await say('くろい たてに はじかれた!', 0.9);
+    if (!B.shieldTold) { B.shieldTold = true; await say('こうげきが ぜんぜん とどかない……!', 1.2); }
+    return;
+  }
   if (r.crit) await say('すごい いちげき!', 0.7);
   if (t.scary) r = { ...r, dmg: Math.max(1, Math.round(r.dmg * 0.25)), mult: 1 };   // おおきくて こわい あいだは ききにくい
   sfx('hit'); t.flash = 0.4; t.hp -= r.dmg; popup(t.x, t.y - t.size - 8, r.dmg, r.mult > 1 ? 'weak' : '');
@@ -250,6 +271,16 @@ async function memberAct(m, cmd) {
   const s0 = st(m);
   if (!(await canAct(m))) return;
   if (cmd.type === 'gassou') { await gassou(); return; }
+  if (cmd.type === 'truth') {                // そんなの うそだ! → たてが こわれる
+    await say('@「そんなの うそだ!」', 1.4);
+    await say('@「ハモも メロも、 わたしの かぞくだよ!」'.replace('ハモ', '{ハモ|はも}').replace('メロ', '{メロ|めろ}'), 1.8);
+    await say('{ハモ|はも}と {メロ|めろ}「うそだ!」', 1.3);
+    for (const x of B.party) x.lunge = 0.3;
+    sfx('chord'); await effect('star', B.enemies.filter(e => e.alive && e.shield));
+    for (const e of B.enemies) e.shield = false;
+    B.shake = 0.5; sfx('thunder'); await say('くろい たてが こなごなに くだけた!', 1.4);
+    return;
+  }
   if (cmd.type === 'brave') {                // ゆうきを だす → こわい てきが ちいさく なる
     await say(`${nameOf(m)}は なみだを こらえて、 まえに でた!`, 1.2);
     await say('「こ、 こわく なんか ない!」', 1.2);
@@ -444,6 +475,14 @@ export function drawBattle(ctx) {
     ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(e.x + lx + ox, e.y + oy, z * 0.45, 4, 0, 0, 7); ctx.fill();
     ctx.drawImage(enemySprite(e.d.look), Math.round(e.x - z / 2 + lx + ox), Math.round(e.y - z + by + oy), z, z);
     ctx.globalAlpha = 1;
+    if (e.shield && e.alive) {                 // くろい たて(ひびが はいっていく)
+      const cx = e.x + ox, cy = e.y - z / 2 + oy, r = z * 0.62 + Math.sin(B.t * 2) * 1.5;
+      ctx.fillStyle = 'rgba(90,40,120,.28)'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(200,140,255,.7)'; for (let a = 0; a < 40; a++) { const an = a / 40 * 6.283 + B.t * 0.4; ctx.fillRect(Math.round(cx + Math.cos(an) * r), Math.round(cy + Math.sin(an) * r), 2, 2); }
+      ctx.fillStyle = '#ffffff';
+      for (let k = 0; k < B.crack; k++) { const an = k * 2.4 + 0.5; let x = cx + Math.cos(an) * r, y = cy + Math.sin(an) * r;
+        for (let j = 0; j < 6; j++) { const nx = x - Math.cos(an + (j % 2 ? 0.6 : -0.6)) * 4, ny = y - Math.sin(an + (j % 2 ? 0.6 : -0.6)) * 4; ctx.fillRect(Math.round(nx), Math.round(ny), 1, 1); ctx.fillRect(Math.round((x + nx) / 2), Math.round((y + ny) / 2), 1, 1); x = nx; y = ny; } }
+    }
   }
   // みかた
   for (const m of B.party) {
