@@ -53,7 +53,9 @@ export default {
     { kind: 'enemy', x: 25, y: 8, party: 'きのこ きのこ' },
     { kind: 'enemy', x: 26, y: 12, party: 'どんぐり はっぱ' },
   ],
+  swaps: [{ flag: 'prep1', cells: [[15, 19, 'g']] }],   // 第4章: もみじの もりへの みち
   exits: [
+    { x: 15, y: 19, to: 'momiji1', at: [11.5, 14], dir: 'up', show: 'prep1' },
     { x: 0, y: 9, h: 2, to: 'village', at: [28, 9.5], dir: 'left' },  // 左はしの道 → 村
     { x: 24, y: 0, w: 2, to: 'mid1', at: [12.5, 16], dir: 'up', need: 'hamo',   // うえ → くらい もりの みち(ハモが なかまに なってから)
       block: ['この さきは {森|もり}の おく。 くらくて こわそう……', 'ひとりで いくのは やめておこう。'] },

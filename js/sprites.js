@@ -622,6 +622,114 @@ const ENEMY = {
     'kMk.kMMmmMMk.kMk',
     '.k...kMMMMk...k.',
     '......kkkk......'] },
+  // とげとげ くりいが(もみじの もり)
+  くりいが: { eye: [5, 10, 8], glow: '#ffd23f', pal: { k: '#2a1a0a', g: '#8a9a3a', G: '#5a6a2a', b: '#7a4a24', B: '#a86a34', e: '#1a1a1a', w: '#ffffff' }, rows: [
+    '....k..k..k.....',
+    '.k..kg.kg.kg..k.',
+    '..kgggggggggkk..',
+    'kggGgggGgggGggk.',
+    '.kggggggggggggk.',
+    'kgggggggggggggk.',
+    '.kgbbBBbbBBbgk..',
+    'kgbBBbbbbbbBbgk.',
+    '.kbbweebbweebbk.',
+    'kgbbeebbbbeebgk.',
+    '.kbbbbbkkbbbbk..',
+    'kgbbbbbbbbbbbgk.',
+    '.kkbbbbbbbbbkk..',
+    '...kkkkkkkkk....',
+    '................',
+    '................'] },
+  // ひらひら もみじっこ
+  もみじっこ: { eye: [3, 10, 7], glow: '#ffd23f', pal: { k: '#5a1a0a', r: '#e04838', R: '#a8341c', o: '#f08a3a', e: '#1a1a1a', b: '#7a4a24' }, rows: [
+    '.......k........',
+    '......krk.......',
+    '..k...krk...k...',
+    '..krk.krk.krk...',
+    '...krkrrrkrk....',
+    'kk..krrorrk..kk.',
+    'krrkrrrrrrrkrrk.',
+    '.kreerrrrreerk..',
+    '..krrrrkrrrrk...',
+    '.krrrrrrrrrrrk..',
+    'krRRk.krk.kRRk..',
+    'kk...krrrk...kk.',
+    '.....kRRRk......',
+    '.......b........',
+    '.......b........',
+    '................'] },
+  // ぶらぶら みのむし
+  みのむし: { eye: [6, 9, 7], glow: '#7ad87a', pal: { k: '#2a1a0a', m: '#8a6a3a', M: '#6a4a24', l: '#c88a3a', g: '#e8d8a0', e: '#1a1a1a' }, rows: [
+    '.......k........',
+    '.......k........',
+    '.......k........',
+    '......kkk.......',
+    '.....kmlmk......',
+    '....kmMlmMk.....',
+    '....kgggggk.....',
+    '....kgeggek.....',
+    '....kgggggk.....',
+    '...kmlmMmlmk....',
+    '...kMmlmlmMk....',
+    '...kmlMmMlmk....',
+    '...kMmlmlmMk....',
+    '....kmMlMmk.....',
+    '.....kkkkk......',
+    '................'] },
+  // きらきら ほしむし(ほしの どうくつ)
+  ほしむし: { eye: [4, 9, 5], glow: '#fff3a0', pal: { k: '#1a1a3a', b: '#3a5ad8', B: '#2a3a98', y: '#fff3a0', Y: '#ffd23f', w: '#e6f6ff', e: '#ffffff' }, rows: [
+    '....k......k....',
+    '.....k....k.....',
+    '..ww.kkkkkk.ww..',
+    '.wwwkbbbbbbkwww.',
+    '.wwkbbbbbbbbkww.',
+    '..kbbeebbeebbk..',
+    '..kbbeebbeebbk..',
+    '..kBbbbbbbbbBk..',
+    '...kBbbbbbbBk...',
+    '...kyyyyyyyyk...',
+    '..kyYyyyyyyYyk..',
+    '..kyyyyYYyyyyk..',
+    '...kyyyyyyyyk...',
+    '....kkyyyykk....',
+    '......kkkk......',
+    '................'] },
+  // いたずら リス(ボス)
+  いたずらリス: { eye: [3, 7, 4], glow: '#ffd23f', pal: { k: '#2a1a0a', r: '#c86a2a', R: '#8a4418', w: '#f8e8d0', e: '#1a1a1a', p: '#f08aa0', t: '#e8803a', l: '#e04838' }, rows: [
+    '..kk..kk.....kk.',
+    '.krrkkrrk...kttk',
+    '.krrrrrrrk.ktttk',
+    'krrrrrrrrrkttttk',
+    'krreerreerktttk.',
+    'krreerreerkttk..',
+    'krrwwpwwrrkttk..',
+    '.krwwwwwrkttk...',
+    '..krrrrrkttk....',
+    '.krwwwwrrktk....',
+    'krwwlwwwrrk.....',
+    'krwlllwwrRk.....',
+    'krwwlwwwrRk.....',
+    '.krwwwwrRk......',
+    '.kRk..kRk.......',
+    '.kkk..kkk.......'] },
+  // ねぼすけ モグラ(ボス)
+  ねぼすけモグラ: { eye: [4, 10, 4], glow: '#ffd23f', pal: { k: '#1a1414', m: '#5a4a5a', M: '#3a2e3a', p: '#f08aa0', w: '#ffffff', e: '#1a1a1a', y: '#fff3a0', c: '#e8a0a0' }, rows: [
+    '....kkkkkkkk....',
+    '..kkmmmmmmmmkk..',
+    '.kmmmmmmmmmmmmk.',
+    'kmmmmmmmmmmmmmmk',
+    'kmmmeemmmmeemmmk',
+    'kmmmmmmmmmmmmmmk',
+    'kmmmmmkppkmmmmmk',
+    'kmmmmmwppwmmmmmk',
+    'kMmmmmmmmmmmmmMk',
+    'kccMmmmmmmmmMcck',
+    'kcccMmyyyymMccck',
+    '.kccMyyyyyyMcck.',
+    '.kMMMyyyyyyMMMk.',
+    '..kMMMyyyyMMMk..',
+    '...kkkkkkkkkk...',
+    '................'] },
   // こおばけ・おおおばけ(ボス)
   おばけ: { eye: [4, 10, 4], glow: '#ffffff', pal: { k: '#2a2a3a', w: '#f4f4ff', g: '#c8c8e0', e: '#1a1a2a', p: '#ff9ab0', t: '#ff5a7a' }, rows: [
     '.....kkkkkk.....',
@@ -654,6 +762,9 @@ DECO.yatai = paintCv(32, 28, p => { p(0, 0, 32, 3, '#e04848'); for (let x = 0; x
   p(0, 16, 32, 10, '#b8783e'); p(0, 16, 32, 2, '#d8985e'); for (let x = 4; x < 28; x += 6) { p(x, 12, 4, 4, ['#ffd23f', '#ff8a6a', '#7ad87a', '#ff5a5a'][x % 4]); } });
 DECO.flowers = paintCv(16, 14, p => { p(2, 8, 12, 6, '#a8744a'); p(2, 8, 12, 1, '#d8a878'); for (const [x, y, c] of [[3, 3, '#ff5a6e'], [7, 1, '#ffd23f'], [11, 3, '#ff8ad0'], [5, 5, '#ffffff'], [9, 5, '#ff8a3a']]) { p(x, y, 3, 3, c); p(x + 1, y + 1, 1, 1, '#ffd23f'); } p(4, 6, 1, 2, '#3a8a3e'); p(10, 6, 1, 2, '#3a8a3e'); });
 SPR.letter = paintCv(12, 16, p => { p(1, 6, 10, 7, '#ffffff'); p(1, 6, 10, 1, '#d8c8b0'); for (let i = 0; i < 5; i++) p(1 + i, 7 + i, 1, 1, '#c8b8a0'), p(10 - i, 7 + i, 1, 1, '#c8b8a0'); p(5, 9, 2, 2, '#ff5a7a'); });
+DECO.leafpile = paintCv(18, 14, p => { for (const [x, y, w, c] of [[2, 8, 14, '#a8341c'], [1, 10, 16, '#e04838'], [0, 12, 18, '#c84a2a'], [4, 6, 10, '#e8803a'], [6, 4, 6, '#f2c230']]) p(x, y, w, 2, c); for (let i = 0; i < 9; i++) p((i * 7) % 16 + 1, 5 + (i * 3) % 8, 2, 1, i % 2 ? '#ffd23f' : '#ff8a3a'); });
+DECO.starOff = paintCv(12, 14, p => { p(4, 2, 4, 10, '#4a4a6a'); p(2, 5, 8, 5, '#4a4a6a'); p(5, 3, 2, 2, '#6a6a8a'); p(2, 12, 8, 2, '#2a2a3a'); });
+DECO.starOn = paintCv(12, 14, p => { p(4, 2, 4, 10, '#fff3a0'); p(2, 5, 8, 5, '#ffd23f'); p(5, 3, 2, 2, '#ffffff'); p(0, 7, 12, 1, '#fff3a0'); p(6, 0, 1, 14, '#fff3a0'); p(2, 12, 8, 2, '#2a2a3a'); });
 // 第3章の おてつだい: こおばけ・おばけび・ゆきうさぎの こ・できた ゆきだるま・あかい かさ
 DECO.kobake = enemySprite('おばけ'); DECO.wisp = enemySprite('おばけび'); DECO.usako = enemySprite('ゆきうさぎ'); DECO.snowman = enemySprite('ゆきだるま');
 SPR.kasa = paintCv(12, 16, p => { for (let y = 0; y < 5; y++) p(5 - y, 3 + y, 2 + y * 2, 1, y % 2 ? '#e04848' : '#ff5a5a'); p(0, 8, 12, 1, '#a8283a'); p(5, 1, 2, 2, '#ffd23f');

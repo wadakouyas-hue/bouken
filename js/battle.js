@@ -97,7 +97,7 @@ function chooseCommand(m, first) {
     // かいふくする あいて(みかたが ひとりなら じぶん)
     const pickAlly = (then, back, ask) => { if (B.party.length === 1) then(B.party[0]); else targetButtons(B.party, then, back, ask || 'だれを かいふく する? タップしてね'); };
     // がっそう: 3にん そろって うごける とき、 さいしょの ひとが えらべる(1かいの たたかいで 1かい。 3にんの MPを GASSOU_MP ずつ つかう)
-    const canGassou = first && B.party.length === 3 && bag.includes('がっそうのかけら') && !B.gassou && up().length === 3 && B.party.every(x => !x.cond.ねむり && !x.cond.わらい);
+    const canGassou = first && B.party.length === 3 && B.party.some(x => x.key === 'hamo') && B.party.some(x => x.key === 'melo') && bag.includes('がっそうのかけら') && !B.gassou && up().length === 3 && B.party.every(x => !x.cond.ねむり && !x.cond.わらい);
     const gassouMp = canGassou && B.party.every(x => x.s.mp >= GASSOU_MP);
     const main = () => setButtons([
       ...(canGassou ? [{ html: `がっそう<small>MP${GASSOU_MP}ずつ</small>`, off: !gassouMp, fn: () => gassouMp ? done({ type: 'gassou' }) : note(`MPが ${GASSOU_MP}より すくない ひとが いるよ`) }] : []),

@@ -27,7 +27,9 @@ export default {
     { kind: 'look', x: 9.5, y: 1, label: 'ながめる', event: 'view', hide: 'ch1' },
     { kind: 'sign', x: 12, y: 1, name: 'かんばん', label: 'よむ', lines: ['みはらしの おか', '↑ {パルル|ぱるる}{町|まち}'] },
   ],
+  swaps: [{ flag: 'prep1', cells: [[0, 7, '.'], [1, 7, '.']] }],   // 第4章: ほしの どうくつへの みち
   exits: [
+    { x: 0, y: 7, to: 'hoshi1', at: [10.5, 14], dir: 'up', show: 'prep1' },
     { x: 10, y: 15, w: 2, to: 'deep', at: [11.5, 1], dir: 'down' },     // した → 森の おく
     { x: 9, y: 0, w: 2, to: 'town2', at: [15.5, 20], dir: 'up', need: 'ch1', block: ['とおくを ながめて みよう。'] },   // うえ → パルル町(第2章)
   ],

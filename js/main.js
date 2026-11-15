@@ -59,6 +59,12 @@ import kori2 from '../maps/kori2.js';
 import kori3 from '../maps/kori3.js';
 import korioku from '../maps/korioku.js';
 import mogu from '../maps/mogu.js';
+import momiji1 from '../maps/momiji1.js';
+import momiji2 from '../maps/momiji2.js';
+import momiji3 from '../maps/momiji3.js';
+import hoshi1 from '../maps/hoshi1.js';
+import hoshi2 from '../maps/hoshi2.js';
+import hoshi3 from '../maps/hoshi3.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -82,7 +88,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama, yama1, yama2, yama3, yama4, kori1, kori2, kori3, korioku, mogu };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama, yama1, yama2, yama3, yama4, kori1, kori2, kori3, korioku, mogu, momiji1, momiji2, momiji3, hoshi1, hoshi2, hoshi3 };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -236,7 +242,7 @@ const player = { x: START.x, y: START.y, dir: 'down', anim: 0, moving: false };
 const flags = new Set();
 const has = f => !f || (Array.isArray(f) ? f.every(x => flags.has(x)) : flags.has(f));
 // リズが かぜで ねている あいだは ハモと メロの ふたりで ぼうけん(第3章)
-const syncParty = () => { party.away = flags.has('sick') && !flags.has('genki'); party.solo = flags.has('ch4start') && !flags.has('ch4together'); };   // solo: 第4章 ないしょの じゅんび(ハモと メロは やぐらの てつだい)
+const syncParty = () => { party.away = flags.has('sick') && !flags.has('genki'); party.solo = flags.has('ch4start') && !flags.has('ch4together'); party.guests = !!cur.guest && flags.has('guestJoin'); };   // solo: 第4章 ないしょの じゅんび(ハモと メロは やぐらの てつだい)
 const shown = o => (!o.show || has(o.show)) && (!o.hide || !flags.has(o.hide)) && (o.step == null || o.step === maze.step);   // step: まよいの もりの だんかい
 const live = () => cur.objs.filter(o => !o.gone && shown(o));
 
@@ -994,10 +1000,22 @@ const EVENTS = {
     if (left.length) { await say(o.name, ['のこりの じゅんびは……', ...left.map(t => '・' + t)]); return; }
     if (!flags.has('prep1')) {
       flags.add('prep1'); save(); sfx('get');
-      await say(o.name, ['じゅんび、 ばっちり! ありがとう、 @!', 'あとは おみせの かざりつけ なんだけど……', 'もみじの あかい はっぱと、 きらきら ひかる いしで かざりたいの。', 'どこで とれるか、 しらべて おくね!']);
+      await say(o.name, ['じゅんび、 ばっちり! ありがとう、 @!', 'あとは おみせの かざりつけ なんだけど……', 'もみじの あかい はっぱと、 きらきら ひかる いしで かざりたいの。']);
+      await say(o.name, ['あかい はっぱは、 {森|もり}の したの みちの さきの 「もみじの もり」。', 'ひかる いしは、 みはらしの おかの ひだりの 「ほしの どうくつ」に あるんだって。']);
+      await say(o.name, ['わたしと {パシャ|ぱしゃ}も いっしょに いくね!', 'おみせを かたづけたら すぐ おいかけるから、 さきに いってて!']);
+      applySwaps(MAPS.forest); applySwaps(MAPS.hill);
       return;
     }
-    await say(o.name, ['かざりの はっぱと いし、 どこで とれるか しらべてるからね!']);
+    const have = ['あかいはっぱ', 'ほしのいし'].filter(id => bag.includes(id));
+    if (have.length < 2) { await say(o.name, have.length ? ['あと ひとつ! がんばって!'] : ['もみじの もりと ほしの どうくつ、 どっちから いっても いいよ!']); return; }
+    if (!flags.has('decoGot')) {
+      flags.add('decoGot'); save(); sfx('get');
+      await say('', ['@は まっかな はっぱと ほしの いしを {モグ|もぐ}に わたした。']);
+      await say(o.name, ['わあ……! なんて きれいなの!', 'これで すてきな かざりつけが できるわ!', 'おまつりの ひは、 もうすぐ。 ドキドキ するね!'.replace('ドキドキ', '{ドキドキ|どきどき}')]);
+      await say('{パシャ|ぱしゃ}', ['ぼうけん、 たのしかったね! しゃしんも いっぱい とったよ!']);
+      return;
+    }
+    await say(o.name, ['おまつりの ひが たのしみ!', 'かざりつけ、 いっしょに しようね!']);
   },
   async pasha(o) {
     if (!flags.has('mogu')) { await say(o.name, ['ぼくは {パシャ|ぱしゃ}。 しゃしんを とるのが だいすきなんだ。', 'おまつりの しゃしんを とりに きたよ。']); return; }
@@ -1025,6 +1043,60 @@ const EVENTS = {
     if (fam) await say(o.name, ['えっ、 {メロ|めろ}が けっこんしき!?', '……まあ、 まあ! なんて うれしいの!', 'かぞく みんなで かならず いくわ!']);
     else await say(o.name, ['{ハモ|はも}が けっこんしき!?', 'あの たびばかりの {ハモ|はも}が…… そうか、 そうか。', 'ふるさとの みんなで おいわいに いくよ!']);
     await inviteLeft();
+  },
+  // ===== 第4章 2回目: よりみち ダンジョン(もみじの もり・ほしの どうくつ) =====
+  async guestJoin() {
+    syncParty(); chipText = '';
+    await say('{パシャ|ぱしゃ}', ['おーい、 @! まって〜!']);
+    await say('{モグ|もぐ}', ['おまたせ! おべんとうも もってきたよ!']);
+    sfx('get'); await say('', ['♪{パシャ|ぱしゃ}と {モグ|もぐ}が いっしょに きて くれる!', 'ダンジョンの なかでは 3にんで たたかえるよ。'.replace('ダンジョン', '{ダンジョン|だんじょん}')]);
+  },
+  async leafPile(o) {
+    flags.add(o.flag); save(); sfx('wind');
+    await say('', ['おちばを ばさっと はらった!']);
+    if (o.give) { bag.push(o.give); save(); sfx('get'); await say('', [`♪${byId('items', o.give)?.name || o.give}が でてきた!`]); }
+    else if (o.gold) { hero.gold += o.gold; chipText = ''; save(); sfx('get'); await say('', [`♪${o.gold}{円|えん} でてきた!`]); }
+    else if (o.party) { await say('', ['おちばの なかから まものが とびだした!']); encounter({ party: o.party.split(' ') }, { onWin: () => {} }); }
+    else if (o.path) await say('', ['みちが でてきた!']);
+  },
+  async starTouch(o) {
+    flags.add(o.flag); save(); sfx('magic');
+    const st = cur.stars, lit = st ? st.need.filter(f => flags.has(f)).length : 0;
+    await say('', ['いしに さわると、 ぽうっと ひかりだした!']);
+    if (st && lit === st.need.length && !flags.has(st.flag)) {
+      sfx('chord');
+      await fade(() => { flags.add(st.flag); applySwaps(cur); save(); });
+      await say('', ['ひかりが せんで つながって、 ほしの かたちに なった!', 'たにの うえに、 ほしの はしが かかった!']);
+    } else if (st) await say('', [`(のこり ${st.need.length - lit}こ)`]);
+  },
+  // いたずら リス(ボス)
+  risu(o) {
+    encounter({ party: [o.party] }, { boss: true, onWin: () => { flags.add('risu'); save(); },
+      afterWin: async () => {
+        await say(o.name, ['うう…… まいった……', 'あかい はっぱ、 きれいだから…… ひとりじめ したかったの。']);
+        await say('{モグ|もぐ}', ['わかるよ。 きれいな ものって、 だいじに したく なるよね。', 'でもね、 みんなで みると、 もっと きれいに みえるんだよ。']);
+        await say(o.name, ['……みんなで?', 'じゃあ、 すこし わけて あげる。 そのかわり、 ぼくも おまつりに いっても いい?']);
+        await say('@', ['もちろん!']);
+      } });
+  },
+  async leafGot() {
+    flags.add('leafGot'); bag.push('あかいはっぱ'); save(); sfx('get');
+    await say('', ['♪まっかな もみじの はっぱを {手|て}に いれた!']);
+    await say('{パシャ|ぱしゃ}', ['パシャ! いい いろ! かざったら きっと きれいだね。'.replace('パシャ!', '{パシャ|ぱしゃ}!')]);
+  },
+  // ねぼすけ モグラ(ボス)
+  mogura(o) {
+    encounter({ party: [o.party] }, { boss: true, onWin: () => { flags.add('mogura'); save(); },
+      afterWin: async () => {
+        await say(o.name, ['……ふあぁ。 あれ? ぼく、 なにを してたんだっけ……', 'ねぼけて あばれちゃった。 ごめんね。']);
+        await say('@', ['ほしの いし、 すこし わけて もらえる?', 'けっこんしきの あかりに したいの。']);
+        await say(o.name, ['けっこんしき! それは すてきだね。', 'いちばん きらきらの を もっていって。', 'ぼくは また ひと ねむり…… ぐう。']);
+      } });
+  },
+  async starGot() {
+    flags.add('starGot'); bag.push('ほしのいし'); save(); sfx('get');
+    await say('', ['♪きらきら ひかる ほしの いしを {手|て}に いれた!']);
+    await say('{モグ|もぐ}', ['きれい……! これで けっこんしきの よるも あかるいね!']);
   },
   // ===== 第3章の おてつだい =====
   // こやの ねこの あかい かさ
@@ -1529,7 +1601,7 @@ function update(dt) {
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
   if (battle.on) drawBattle(ctx); else if (care.on) drawCare(ctx, tm); else if (fest.on) drawFest(ctx, tm); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : view.kind === 'rainbow' ? drawRainbow() : drawView()); else drawField();
-  if (!battle.on && !stageShow.on && !view.on && !care.on && !fest.on) { if (rainy()) drawRain(); if (cur.snow) drawSnow(); drawDark(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
+  if (!battle.on && !stageShow.on && !view.on && !care.on && !fest.on) { if (rainy()) drawRain(); if (cur.snow) drawSnow(); drawDark(); if (cur.stars) drawStars(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
 }
@@ -1589,6 +1661,12 @@ function drawDark() {
     ctx.fillStyle = eyeColor(look);
     ctx.fillRect(sx + ex1, sy + ey + hop, 2, 2); ctx.fillRect(sx + ex2, sy + ey + hop, 2, 2);
   }
+}
+// ほしの どうくつ: ひかった いしを せんで つなぐ(せいざ。 くらやみの うえに かく)
+function drawStars() {
+  const lit = live().filter(o => o.star); ctx.fillStyle = 'rgba(255,243,160,.6)';
+  for (let i = 1; i < lit.length; i++) { const a = lit[i - 1], b = lit[i], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 3);
+    for (let k = 0; k <= n; k++) ctx.fillRect(Math.round(a.x + (b.x - a.x) * k / n - cam.x), Math.round(a.y - 8 + (b.y - a.y) * k / n - cam.y), 1, 1); }
 }
 // ゆき(ふわふわ おちてくる)
 function drawSnow() {

@@ -2,7 +2,7 @@
 import { DATA, byId } from './data.js';
 
 export const START_GOLD = 200;   // さいしょの おかね
-export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null }, gold: START_GOLD, bank: 0, hamo: null, melo: null };   // hamo: なかまの ハモ({hp, mp})。 いなければ null   // gold: もっている おかね  bank: ぎんこうに あずけた おかね   // hp が -1 なら「まだ はじめていない」
+export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null }, gold: START_GOLD, bank: 0, hamo: null, melo: null, pasha: null, mogu: null };   // hamo: なかまの ハモ({hp, mp})。 いなければ null   // gold: もっている おかね  bank: ぎんこうに あずけた おかね   // hp が -1 なら「まだ はじめていない」
 export const bag = [];                                             // 持ち物(items.csv の id)
 
 const rows = (id = 'hero') => DATA.party.filter(r => r.id === id).sort((a, b) => a.lv - b.lv);
@@ -22,19 +22,19 @@ export function allyStats(id) {
   for (const r of rs) if (r.lv <= hero.lv) { row = r; for (const s of r.learn) if (!skills.includes(s)) skills.push(s); }
   return { maxhp: row.hp, maxmp: row.mp, atk: row.atk + (equippedBy(id, 'ぶき')?.val || 0), def: row.def + (equippedBy(id, 'よろい')?.val || 0), mag: row.mag, spr: row.spr, spd: row.spd, skills, baseAtk: row.atk, baseDef: row.def };
 }
-const ALLY_NAME = { hamo: '{ハモ|はも}', melo: '{メロ|めろ}' };
+const ALLY_NAME = { hamo: '{ハモ|はも}', melo: '{メロ|めろ}', pasha: '{パシャ|ぱしゃ}', mogu: '{モグ|もぐ}' };
 // パーティ: [{ key, name, pal, s(hp・mp が 入っている もの), st(つよさ) }]
 // away: リズが いない あいだ(第3章 かぜで ねている。 main.js が いれる)
-export const party = { away: false, solo: false };   // solo: リズ ひとり(第4章 ないしょの じゅんび)
+export const party = { away: false, solo: false, guests: false };   // guests: パシャと モグが いっしょ(第4章 よりみち ダンジョン)   // solo: リズ ひとり(第4章 ないしょの じゅんび)
 export function members() {
   const list = party.away ? [] : [{ key: 'hero', name: hero.name, s: hero, st: heroStats() }];
-  if (party.solo) return list;
+  if (party.solo) { if (party.guests) for (const k of ['pasha', 'mogu']) { joinAlly(k); list.push({ key: k, name: ALLY_NAME[k], pal: k, s: hero[k], st: allyStats(k) }); } return list; }
   for (const k of ['hamo', 'melo']) if (hero[k]) list.push({ key: k, name: ALLY_NAME[k], pal: k, s: hero[k], st: allyStats(k) });
   return list;
 }
 export function joinAlly(id) { if (ALLY_NAME[id] && !hero[id]) { hero[id] = { hp: 1, mp: 0, equip: { ぶき: null, よろい: null } }; const st = allyStats(id); hero[id].hp = st.maxhp; hero[id].mp = st.maxmp; } }
 // ===== そうび(みかた みんな。 おなじ ものを ふたりで つかうには 2こ ひつよう) =====
-const ORDER = ['hero', 'hamo', 'melo'];
+const ORDER = ['hero', 'hamo', 'melo', 'pasha', 'mogu'];
 export const equipOf = key => key === 'hero' ? hero.equip : hero[key] ? (hero[key].equip ||= { ぶき: null, よろい: null }) : { ぶき: null, よろい: null };
 // key の ひとが そうびしている もの(もっている かずが たりなければ なし)
 export function equippedBy(key, slot) {
@@ -66,7 +66,7 @@ export function gainExp(n) {
     hero.lv = next.lv;
     members().forEach((m, i) => { m.s.hp += m.st.maxhp - before[i].maxhp; m.s.mp += m.st.maxmp - before[i].maxmp; });   // ふえた ぶんだけ 回復
     const learned = party.away ? [] : next.learn.filter(s => !beforeSkills.includes(s)).map(id => ({ id, who: hero.name }));
-    for (const k of ['hamo', 'melo']) if (hero[k]) for (const r of rows(k)) if (r.lv === hero.lv) for (const id of r.learn) learned.push({ id, who: ALLY_NAME[k] });
+    for (const k of ['hamo', 'melo']) if (hero[k] && !party.solo) for (const r of rows(k)) if (r.lv === hero.lv) for (const id of r.learn) learned.push({ id, who: ALLY_NAME[k] });
     ups.push({ lv: hero.lv, learned });
   }
   return ups;
