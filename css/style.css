@@ -237,3 +237,10 @@ rt{font-size:.5em;}
 #menu .mwho{margin-top:0;}
 #menu .mwho button{height:calc(var(--u)*16);padding:0 calc(var(--u)*6);}
 #menu .mwho button.on{background:#ffd23f;color:#18224f;}
+
+/* トランポリンの ミニゲーム */
+#mini{position:absolute;left:0;right:0;top:calc(var(--u)*6);display:none;text-align:center;pointer-events:none;text-shadow:0 calc(var(--u)*.6) 0 #18224f;}
+#mini .mcount{font-size:calc(var(--u)*22);font-weight:bold;color:#ffd23f;line-height:1;}
+#mini .mcount small{font-size:.4em;margin-left:calc(var(--u)*2);color:#fff;}
+#mini .mhint{display:inline-block;margin-top:calc(var(--u)*3);font-size:calc(var(--u)*6);background:rgba(18,26,70,.8);border-radius:calc(var(--u)*3);padding:0 calc(var(--u)*5);line-height:1.8;}
+#mini .mpop{font-size:calc(var(--u)*11);font-weight:bold;color:#fff;margin-top:calc(var(--u)*2);}

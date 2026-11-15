@@ -271,6 +271,7 @@ stage.addEventListener('pointerdown', e => {
   if (battle.on) { const b = e.target.closest('[data-b]'); battleTap(b ? +b.dataset.b : undefined); return; }
   if (menu.open) { const b = e.target.closest('[data-m]'); if (b) menuTap(b.dataset.m); return; }
   if (shop.open) { const b = e.target.closest('[data-s]'); if (b) shopTap(b.dataset.s); return; }
+  if (tg.on) { tgTap(); return; }
   if (paint.open) {
     const b = e.target.closest('[data-p]'); if (b) { paintTap(b.dataset.p); return; }
     const cv = e.target.closest('#paintcv'); if (cv) { const r = cv.getBoundingClientRect(); paintAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
@@ -306,6 +307,7 @@ addEventListener('keydown', e => {
   if (nameEntry.open) { if (e.key === 'Backspace') nameKey('#del'); else if (e.key === 'Enter') nameKey('#ok'); return; }
   if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
   if (shop.open) { if (e.key === 'Escape') shopTap('#close'); return; }
+  if (tg.on) { if (ok) tgTap(); return; }
   if (paint.open) { if (e.key === 'Escape') paintTap('#close'); return; }
   if (deco.open) { if (e.key === 'Escape') decoTap('#done'); return; }
   if (e.key === 'm' || e.key === 'Escape') { if (menu.open) menuTap('#close'); else if (started && hero.name && !dlg.open && !trans.on) openFieldMenu(); return; }
@@ -360,6 +362,46 @@ const fade = fn => new Promise(r => fadeTo(fn, r));
 const HAMO = '{ハモ|はも}';
 const view = { on: false };       // おかの うえからの けしき
 const jump = { on: false, t: 0 };     // トランポリンで とんでいる
+// ===== トランポリンの ミニゲーム: おりてきて つく ときに タップ =====
+const rec = {};                       // きろく(セーブ される)
+const tg = { on: false };
+const TG_EARLY = 0.24, TG_LATE = 0.16;   // タップが まにあう はば(びょう)
+function playTramp() {
+  return new Promise(res => {
+    Object.assign(tg, { on: true, t: 0, ph: 0, n: 0, early: -9, pending: null, msg: '', msgT: 0, wait: 1.6, done: res });
+    tgShow('じゅんび……');
+  });
+}
+const tgPeriod = () => Math.max(0.55, 1.0 - tg.n * 0.025);   // とぶ じかん(だんだん はやく)
+const tgHeight = () => 16 + Math.min(tg.n, 20) * 1.5;        // たかさ(だんだん たかく)
+function tgShow(hint) { $('mini').style.display = 'block'; $('mini').innerHTML = `<div class="mcount">${tg.n}<small>かい</small></div><div class="mhint">${rubyHTML(hint)}</div>` + (tg.msg ? `<div class="mpop">${rubyHTML(tg.msg)}</div>` : ''); }
+function tgTap() {
+  if (!tg.on || tg.wait > 0) return;
+  if (tg.pending != null && tg.t - tg.pending <= TG_LATE) { tgOk(tg.t - tg.pending); return; }
+  if (tg.ph > 1 - TG_EARLY / tgPeriod()) tg.early = tg.t;     // おりてくる とちゅうの タップ
+  else if (tg.ph > 0.12) { tg.msg = 'はやすぎ!'; tgShow(''); tgEnd(); }   // まだ たかい ときに タップ(れんだ よけ)
+}
+function tgOk(off) {
+  tg.n++; tg.pending = null; tg.early = -9; tg.ph = 0;
+  tg.msg = Math.abs(off) < 0.07 ? 'ぴったり!' : 'ぽよーん!'; tg.msgT = 0.6;
+  sfx('next'); if (flags.has('owl')) sfx('boing');            // まちの おとが もどったら ぽよん
+  tgShow('おりてきて つく ときに タップ!');
+}
+function tgEnd() {
+  tg.on = false; $('mini').style.display = 'none';
+  sfx('miss'); const cb = tg.done; tg.done = null; setTimeout(() => cb(tg.n), 600);
+}
+function updateTramp(dt) {
+  tg.t += dt; tg.msgT -= dt;
+  if (tg.wait > 0) { tg.wait -= dt; if (tg.wait <= 0) tgShow('おりてきて つく ときに タップ!'); return; }
+  if (tg.pending != null) { if (tg.t - tg.pending > TG_LATE) tgEnd(); return; }
+  tg.ph += dt / tgPeriod();
+  if (tg.ph >= 1) {                                          // ちゃくち
+    tg.ph = 1;
+    if (tg.t - tg.early <= TG_EARLY) tgOk(-(tg.t - tg.early)); else tg.pending = tg.t;
+  }
+  if (tg.msgT <= 0 && tg.msg) { tg.msg = ''; tgShow('おりてきて つく ときに タップ!'); }
+}
 const campNight = { on: false };      // キャンプの よる(たきびの まわりが あかるい)
 const wait = sec => new Promise(r => setTimeout(r, sec * 1000));
 // おてつだいが 3つ おわったら、 ハモが キャンプに さそう
@@ -385,16 +427,23 @@ const EVENTS = {
   // ===== 第2章: パルル町の おてつだい =====
   // トランポリン: こねこと いっしょに とぶ
   async tramp(o) {
-    const back = { x: player.x, y: player.y };
+    const back = { x: player.x, y: player.y }, first = !rec.tramp && !flags.has('tramp');
+    if (first) await say('こねこ', ['{トランポリン|とらんぽりん}の あそびかたを おしえて あげる!', 'おりてきて、 {トランポリン|とらんぽりん}に つく ときに タップ してね。', 'じょうずに タップ できたら、 また とべるよ。 なんかい とべるかな?']);
     await fade(() => { Object.assign(player, { x: 5 * T, y: 17 * T + 6, dir: 'down' }); trail.length = 0; jump.on = true; jump.t = 0; });
-    await say('', ['@は {トランポリン|とらんぽりん}に のった。 ぴょーん! ぴょーん!']);
-    await say(HAMO, ['ぼくも! それっ!']);
-    await say('', ['たかい! そらが ちかい!', 'ふたりで わらいながら、 なんども なんども とんだ。', '……でも、 はねても ぽよーんの おとは しない。']);
+    const n = await playTramp();
     await fade(() => { jump.on = false; Object.assign(player, back, { dir: 'up' }); trail.length = 0; });
-    if (!flags.has('tramp')) {
+    const best = n > (rec.tramp || 0);
+    if (best) rec.tramp = n;
+    save();
+    await say('こねこ', n === 0 ? ['あれれ、 もういちど やってみよう!', 'おりてきて、 つく ときに タップ だよ。'] : [`${n}かい とべたね!`, best ? 'すごい! さいこう きろく だよ!' : `さいこう きろくは ${rec.tramp}かい だよ。`]);
+    if (!flags.has('tramp') && n > 0) {
       flags.add('tramp'); bag.push('トランポリンのかけら'); save();
       await say('', ['@の むねの なかで、 なにかが あたたかく ひかった。', '♪「{トランポリン|とらんぽりん}」の かけらを {手|て}に いれた!', 'あなや かわを とびこえられる ように なった!']);
       await campCheck();
+    }
+    for (const [k, need, item] of [['tramp10', 10, 'かいふくやく'], ['tramp20', 20, 'げんきのみず']]) if (n >= need && !flags.has(k)) {
+      flags.add(k); bag.push(item); save(); const it = byId('items', item);
+      await say('こねこ', [`${need}かいも とべた! これ あげる!`, `♪${it.name}を もらった!`]);
     }
   },
   // えかき: ぬりえを する
@@ -521,7 +570,7 @@ function save() {
     v: 1, map: mapName(), clock: Math.round(clock.t),
     x: Math.round(player.x), y: Math.round(player.y), dir: player.dir,
     bag: [...bag], done: allObjs().filter(o => o.taken && !o.again).map(o => o.key), talked: talkedOnce,
-    room: { placed: room.placed, stash: [...room.stash], paint: room.paint }, flags: [...flags],
+    room: { placed: room.placed, stash: [...room.stash], paint: room.paint }, flags: [...flags], rec: { ...rec },
     hero: { ...hero },
   });
 }
@@ -537,6 +586,7 @@ function load(d) {
   for (const o of allObjs()) if (done.has(o.key)) markTaken(o);
   talkedOnce = d.talked;
   for (const f of d.flags || []) flags.add(f);
+  if (d.rec && typeof d.rec === 'object') for (const [k, v] of Object.entries(d.rec)) if (Number.isFinite(v)) rec[k] = v;
   clock.t = d.clock || 0; wasNight = isNight(); Object.values(MAPS).forEach(resetEnemies);
   if (d.hero) Object.assign(hero, d.hero);
   if (!d.hero || !d.hero.equip) { hero.equip = { ぶき: null, よろい: null }; equipBest(); }   // 自動そうびの ころの セーブ
@@ -651,6 +701,7 @@ function update(dt) {
   updateChip();
   if (battle.on) { updateBattle(dt); $('act').style.display = 'none'; return; }
   const hideAct = () => { $('act').style.display = 'none'; $('actbtn').classList.remove('show'); };
+  if (tg.on) updateTramp(dt);
   if (trans.on || nameEntry.open || menu.open || shop.open || deco.open || paint.open || jump.on) { hideAct(); if (jump.on) jump.t += dt; return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
@@ -856,7 +907,7 @@ function drawField() {
       if (e.pic === 'birdhouse' && flags.has('craft')) ctx.drawImage(DECO.bird, sx + 4, sy - 16 + Math.round(Math.sin(tm * 3)));
       continue;
     }
-    const jy = jump.on && (e === player || e.hop) ? -Math.round(Math.abs(Math.sin(jump.t * 4 + (e.hop || 0) * 1.3)) * 18) : 0;
+    const jy = tg.on && e === player ? -Math.round(tgHeight() * 4 * tg.ph * (1 - tg.ph)) : jump.on && e.hop ? 0 : 0;
     if (e.kind === 'boss') { ctx.drawImage(enemySprite(e.look), sx - 16, sy - 30 + Math.round(Math.sin(tm * 3) * 1.5), 32, 32); continue; }
     if (e === player) img = heroSprite(e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0, equipLook());
     else if (e.kind === 'follower') img = charSprite(e.pal, e.dir, e.moving ? Math.floor(player.anim * 9) % 4 : 0);
@@ -867,10 +918,17 @@ function drawField() {
     ctx.drawImage(img, sx - 6, sy - 15 + jy);
     if ((e.kind === 'chest' && !e.taken || e.kind === 'item') && (tm % 1.4) < .35) { ctx.fillStyle = '#fff'; ctx.fillRect(sx + 3, sy - 14, 1, 3); ctx.fillRect(sx + 2, sy - 13, 3, 1); } // きらっ
   }
+  // トランポリンの ミニゲーム: タップの タイミングで わが きいろく ひかる
+  if (tg.on && tg.wait <= 0) {
+    const now = tg.pending != null || tg.ph > 1 - TG_EARLY / tgPeriod(), sx = Math.round(player.x - cam.x), sy = Math.round(player.y - cam.y);
+    const r = 7 + Math.round((1 - 4 * tg.ph * (1 - tg.ph)) * 5);
+    ctx.fillStyle = now ? '#ffd23f' : 'rgba(255,255,255,.5)';
+    for (let a = 0; a < 24; a++) { const an = a / 24 * 6.28; ctx.fillRect(sx + Math.round(Math.cos(an) * r), sy - 1 + Math.round(Math.sin(an) * r * .4), 2, 1); }
+  }
 }
 
 // 確認用(Macのブラウザの開発ツールから bouken.player などを見られる)
-globalThis.bouken = { player, bag, hero, battle, get map() { return mapName(); }, get near() { return near; }, get objs() { return cur.objs; } };
+globalThis.bouken = { get tg() { return tg; }, player, bag, hero, battle, get map() { return mapName(); }, get near() { return near; }, get objs() { return cur.objs; } };
 
 let last = performance.now();
 function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); }
