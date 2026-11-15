@@ -23,6 +23,7 @@ export default {
     '!!!!!!!!!!!;;!!!!!!!!!!!',
   ],
   objs: [
+    { kind: 'enemy', x: 12, y: 12, party: 'ゾンビねこ ほねほね', night: true },
     { kind: 'deco', x: 4, y: 5, pic: 'leafpile', label: 'はらう', event: 'leafPile', flag: 'lf1a', hide: 'lf1a', path: true },
     { kind: 'deco', x: 5, y: 5, pic: 'leafpile', label: 'はらう', event: 'leafPile', flag: 'lf1b', hide: 'lf1b', path: true },
     { kind: 'deco', x: 20, y: 5, pic: 'leafpile', label: 'はらう', event: 'leafPile', flag: 'lf1c', hide: 'lf1c', path: true },

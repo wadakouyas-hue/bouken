@@ -27,7 +27,7 @@ export default {
     { kind: 'deco', x: 1, y: 1, pic: 'leafpile', label: 'はらう', event: 'leafPile', flag: 'lf2c', hide: 'lf2c', give: 'なおりぐさ' },
     { kind: 'deco', x: 22, y: 12, pic: 'leafpile', label: 'はらう', event: 'leafPile', flag: 'lf2d', hide: 'lf2d', party: 'くりいが みのむし もみじっこ' },
     { kind: 'deco', x: 4, y: 9, pic: 'leafpile', label: 'はらう', event: 'leafPile', flag: 'lf2e', hide: 'lf2e', gold: 800 },
-    { kind: 'chest', x: 11, y: 6, label: 'あける', give: 'げんきのみず', lines: ['たからばこを あけた!', '♪げんきの みずを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
+    { kind: 'chest', x: 11, y: 6, label: 'あける', give: 'もみじのけん', lines: ['たからばこを あけた!', '♪もみじの けんを {手|て}に いれた!', '{メニュー|めにゅー}の 「そうび」で もてるよ。'], after: ['もう からっぽだ。'] },
     { kind: 'enemy', x: 3, y: 12, party: 'くりいが もみじっこ' },
     { kind: 'enemy', x: 14, y: 9, party: 'みのむし みのむし' },
   ],

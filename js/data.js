@@ -1,21 +1,21 @@
 // data/ フォルダの CSV を読み込む(書き方がまちがっていても止まらず、まちがいを知らせる)
 export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [], time: [], tramp: [], concert: [] };
 export const dataErrors = [];
-export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね', 'からす', 'かえる', 'スカンク', 'いのしし', 'こうもり', 'ミミズク', 'ねずみ', 'つむじかぜ', 'かさおばけ', 'うなぎ', 'あまぐも', 'かみなりぐも', 'いわごろ', 'おばけび', 'びっくりきのこ', 'もりぐも', 'おばけ', 'ゆきだるま', 'つららこうもり', 'ゆきうさぎ', 'ペンギン', 'こおりのぬし', 'くろもや', 'ふぶきどり', 'あらしのかげ', 'くりいが', 'もみじっこ', 'みのむし', 'ほしむし', 'いたずらリス', 'ねぼすけモグラ'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
-export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ', 'レイン', 'マフラー', 'ゆき'];     // よろいの「みため」
+export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね', 'からす', 'かえる', 'スカンク', 'いのしし', 'こうもり', 'ミミズク', 'ねずみ', 'つむじかぜ', 'かさおばけ', 'うなぎ', 'あまぐも', 'かみなりぐも', 'いわごろ', 'おばけび', 'びっくりきのこ', 'もりぐも', 'おばけ', 'ゆきだるま', 'つららこうもり', 'ゆきうさぎ', 'ペンギン', 'こおりのぬし', 'くろもや', 'ふぶきどり', 'あらしのかげ', 'くりいが', 'もみじっこ', 'みのむし', 'ほしむし', 'いたずらリス', 'ねぼすけモグラ', 'おばけランタン', 'こうもりねこ', 'ゆきおにねこ', 'かみなりねこ', 'かかしねこ', 'こがらしねこ'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
+export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ', 'レイン', 'マフラー', 'ゆき', 'はっぴ', 'よぞら'];     // よろいの「みため」
 export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
 export const STATUSES = ['ねむり', 'どく', 'しびれ', 'わらい', 'くさい'];   // ステータス いじょう
 export const FX_TYPES = ['slash', 'fire', 'water', 'thunder', 'wind', 'magic', 'heal', 'impact', 'drum', 'notes', 'wave', 'star', 'song', 'stink', 'lick', 'spit', 'spore', 'leaf', 'butt'];   // わざの エフェクト(js/battle.js の drawFx)
-export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい', 'ランプ', 'ほねのいす', 'き', 'え', 'トランポリン', 'トロフィー'];   // かぐの「みため」(js/furniture.js にある絵)
+export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい', 'ランプ', 'ほねのいす', 'き', 'え', 'トランポリン', 'トロフィー', 'かぼちゃ', 'ゆきだるま', 'かかし'];   // かぐの「みため」(js/furniture.js にある絵)
 
 const SPEC = {
   party: { file: 'data/party.csv', label: 'みかた',
     cols: { id: 'id', name: 'なまえ', lv: 'レベル', exp: 'けいけんち', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', learn: 'おぼえる わざ' },
     nums: ['lv', 'exp', 'hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd'], lists: ['learn'], optional: ['name', 'learn', 'mag', 'spr'] },
   enemies: { file: 'data/enemies.csv', label: 'てき',
-    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', exp: 'けいけんち', gold: 'おかね', weak: 'よわい', resist: 'つよい', skills: 'わざ', drop: 'おとすもの', rate: 'かくりつ' },
-    nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp', 'gold', 'rate'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist', 'gold', 'drop', 'rate'],
+    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', exp: 'けいけんち', gold: 'おかね', weak: 'よわい', resist: 'つよい', skills: 'わざ', drop: 'おとすもの', rate: 'かくりつ', drop2: 'まれに おとすもの', rate2: 'まれな かくりつ' },
+    nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp', 'gold', 'rate', 'rate2'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist', 'gold', 'drop', 'rate', 'drop2', 'rate2'],
     choices: { move: ['うろうろ', 'ゆっくり', 'はやい'] } },
   skills: { file: 'data/skills.csv', label: 'わざ・じゅもん',
     cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', elem: 'ぞくせい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい', status: 'じょうたい', chance: 'かかりやすさ', fx: 'エフェクト' },

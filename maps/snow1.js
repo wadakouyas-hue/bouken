@@ -23,6 +23,8 @@ export default {
     '222222222**2222222222222',
   ],
   objs: [
+    { kind: 'enemy', x: 4, y: 13, party: 'ゾンビねこ ほねほね', night: true },
+    { kind: 'enemy', x: 18, y: 2, party: 'ほねほね', night: true },
     { kind: 'deco', x: 8, y: 2, pic: 'usako', label: 'はなす', event: 'usako', show: 'genki', name: 'ゆきうさぎの こ' },
     { kind: 'deco', x: 10, y: 2, pic: 'snowman', show: 'yukidaruma' },
     { kind: 'look', x: 20, y: 1.6, label: 'しらべる', event: 'iceWall', hide: 'iceMelt' },

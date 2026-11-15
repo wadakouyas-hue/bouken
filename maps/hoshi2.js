@@ -30,7 +30,7 @@ export default {
     { kind: 'deco', x: 11, y: 7, pic: 'starOn', show: 'st2b', light: 56, star: true, float: true },
     { kind: 'deco', x: 4, y: 14, pic: 'starOff', label: 'さわる', event: 'starTouch', flag: 'st2c', hide: 'st2c', float: true },
     { kind: 'deco', x: 4, y: 14, pic: 'starOn', show: 'st2c', light: 56, star: true, float: true },
-    { kind: 'chest', x: 20, y: 14, label: 'あける', gold: 1500, lines: ['たからばこを あけた!', '♪1500{円|えん} みつけた!'], after: ['もう からっぽだ。'] },
+    { kind: 'chest', x: 20, y: 14, label: 'あける', give: 'おまつりのはっぴ', lines: ['たからばこを あけた!', '♪おまつりの はっぴを {手|て}に いれた!', '{メニュー|めにゅー}の 「そうび」で きられるよ。'], after: ['もう からっぽだ。'] },
     { kind: 'enemy', x: 8, y: 9, party: 'ほしむし こうもり ほしむし' },
     { kind: 'enemy', x: 3, y: 5, party: 'ほしむし みのむし' },
   ],

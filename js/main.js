@@ -111,10 +111,13 @@ function applySwaps(m) {
   m.rows = rows.map(r => r.join(''));
 }
 const mapName = () => Object.keys(MAPS).find(k => MAPS[k] === cur);
+// たおした てき(マップ:x,y)。 ダンジョンの なかで いききしても ふっかつ しない。 まち(town の ある マップ)に はいると ぜんぶ ふっかつ
+const beaten = new Set();
+function enterMap(m) { if (m.town) beaten.clear(); resetEnemies(m); }
 function resetEnemies(m) {
   for (const o of m.objs) {
     if (o.night) { Object.assign(o, { gone: true, spawnT: isNight() ? 1 + Math.random() * 6 : null }); continue; }
-    if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
+    if (o.kind === 'enemy') Object.assign(o, { gone: beaten.has(o.key), x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
     if (o.again) { o.taken = false; o.gone = false; }   // また おちている もの(きの えだ など)
   }
 }
@@ -198,10 +201,14 @@ function updateSpawns(dt) {
     const p = spawnSpot();
     if (!p) { o.spawnT = 1; continue; }
     Object.assign(o, { gone: false, x: p.x, y: p.y, hx: p.x, hy: p.y, tx: p.x, ty: p.y, cool: 0, timer: 0, chase: false, notice: 0, rise: RISE, spawnT: null });
+    const pool = nightPool(); o.party0 ||= o.party; o.party = o.party0.map(id => Math.random() < 0.6 ? pool[Math.random() * pool.length | 0] : id);   // すすんだ 章の まものも まざる
     if (Math.hypot(p.x - player.x, p.y - player.y) < 200) sfx('rise');
   }
 }
 const RISE = 1.4;   // でてくるまでの びょうすう
+// よるの まもの: 章が すすむと 2しゅるいずつ ふえる(第2章 ch1・第3章 ch3start・第4章 ch4start から)
+const NIGHT_POOL = [[null, ['ゾンビねこ', 'ほねほね']], ['ch1', ['おばけランタン', 'こうもりねこ']], ['ch3start', ['ゆきおにねこ', 'かみなりねこ']], ['ch4start', ['かかしねこ', 'こがらしねこ']]];
+const nightPool = () => NIGHT_POOL.filter(([f]) => !f || flags.has(f)).flatMap(([, l]) => l);
 // よるの まものの つよさ: レベル3までは そのまま、 それより うえは 1レベル ごとに 15% つよく
 const nightScale = () => Math.max(1, 1 + 0.15 * (hero.lv - 3));
 
@@ -289,7 +296,7 @@ function goMaze(e) {
     maze.step = ok && !last ? maze.step + 1 : 0;
     if (last) { cur = MAPS[mz.next.to]; Object.assign(player, at(...mz.next.at), { dir: mz.next.dir }); }
     else Object.assign(player, at(...mz.start), { dir: 'up' });
-    resetEnemies(cur); player.anim = 0; player.moving = false; trail.length = 0;
+    enterMap(cur); player.anim = 0; player.moving = false; trail.length = 0;
     updateCamera(); save(); playBgm(bgmFor());
   }, ok ? (last ? runEnter : null) : () => openDialog('', ['あれ? さっきの ばしょに もどって きた みたい……', 'ホタルが とんでいく ほうへ いってみよう。']));
 }
@@ -301,7 +308,7 @@ function goExit(e) {
   }
   sfx('warp');
   fadeTo(() => {
-    cur = MAPS[e.to]; resetEnemies(cur); maze.step = 0; ice.dx = ice.dy = 0;
+    cur = MAPS[e.to]; enterMap(cur); maze.step = 0; ice.dx = ice.dy = 0;
     Object.assign(player, at(e.at[0], e.at[1]));
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false; trail.length = 0;
     updateCamera(); visit(); save();
@@ -335,7 +342,7 @@ menu.warp = name => {
   const m = MAPS[name]; if (!m?.town) return;
   sfx('warp');
   fadeTo(() => {
-    cur = m; resetEnemies(cur);
+    cur = m; enterMap(cur);
     Object.assign(player, at(m.town.at[0], m.town.at[1]), { dir: 'down', anim: 0, moving: false }); trail.length = 0;
     updateCamera(); visit(); save(); playBgm(bgmFor());
   }, () => openDialog('', [`${m.town.name}に ついた!`], runEnter));
@@ -347,11 +354,11 @@ function encounter(o, opt = {}) {
   sfx('encounter');
   fadeTo(() => {
     startBattle(o.party, { bg: rainy() ? 'storm' : null, ...opt }).then(result => fadeTo(() => {
-      if (result === 'win') { if (opt.onWin) opt.onWin(); else { o.gone = true; o.spawnT = null; } }
+      if (result === 'win') { if (opt.onWin) opt.onWin(); else { o.gone = true; o.spawnT = null; if (o.key && !o.night) beaten.add(o.key); } }
       if (result === 'run') o.cool = 3;          // にげたあと 少しの間は ぶつからない
       if (result === 'lose') {                   // まけたら 村で 目が さめる。 もっている おかねは はんぶんに(リズが ねている あいだは やまの こや)
         const home = party.away ? { map: 'yama', ...at(4.5, 5) } : cur.lose ? { map: cur.lose[0], ...at(cur.lose[1], cur.lose[2]) } : START;   // lose: まけたら もどる ばしょ(あらしの やま)
-        cur = MAPS[home.map]; Object.values(MAPS).forEach(resetEnemies);
+        cur = MAPS[home.map]; beaten.clear(); Object.values(MAPS).forEach(resetEnemies);
         Object.assign(player, { x: home.x, y: home.y, dir: 'up' }); trail.length = 0; ice.dx = ice.dy = 0;
         healFull();
         lost = hero.gold - Math.floor(hero.gold / 2); hero.gold -= lost;
@@ -938,7 +945,7 @@ const EVENTS = {
     await say('@', ['……なんだか、 ふらふら する……']);
     await say('', ['@は その ばに すわりこんで しまった。']);
     await say(HAMO, ['たいへんだ、 すごい ねつだ!', 'ぼくが おんぶ するよ。', 'さっき もりの きたに、 ちいさな こやが みえたんだ。 いそごう!']);
-    await fade(() => { flags.add('sick'); syncParty(); healFull(); chipText = ''; cur = MAPS.yama; resetEnemies(cur); Object.assign(player, at(2.5, 3), { dir: 'left' }); trail.length = 0; visit(); updateCamera(); save(); playBgm(bgmFor()); });
+    await fade(() => { flags.add('sick'); syncParty(); healFull(); chipText = ''; cur = MAPS.yama; enterMap(cur); Object.assign(player, at(2.5, 3), { dir: 'left' }); trail.length = 0; visit(); updateCamera(); save(); playBgm(bgmFor()); });
     await say('', ['ゆきの なかの ちいさな こやに たどりついた。', 'だれも すんで いない みたい。 だんろに ひを つけた。']);
     await say('{メロ|めろ}', ['@を ベッドに ねかせましょう。'.replace('ベッド', '{ベッド|べっど}')]);
     await say('', ['@は ベッドで ねむった。'.replace('ベッド', '{ベッド|べっど}'), 'はあ、 はあ…… くるしそう。']);
@@ -1043,6 +1050,19 @@ const EVENTS = {
     if (fam) await say(o.name, ['えっ、 {メロ|めろ}が けっこんしき!?', '……まあ、 まあ! なんて うれしいの!', 'かぞく みんなで かならず いくわ!']);
     else await say(o.name, ['{ハモ|はも}が けっこんしき!?', 'あの たびばかりの {ハモ|はも}が…… そうか、 そうか。', 'ふるさとの みんなで おいわいに いくよ!']);
     await inviteLeft();
+  },
+  // やたいの ねこ: やきぐりの くり 3こ(もみじの もりの くりいがが おとす)
+  async yakiguri(o) {
+    if (flags.has('guriDone')) { await say(o.name, ['やきぐり、 だいにんき だよ! ありがとう!']); return; }
+    const n = bag.filter(b => b === 'くり').length;
+    if (!flags.has('guriAsk') || n < 3) {
+      flags.add('guriAsk'); save();
+      await say(o.name, ['おまつりで やきぐりを うりたいんだけど、 くりが たりなくて……', 'もみじの もりの とげとげの まものが、 くりを もってるらしいんだ。', `くりを 3こ もってきて くれないかい? (いま ${Math.min(n, 3)}こ)`]);
+      return;
+    }
+    for (let i = 0; i < 3; i++) bagRemove('くり');
+    flags.add('guriDone'); bag.push('ほかほかスープ', 'ほかほかスープ', 'ほかほかスープ', 'まんぷくべんとう'); hero.gold += 1500; chipText = ''; save(); sfx('get');
+    await say(o.name, ['わあ、 つやつやの くり! ありがとう!', 'おれいに これを どうぞ!', '♪ほかほか {スープ|すーぷ} 3こと まんぷく べんとうと 1500{円|えん} もらった!']);
   },
   // ===== 第4章 2回目: よりみち ダンジョン(もみじの もり・ほしの どうくつ) =====
   async guestJoin() {
@@ -1223,7 +1243,7 @@ const EVENTS = {
     flags.add('herb'); bag.push('ねつさましそう'); save(); sfx('get');
     await say('', ['あおく ひかる はなを みつけた!', '♪ねつさましの やくそうを {手|て}に いれた!']);
     await say('{メロ|めろ}', ['これで @の ねつが さがるわ!', 'いそいで もどりましょう!']);
-    await fade(() => { cur = MAPS.yama; resetEnemies(cur); Object.assign(player, at(2.5, 3), { dir: 'left' }); trail.length = 0; updateCamera(); save(); playBgm(bgmFor()); });
+    await fade(() => { cur = MAPS.yama; enterMap(cur); Object.assign(player, at(2.5, 3), { dir: 'left' }); trail.length = 0; updateCamera(); save(); playBgm(bgmFor()); });
     await nurse();
   },
   // ===== パルル町の おてつだい: ちかしつの オルゴール =====
@@ -1334,7 +1354,7 @@ function save() {
     x: Math.round(player.x), y: Math.round(player.y), dir: player.dir,
     bag: [...bag], done: allObjs().filter(o => o.taken && !o.again).map(o => o.key), talked: talkedOnce,
     room: { placed: room.placed, stash: [...room.stash], paint: room.paint }, flags: [...flags], rec: { ...rec },
-    hero: { ...hero },
+    hero: { ...hero }, beaten: [...beaten],
   });
 }
 function load(d) {
@@ -1352,6 +1372,7 @@ function load(d) {
   for (const o of allObjs()) if (done.has(o.key)) markTaken(o);
   talkedOnce = d.talked;
   if (d.rec && typeof d.rec === 'object') for (const [k, v] of Object.entries(d.rec)) if (Number.isFinite(v)) rec[k] = v;
+  for (const k of d.beaten || []) beaten.add(k);
   clock.t = d.clock || 0; wasNight = isNight(); Object.values(MAPS).forEach(resetEnemies);
   if (d.hero) Object.assign(hero, d.hero);
   if (!d.hero || !d.hero.equip) { hero.equip = { ぶき: null, よろい: null }; equipBest(); }   // 自動そうびの ころの セーブ
@@ -1642,7 +1663,7 @@ function drawDark() {
   const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: hand.alone ? 30 : cur.lightR || (bag.includes('キャンプのかけら') ? 80 : 40) }];
   if (hand.alone) { const w = at(...hand.alone.wait); lights.push({ x: w.x - cam.x, y: w.y - 8 - cam.y, r: 30 }); }   // まっている ハモの ところも すこし あかるい
   for (const o of live()) if (o.light) lights.push({ x: o.x - cam.x, y: o.y - 6 - cam.y, r: o.light + Math.sin(tm * 9) * 2 });   // たきび など
-  if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
+  if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ' || furnLook(f.id) === 'かぼちゃ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
   dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, VW, VH);
   dg.fillStyle = `rgba(6,8,32,${a})`; dg.fillRect(0, 0, VW, VH);
   dg.globalCompositeOperation = 'destination-out';

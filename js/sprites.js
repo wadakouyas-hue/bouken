@@ -749,6 +749,16 @@ const ENEMY = {
     '..k.kgk..kgk.k..',
     '.....k....k.....'] },
 };
+// よるの まもの(章ごとに ふえる)。 ゾンビねこ・ほねほねねこの かたちで いろを かえる
+const NIGHT_LOOKS = {
+  おばけランタン: ['ゾンビねこ', { f: '#e8803a', F: '#b8601e', s: '#3a8a3e', e: '#ffd23f', p: '#3a2a1a' }, '#ffd23f'],
+  こうもりねこ:   ['ほねほね', { w: '#6a5a8a', d: '#2a1a3a', e: '#ff5a7a' }, '#ff5a7a'],
+  ゆきおにねこ:   ['ゾンビねこ', { f: '#e6f6ff', F: '#9fd6f2', s: '#5a8ad8', e: '#5ab0ff', p: '#7ab0e0' }, '#5ab0ff'],
+  かみなりねこ:   ['ほねほね', { w: '#ffd23f', d: '#3a3a5a', e: '#ffffff' }, '#ffffff'],
+  かかしねこ:     ['ゾンビねこ', { f: '#d8b060', F: '#a8783a', s: '#7a4a24', e: '#e04848', p: '#e8a040' }, '#e04848'],
+  こがらしねこ:   ['ほねほね', { w: '#e8803a', d: '#7a3418', e: '#ffd23f' }, '#ffd23f'],
+};
+for (const [k, [base, pal, glow]] of Object.entries(NIGHT_LOOKS)) ENEMY[k] = { rows: ENEMY[base].rows, pal: { ...ENEMY[base].pal, ...pal }, glow, eye: [4, 10, 6] };
 const ecache = {};
 export function enemySprite(look) {
   const d = ENEMY[look] || ENEMY.きのこ;
@@ -781,6 +791,8 @@ const ARMOR = {
   レイン: { r: '#f2c230', b: '#3a5ad8', belt: '#e8a020' },   // きいろい レインコート
   マフラー: { r: '#e04848', b: '#4a4a6a', belt: '#ffffff' },  // あかい マフラー
   ゆき: { r: '#e6f6ff', b: '#5a8ad8', belt: '#7ac8ff' },       // ゆきの よろい
+  はっぴ: { r: '#3a5ad8', b: '#f4f2ec', belt: '#e04848' },      // おまつりの はっぴ
+  よぞら: { r: '#2a2a6a', b: '#1a1a3a', belt: '#ffd23f' },      // よぞらの マント
 };
 // ぶき: 手に持つ位置に 描く(x = 持つ場所)
 function drawWeapon(g, look, x, flip, side) {

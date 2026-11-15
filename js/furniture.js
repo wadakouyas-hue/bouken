@@ -15,6 +15,9 @@ export const room = { placed: {}, stash: [], paint: null };   // paint: ぬり�
 // ===== 絵(うしろは すきとおり) =====
 function circle(g, cx, cy, r, col) { g.fillStyle = col; for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r * .6) g.fillRect(cx + x, cy + y, 1, 1); }
 const PAINT = {
+  かぼちゃ: g => { circle(g, 8, 10, 6, '#c8601e'); circle(g, 8, 10, 5, '#e8803a'); px(g, 7, 2, 2, 3, '#3a8a3e'); px(g, 5, 8, 2, 2, '#ffd23f'); px(g, 9, 8, 2, 2, '#ffd23f'); px(g, 5, 12, 6, 1, '#ffd23f'); px(g, 6, 13, 1, 1, '#ffd23f'); px(g, 9, 13, 1, 1, '#ffd23f'); },
+  ゆきだるま: g => { circle(g, 8, 11, 5, '#ffffff'); circle(g, 8, 4, 3, '#ffffff'); px(g, 6, 3, 1, 1, '#2a2a3a'); px(g, 9, 3, 1, 1, '#2a2a3a'); px(g, 8, 5, 2, 1, '#ff8a2a'); px(g, 5, 7, 6, 1, '#e04848'); px(g, 5, 0, 6, 2, '#3a3a4a'); px(g, 3, 14, 10, 1, '#c4d4e4'); },
+  かかし: g => { px(g, 7, 6, 2, 10, '#7a4a24'); px(g, 2, 7, 12, 2, '#7a4a24'); circle(g, 8, 4, 3, '#f0d8a0'); px(g, 4, 0, 8, 2, '#d8b060'); px(g, 6, 3, 1, 1, '#2a1e1a'); px(g, 9, 3, 1, 1, '#2a1e1a'); px(g, 7, 5, 2, 1, '#e04848'); px(g, 5, 8, 6, 5, '#5a8ad8'); px(g, 1, 9, 2, 3, '#d8b060'); px(g, 13, 9, 2, 3, '#d8b060'); },
   ベッド: g => { px(g, 1, 0, 14, 30, '#6a3c1a'); px(g, 2, 2, 12, 28, '#ffffff'); px(g, 3, 3, 10, 5, '#f0f0f8'); px(g, 3, 8, 10, 1, '#d8d8e8');
     px(g, 2, 11, 12, 17, '#5a8ad8'); px(g, 2, 11, 12, 1, '#7aa6f0'); px(g, 2, 20, 12, 1, '#7aa6f0'); px(g, 2, 25, 12, 1, '#7aa6f0'); px(g, 1, 30, 2, 2, '#4a2a10'); px(g, 13, 30, 2, 2, '#4a2a10'); },
   タンス: g => { px(g, 1, 0, 14, 16, '#5a3418'); px(g, 2, 1, 12, 14, '#9a6232');

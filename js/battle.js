@@ -419,6 +419,8 @@ async function victory() {
   for (const e of B.enemies) {
     const it = e.d.drop && byId('items', e.d.drop);
     if (it && Math.random() * 100 < e.d.rate) { bag.push(it.id); sfx('get'); await say(`${e.d.name}は ${it.name}を おとした!`); }
+    const rare = e.d.drop2 && byId('items', e.d.drop2);   // まれに おとす もの(よるの まものの そうび など)
+    if (rare && Math.random() * 100 < (e.d.rate2 || 0)) { bag.push(rare.id); sfx('lvup'); await say(`すごい! ${e.d.name}は ${rare.name}を おとした!`, 1.8); }
   }
   for (const u of gainExp(exp)) {
     sfx('lvup'); B.party = B.party.map(m => ({ ...m, st: members().find(x => x.key === m.key)?.st || m.st })); updateStat();

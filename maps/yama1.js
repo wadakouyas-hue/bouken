@@ -23,6 +23,8 @@ export default {
     '22**2222222222222222222222222222',
   ],
   objs: [
+    { kind: 'enemy', x: 6, y: 4, party: 'ゾンビねこ ほねほね', night: true },
+    { kind: 'enemy', x: 22, y: 11, party: 'ほねほね ほねほね', night: true },
     { kind: 'chest', x: 3, y: 9, label: 'あける', give: 'げんきのみず', lines: ['たからばこを あけた!', '♪げんきの みずを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
     { kind: 'enemy', x: 10, y: 11, party: 'ふぶきどり ゆきだるま' },
     { kind: 'enemy', x: 20, y: 10, party: 'くろもや ゆきうさぎ' },

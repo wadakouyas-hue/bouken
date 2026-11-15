@@ -66,6 +66,7 @@ export default {
     // 第4章 おまつりの じゅんび
     { kind: 'deco', x: 9, y: 7.6, pic: 'chochin', show: 'ch4start', hide: 'ch4', float: true }, { kind: 'deco', x: 18, y: 7.6, pic: 'chochin', show: 'ch4start', hide: 'ch4', float: true }, { kind: 'deco', x: 26, y: 10.9, pic: 'chochin', show: 'ch4start', hide: 'ch4', float: true },
     { kind: 'deco', x: 13.5, y: 12, pic: 'yatai', show: 'ch4start', hide: 'ch4' },
+    { kind: 'npc', x: 15.5, y: 12, pal: 'shop1', name: 'やたいの ねこ', label: 'はなす', show: 'ch4start', hide: 'ch4', dir: 'left', event: 'yakiguri' },
     { kind: 'deco', x: 8.5, y: 18.6, pic: 'flowers', show: 'ch4start', hide: 'ch4' },
     { kind: 'npc', x: 12, y: 15.5, pal: 'hamo', name: '{ハモ|はも}', label: 'はなす', show: 'ch4start', hide: 'prepAll', dir: 'up', event: 'hamoWork' },
     { kind: 'npc', x: 15, y: 15.5, pal: 'melo', name: '{メロ|めろ}', label: 'はなす', show: 'ch4start', hide: 'prepAll', dir: 'up', event: 'meloWork' },
