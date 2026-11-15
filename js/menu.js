@@ -7,7 +7,7 @@ import { sfx } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const R = s => rubyHTML(String(s).replace(/@/g, hero.name));
-export const menu = { open: false, towns: () => [], warp: null };   // towns: いける まち [{ map, name }]、 warp(map): とぶ(main.js が いれる)
+export const menu = { open: false, towns: () => [], warp: null, canRest: () => false, rest: null };   // rest: テントで ねる(main.js が いれる)   // towns: いける まち [{ map, name }]、 warp(map): とぶ(main.js が いれる)
 const TABS = ['どうぐ', 'じゅもん', 'そうび', 'つよさ', 'なかま', 'だいじな もの'];
 let tab = TABS[0], sel = null, caster = 'hero', slot = null, msg = '', onChange = null, eqWho = 'hero';   // eqWho: そうびを かえる ひと
 
@@ -24,6 +24,7 @@ export function menuTap(k) {
   if (k === '#close') { close(); return; }
   if (k.startsWith('tab:')) { tab = k.slice(4); sel = null; slot = null; msg = ''; caster = 'hero'; }
   else if (k.startsWith('sel:')) { sel = k.slice(4); msg = ''; if (sel.includes('|')) [caster, sel] = sel.split('|'); }
+  else if (k === 'tent') { const it = byId('items', sel); if (!it || !bag.includes(it.id)) return; if (!menu.canRest()) { msg = '{テント|てんと}は そとで つかうよ。'; render(); return; } bagRemove(it.id); close(); changed(); if (menu.rest) menu.rest(); return; }
   else if (k.startsWith('use')) useItem(k.slice(4));
   else if (k.startsWith('cast')) castSpell(k.slice(5));
   else if (k.startsWith('who:')) { eqWho = k.slice(4); slot = null; msg = ''; }
@@ -109,7 +110,7 @@ function itemsView() {
     return btn('sel:' + id, `${R(it.name)}<small>${eq ? 'そうびちゅう' : '×' + bagCount(id)}</small>`, sel === id ? 'on' : '');
   }).join('');
   const it = byId('items', sel);
-  const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? forWho('use', 'つかう') : it.kind === 'ワープ' ? warpBtns() : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
+  const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? forWho('use', 'つかう') : it.kind === 'ワープ' ? warpBtns() : it.kind === 'テント' ? btn('tent', 'ねる', 'go') : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
   return `<div class="mtop">おかね ${R(`${hero.gold}{円|えん}`)}</div><div class="mlist">${list}</div>${detail}`;
 }
 function spellsView() {

@@ -23,7 +23,7 @@ const SPEC = {
     choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく', 'なおす', 'まもる', 'ワープ', 'じょうたい'], status: ['', ...STATUSES], fx: ['', ...FX_TYPES], target: ['ひとり', 'ぜんぶ', 'じぶん', 'みんな'] } },
   items: { file: 'data/items.csv', label: 'どうぐ・そうび',
     cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', price: 'ねだん', desc: 'せつめい' },
-    nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'なおす', 'よろい', 'ぶき', 'ざいりょう', 'ワープ', 'だいじ'] } },
+    nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'なおす', 'テント', 'よろい', 'ぶき', 'ざいりょう', 'ワープ', 'だいじ'] } },
   furniture: { file: 'data/furniture.csv', label: 'かぐ',
     cols: { id: 'id', name: 'なまえ', look: 'みため', price: 'ねだん', desc: 'せつめい' },
     nums: ['price'], optional: ['desc', 'price'], choices: { look: FURN_LOOKS } },

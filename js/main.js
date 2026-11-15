@@ -71,7 +71,7 @@ function resetEnemies(m) {
 
 // ===== ひると よる =====
 // そとの よるは よるの きょく
-const bgmFor = () => cur.quiet && !flags.has(cur.quiet) ? 'quiet' : cur.outside && isNight() ? 'night' : cur.bgm || 'village';   // quiet: おとを ぬすまれた まち
+const bgmFor = () => cur.quiet && !flags.has(cur.quiet) ? 'silence' : cur.outside && isNight() ? 'night' : cur.bgm || 'village';   // quiet: おとを ぬすまれた まち
 let wasNight = false;
 // よるに なった / あさに なった
 function nightChanged() {
@@ -198,6 +198,13 @@ const fadeAlpha = () => !trans.on ? 0 : trans.t < FADE ? trans.t / FADE : Math.m
 // ===== ワープ(いったことの ある まちへ) =====
 const visit = () => { const n = mapName(); if (cur.town && !flags.has('visit:' + n)) flags.add('visit:' + n); };
 menu.towns = () => Object.entries(MAPS).filter(([n, m]) => m.town && (flags.has('visit:' + n) || n === 'village')).map(([n, m]) => ({ map: n, name: m.town.name }));
+// テント: そとで ねる(よるなら あさに、 みんな げんきに)
+menu.canRest = () => !!cur.outside;
+menu.rest = () => {
+  const night = darkness() > 0; sfx('heal');
+  fadeTo(() => { healFull(); if (night) { toMorning(); nightChanged(); } save(); },
+    () => openDialog('', ['{テント|てんと}を はって、 みんなで ひとやすみ……', ...(night ? ['あさに なった!'] : []), 'みんなの HPと MPが ぜんぶ もどった!']));
+};
 menu.warp = name => {
   const m = MAPS[name]; if (!m?.town) return;
   sfx('warp');
