@@ -32,7 +32,7 @@ export function decoTile(tx, ty) {
   } else if (f) { D.sel = f; sfx('next'); D.msg = selMsg(f); }
   else if (!room.stash.length) { sfx('miss'); D.msg = 'しまってある かぐが ないよ。 おみせの 「かぐや」で かえるよ。'; }
   else if (D.m.rows[ty]?.[tx] !== '_' || (D.m.noFurn || []).some(([a, b]) => a === tx && b === ty)) { sfx('miss'); D.msg = 'そこには おけないよ。'; }
-  else { D.pick = { x: tx, y: ty }; sfx('next'); }
+  else { D.pick = { x: tx, y: ty }; D.pg = 0; sfx('next'); }
   render();
 }
 const selMsg = f => `${nameOf(f.id)}を えらんだよ。 おきたい ところを タップしてね。`;
@@ -45,6 +45,7 @@ export function decoTap(k) {
     D.list.splice(D.list.indexOf(D.sel), 1); room.stash.push(D.sel.id); sfx('get');
     D.msg = `${nameOf(D.sel.id)}を しまったよ。`; D.sel = null; changed();
   } else if (k === 'cancel') { D.sel = null; D.msg = HELP; sfx('next'); }
+  else if (k.startsWith('pg:')) { D.pg = (D.pg || 0) + +k.slice(3); sfx('next'); }
   else if (k === 'pickclose') { D.pick = null; sfx('next'); }
   else if (k.startsWith('pick:') && D.pick) {
     const id = k.slice(5), { x, y } = D.pick;
@@ -58,15 +59,22 @@ export function decoTap(k) {
   render();
 }
 
+// ながい リストは ページに わける(iPad で スクロール できなかったので ボタンで きりかえ)
+const PER = 6;
+function paged(arr, page, mk) {
+  const pages = Math.max(1, Math.ceil(arr.length / PER)), p = Math.max(0, Math.min(pages - 1, page));
+  const nav = pages > 1 ? `<div class="pnav">${mk('pg:-1', '◀ まえ', p === 0 ? 'dim' : '')}<span>${p + 1} / ${pages}</span>${mk('pg:1', 'つぎ ▶', p === pages - 1 ? 'dim' : '')}</div>` : '';
+  return { items: arr.slice(p * PER, p * PER + PER), nav, page: p };
+}
 function render() {
   const btn = (k, html, cls = '') => `<button data-d="${k}" class="${cls}">${html}</button>`;
   let html = `<div class="dside"><div class="dtitle">もようがえ</div><div class="dmsg">${R(D.msg)}</div>` +
     (D.sel ? btn('put', 'しまう') + btn('cancel', 'やめる') : '') + btn('#done', 'おわる', 'go') + '</div>';
   if (D.pick) {
-    const ids = [...new Set(room.stash)];
+    const P = paged([...new Set(room.stash)], D.pg || 0, btn); D.pg = P.page;
     html += `<div class="dpick"><div class="dtitle">なにを おく?</div><div class="dlist">` +
-      ids.map(id => btn('pick:' + id, `${R(nameOf(id))}<small>×${room.stash.filter(s => s === id).length}</small>`)).join('') +
-      `</div>${btn('pickclose', 'やめる')}</div>`;
+      P.items.map(id => btn('pick:' + id, `${R(nameOf(id))}<small>×${room.stash.filter(s => s === id).length}</small>`)).join('') +
+      `</div>${P.nav}${btn('pickclose', 'やめる')}</div>`;
   }
   $('deco').innerHTML = html;
 }

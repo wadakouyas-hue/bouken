@@ -21,7 +21,7 @@ const FURN_NOTE = 'おうちの 「もようがえ」で おけるよ。';
 
 export function openShop(npc, onChange) {
   const list = npc.shop || [];
-  S = { name: npc.name, list, bank: !!npc.bank, craft: !!npc.craft, furn: list.some(isFurn), mode: npc.craft ? 'make' : 'buy', sel: null, ask: null, msg: '', onChange };
+  S = { page: 0, name: npc.name, list, bank: !!npc.bank, craft: !!npc.craft, furn: list.some(isFurn), mode: npc.craft ? 'make' : 'buy', sel: null, ask: null, msg: '', onChange };
   shop.open = true; $('shop').style.display = 'flex'; render();
 }
 function close() { shop.open = false; $('shop').style.display = 'none'; S = null; }
@@ -33,7 +33,8 @@ export function shopTap(k) {
   sfx('next');
   if (k === '#close') { close(); return; }
   S.msg = '';
-  if (k === 'mode:buy' || k === 'mode:sell') { S.mode = k.slice(5); S.sel = null; S.ask = null; }
+  if (k.startsWith('pg:')) { S.page += +k.slice(3); render(); return; }
+  if (k === 'mode:buy' || k === 'mode:sell') { S.mode = k.slice(5); S.sel = null; S.ask = null; S.page = 0; }
   else if (k.startsWith('sel:')) { S.sel = k.slice(4); S.ask = null; }
   else if (k === 'buy') buy();
   else if (k === 'sell') sell();
@@ -89,6 +90,13 @@ function make() {
   changed();
 }
 
+// ながい リストは ページに わける(iPad で スクロール できなかったので ボタンで きりかえ)
+const PER = 6;
+function paged(arr, page, mk) {
+  const pages = Math.max(1, Math.ceil(arr.length / PER)), p = Math.max(0, Math.min(pages - 1, page));
+  const nav = pages > 1 ? `<div class="pnav">${mk('pg:-1', '◀ まえ', p === 0 ? 'dim' : '')}<span>${p + 1} / ${pages}</span>${mk('pg:1', 'つぎ ▶', p === pages - 1 ? 'dim' : '')}</div>` : '';
+  return { items: arr.slice(p * PER, p * PER + PER), nav, page: p };
+}
 // ===== 表示 =====
 const btn = (k, html, cls = '') => `<button data-s="${k}" class="${cls}">${html}</button>`;
 function render() {
@@ -100,19 +108,21 @@ function render() {
       `<div class="srow"><span>あずける</span>${amounts.map(([k, l]) => btn('dep:' + k, l)).join('')}</div>` +
       `<div class="srow"><span>ひきだす</span>${amounts.map(([k, l]) => btn('wd:' + k, l)).join('')}</div>`;
   } else if (S.craft) {
-    const list = DATA.recipes.map(r => btn('sel:' + r.id, `${R(thing(r.id).name)}<small>${canMake(r) ? 'つくれる!' : ''}</small>`, (S.sel === r.id ? 'on ' : '') + (canMake(r) ? '' : 'dim'))).join('')
+    const pg = paged(DATA.recipes, S.page, btn); S.page = pg.page;
+    const list = pg.items.map(r => btn('sel:' + r.id, `${R(thing(r.id).name)}<small>${canMake(r) ? 'つくれる!' : ''}</small>`, (S.sel === r.id ? 'on ' : '') + (canMake(r) ? '' : 'dim'))).join('')
       || '<div class="sempty">まだ つくりかたを しらないよ</div>';
-    body = `<div class="slist">${list}</div>` + craftDetail();
+    body = `<div class="slist">${list}</div>` + pg.nav + craftDetail();
   } else {
     const tabs = `<div class="stabs">${btn('mode:buy', 'かう', S.mode === 'buy' ? 'on' : '')}${btn('mode:sell', 'うる', S.mode === 'sell' ? 'on' : '')}</div>`;
     const owned = S.furn ? [...new Set(room.stash)] : [...new Set(bag)];
     const ids = S.mode === 'buy' ? S.list.filter(thing) : owned.filter(id => { const it = thing(id); return it && it.kind !== 'だいじ' && it.price; });
-    const list = ids.map(id => {
+    const pg = paged(ids, S.page, btn); S.page = pg.page;
+    const list = pg.items.map(id => {
       const it = thing(id), price = S.mode === 'buy' ? it.price : sellPrice(it);
       const tag = S.mode === 'sell' ? `×${have(id)}` : '';
       return btn('sel:' + id, `${R(it.name)}<small>${tag} ${R(YEN(price))}</small>`, S.sel === id ? 'on' : '');
     }).join('') || `<div class="sempty">${S.mode === 'buy' ? 'うりきれ' : S.furn ? 'しまってある かぐが ないよ' : 'うれる ものが ないよ'}</div>`;
-    body = tabs + `<div class="slist">${list}</div>` + detail();
+    body = tabs + `<div class="slist">${list}</div>` + pg.nav + detail();
   }
   $('shop').innerHTML = head + body + `<div class="sfoot"><div class="smsg">${R(S.msg)}</div>${btn('#close', 'やめる', 'close')}</div>`;
 }

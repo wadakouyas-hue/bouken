@@ -22,6 +22,8 @@ const changed = () => { if (onChange) onChange(); };
 export function menuTap(k) {
   sfx('next');
   if (k === '#close') { close(); return; }
+  if (k.startsWith('pg:')) { pg += +k.slice(3); render(); return; }
+  if (k.startsWith('tab:') || k.startsWith('slot:') || k.startsWith('who:') || k === 'back') pg = 0;
   if (k.startsWith('tab:')) { tab = k.slice(4); sel = null; slot = null; msg = ''; caster = 'hero'; }
   else if (k.startsWith('sel:')) { sel = k.slice(4); msg = ''; if (sel.includes('|')) [caster, sel] = sel.split('|'); }
   else if (k === 'tent') { const it = byId('items', sel); if (!it || !bag.includes(it.id)) return; if (!menu.canRest()) { msg = '{テント|てんと}は そとで つかうよ。'; render(); return; } bagRemove(it.id); close(); changed(); if (menu.rest) menu.rest(); return; }
@@ -78,6 +80,14 @@ function equip(id) {
   msg = `${it.name}を そうびした!`; slot = null; changed();
 }
 
+// ながい リストは ページに わける(iPad で スクロール できなかったので ボタンで きりかえ)
+const PER = 6;
+function paged(arr, page, mk) {
+  const pages = Math.max(1, Math.ceil(arr.length / PER)), p = Math.max(0, Math.min(pages - 1, page));
+  const nav = pages > 1 ? `<div class="pnav">${mk('pg:-1', '◀ まえ', p === 0 ? 'dim' : '')}<span>${p + 1} / ${pages}</span>${mk('pg:1', 'つぎ ▶', p === pages - 1 ? 'dim' : '')}</div>` : '';
+  return { items: arr.slice(p * PER, p * PER + PER), nav, page: p };
+}
+let pg = 0;   // いまの ページ
 // ===== 表示 =====
 const btn = (k, html, cls = '') => `<button data-m="${k}" class="${cls}">${html}</button>`;
 function bar(v, m, c) { return `<span class="mbar"><span style="width:${Math.max(0, Math.min(100, v / (m || 1) * 100))}%;background:${c}"></span></span>`; }
@@ -107,13 +117,14 @@ const heroCanvas = cls => `<canvas data-hero width="12" height="16" class="${cls
 function itemsView() {
   const ids = [...new Set(bag)].filter(id => byId('items', id)?.kind !== 'だいじ');
   if (!ids.length) return '<div class="mempty">まだ なにも もっていないよ</div>';
-  const list = ids.map(id => {
+  const P = paged(ids, pg, btn); pg = P.page;
+  const list = P.items.map(id => {
     const it = byId('items', id), eq = wearCount(id) >= bagCount(id) && wearCount(id) > 0;
     return btn('sel:' + id, `${R(it.name)}<small>${eq ? 'そうびちゅう' : '×' + bagCount(id)}</small>`, sel === id ? 'on' : '');
   }).join('');
   const it = byId('items', sel);
   const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? forWho('use', 'つかう') : it.kind === 'ワープ' ? warpBtns() : it.kind === 'テント' ? btn('tent', 'ねる', 'go') : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
-  return `<div class="mtop">おかね ${R(`${hero.gold}{円|えん}`)}</div><div class="mlist">${list}</div>${detail}`;
+  return `<div class="mtop">おかね ${R(`${hero.gold}{円|えん}`)}</div><div class="mlist">${list}</div>${P.nav}${detail}`;
 }
 function spellsView() {
   // みんなの じゅもん(なまえの よこに だれの じゅもんか)
@@ -121,7 +132,8 @@ function spellsView() {
   if (!list.length) return '<div class="mempty">まだ じゅもんを おぼえていないよ</div>';
   const s = byId('skills', sel), c = who(caster);
   const top = ms.map(m => `${R(m.name)} MP ${m.s.mp}/${m.st.maxmp}`).join('  ');
-  return `<div class="mtop">${top}</div><div class="mlist">${list.map(({ m, s: x }) => btn(`sel:${m.key}|${x.id}`, `${R(x.name)}<small>${ms.length > 1 ? R(m.name) + ' ' : ''}MP ${x.mp}</small>`, sel === x.id && caster === m.key ? 'on' : '')).join('')}</div>` +
+  const P = paged(list, pg, btn); pg = P.page;
+  return `<div class="mtop">${top}</div><div class="mlist">${P.items.map(({ m, s: x }) => btn(`sel:${m.key}|${x.id}`, `${R(x.name)}<small>${ms.length > 1 ? R(m.name) + ' ' : ''}MP ${x.mp}</small>`, sel === x.id && caster === m.key ? 'on' : '')).join('')}</div>${P.nav}` +
     (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'ワープ' ? warpBtns() : s.effect === 'かいふく' && s.target === 'みんな' ? btn('cast:all', 'となえる', 'go') : s.effect === 'かいふく' ? forWho('cast', 'となえる') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
 }
 function equipView() {
@@ -130,12 +142,13 @@ function equipView() {
   if (slot) {
     const own = [...new Set(bag)].map(id => byId('items', id)).filter(it => it && it.kind === slot);
     const cur = equippedBy(eqWho, slot);
-    const list = own.map(it => {
+    const P = paged(own, pg, btn); pg = P.page;
+    const list = P.items.map(it => {
       const diff = it.val - (cur?.val || 0), free = bagCount(it.id) - wearCount(it.id) + (cur?.id === it.id ? 1 : 0);
       const note = cur?.id === it.id ? ' そうびちゅう' : free <= 0 ? ' ほかの ひとが そうび' : diff > 0 ? ' ▲' : diff < 0 ? ' ▼' : '';
       return btn('equip:' + it.id, `${R(it.name)}<small>${slot === 'かざり' ? 'みためが かわる' : `${slot === 'ぶき' ? (it.look === 'マイク' ? 'まりょく' : 'こうげき') : 'ぼうぎょ'} +${it.val}`}${note}</small>`, cur?.id === it.id ? 'on' : '');
     }).join('');
-    return tabs + `<div class="mtop">${R(m.name)}の ${slot}を えらんでね</div><div class="mlist">${list || '<div class="mempty">もっていないよ</div>'}</div>` +
+    return tabs + `<div class="mtop">${R(m.name)}の ${slot}を えらんでね</div><div class="mlist">${list || '<div class="mempty">もっていないよ</div>'}</div>${P.nav}` +
       `<div class="mrow">${cur ? btn('unequip', 'はずす') : ''}${btn('back', 'もどる')}</div>`;
   }
   const w = equippedBy(eqWho, 'ぶき'), a = equippedBy(eqWho, 'よろい'), c = equippedBy(eqWho, 'かざり');
@@ -163,6 +176,7 @@ function keyItemsView() {
   const ids = [...new Set(bag)].filter(id => byId('items', id)?.kind === 'だいじ');
   if (!ids.length) return '<div class="mempty">まだ なにも ないよ</div>';
   const it = byId('items', sel);
-  return `<div class="mlist">${ids.map(id => btn('sel:' + id, R(byId('items', id).name), sel === id ? 'on' : '')).join('')}</div>` +
+  const P = paged(ids, pg, btn); pg = P.page;
+  return `<div class="mlist">${P.items.map(id => btn('sel:' + id, R(byId('items', id).name), sel === id ? 'on' : '')).join('')}</div>${P.nav}` +
     (it ? `<div class="mdetail">${R(it.desc || it.name)}</div>` : '');
 }
