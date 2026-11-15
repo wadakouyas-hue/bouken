@@ -7,7 +7,7 @@ import { sfx } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const R = s => rubyHTML(String(s).replace(/@/g, hero.name));
-export const menu = { open: false };
+export const menu = { open: false, towns: () => [], warp: null };   // towns: いける まち [{ map, name }]、 warp(map): とぶ(main.js が いれる)
 const TABS = ['どうぐ', 'じゅもん', 'そうび', 'つよさ', 'なかま', 'だいじな もの'];
 let tab = TABS[0], sel = null, slot = null, msg = '', onChange = null;
 
@@ -29,6 +29,7 @@ export function menuTap(k) {
   else if (k.startsWith('slot:')) { slot = k.slice(5); msg = ''; }
   else if (k.startsWith('equip:')) equip(k.slice(6));
   else if (k === 'unequip') { const it = equipped(slot); hero.equip[slot] = null; if (it) msg = `${it.name}を はずした。`; slot = null; changed(); }
+  else if (k.startsWith('warp:')) { warp(k.slice(5)); return; }
   else if (k === 'back') { slot = null; sel = null; }
   render();
 }
@@ -54,6 +55,15 @@ function castSpell(key) {
   msg = `「${s.name}」! ${m.name}の HPが ${n} かいふくした!`;
   changed();
 }
+// ワープ: はね(どうぐ) か ひとっとび(じゅもん)で いったことの ある まちへ
+function warp(map) {
+  const it = tab === 'どうぐ' ? byId('items', sel) : null, s = tab === 'じゅもん' ? byId('skills', sel) : null;
+  if (it) { if (!bag.includes(it.id)) return; bagRemove(it.id); }
+  else if (s) { if (hero.mp < s.mp) { msg = 'MPが たりないよ。'; render(); return; } hero.mp -= s.mp; }
+  else return;
+  close(); changed(); if (menu.warp) menu.warp(map);
+}
+const warpBtns = () => menu.towns().map(t => btn('warp:' + t.map, `${R(t.name)}へ`, 'go')).join('');
 function equip(id) {
   const it = byId('items', id); if (!it) return;
   hero.equip[slot] = id; sfx('get');
@@ -94,7 +104,7 @@ function itemsView() {
     return btn('sel:' + id, `${R(it.name)}<small>${eq ? 'そうびちゅう' : '×' + bagCount(id)}</small>`, sel === id ? 'on' : '');
   }).join('');
   const it = byId('items', sel);
-  const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? forWho('use', 'つかう') : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
+  const detail = it ? `<div class="mdetail">${R(it.desc || it.name)}${it.kind === 'かいふく' ? forWho('use', 'つかう') : it.kind === 'ワープ' ? warpBtns() : ''}</div>` : '<div class="mdetail mhint">どうぐを えらんでね</div>';
   return `<div class="mtop">おかね ${R(`${hero.gold}{円|えん}`)}</div><div class="mlist">${list}</div>${detail}`;
 }
 function spellsView() {
@@ -103,7 +113,7 @@ function spellsView() {
   if (!list.length) return '<div class="mempty">まだ じゅもんを おぼえていないよ</div>';
   const s = byId('skills', sel);
   return `<div class="mtop">MP ${hero.mp}/${st.maxmp}</div><div class="mlist">${list.map(x => btn('sel:' + x.id, `${R(x.name)}<small>MP ${x.mp}</small>`, sel === x.id ? 'on' : '')).join('')}</div>` +
-    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'かいふく' ? forWho('cast', 'となえる') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
+    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'ワープ' ? warpBtns() : s.effect === 'かいふく' ? forWho('cast', 'となえる') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
 }
 function equipView() {
   const st = heroStats();

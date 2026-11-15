@@ -158,7 +158,7 @@ function goExit(e) {
     cur = MAPS[e.to]; resetEnemies(cur);
     Object.assign(player, at(e.at[0], e.at[1]));
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false; trail.length = 0;
-    updateCamera(); save();
+    updateCamera(); visit(); save();
     playBgm(bgmFor());
   });
 }
@@ -169,6 +169,19 @@ function updateTrans(dt) {
   if (trans.t >= FADE * 2) { trans.on = false; const a = trans.after; trans.after = null; if (a) a(); }
 }
 const fadeAlpha = () => !trans.on ? 0 : trans.t < FADE ? trans.t / FADE : Math.max(0, 2 - trans.t / FADE);
+
+// ===== ワープ(いったことの ある まちへ) =====
+const visit = () => { const n = mapName(); if (cur.town && !flags.has('visit:' + n)) flags.add('visit:' + n); };
+menu.towns = () => Object.entries(MAPS).filter(([n, m]) => m.town && (flags.has('visit:' + n) || n === 'village')).map(([n, m]) => ({ map: n, name: m.town.name }));
+menu.warp = name => {
+  const m = MAPS[name]; if (!m?.town) return;
+  sfx('warp');
+  fadeTo(() => {
+    cur = m; resetEnemies(cur);
+    Object.assign(player, at(m.town.at[0], m.town.at[1]), { dir: 'down', anim: 0, moving: false }); trail.length = 0;
+    updateCamera(); visit(); save(); playBgm(bgmFor());
+  }, () => openDialog('', [`${m.town.name}に ついた!`]));
+};
 
 // ===== 戦闘へ =====
 function encounter(o, opt = {}) {

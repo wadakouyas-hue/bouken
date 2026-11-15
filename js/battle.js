@@ -101,7 +101,7 @@ function chooseCommand(m, first) {
       { html: 'にげる', off: !first || B.boss, fn: () => { if (B.boss) note('ボスからは にげられない!'.replace('ボス', '{ボス|ぼす}')); else if (!first) note('にげるは さいしょの ひとが えらぶよ'); else done({ type: 'run' }); } },
     ]);
     const skills = kind => {
-      const list = st(m).skills.map(id => byId('skills', id)).filter(s => s && s.type === kind);
+      const list = st(m).skills.map(id => byId('skills', id)).filter(s => s && s.type === kind && s.effect !== 'ワープ');
       if (!list.length) { note(kind === 'じゅもん' ? 'じゅもんを つかえないよ' : 'まだ わざを おぼえていないよ'); return; }
       setButtons([...list.map(s => ({
         html: `${rubyHTML(s.name)}<small>MP ${s.mp}${s.elem && s.elem !== 'なし' ? ' ' + s.elem : ''}</small>`, off: m.s.mp < s.mp,

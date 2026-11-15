@@ -5,6 +5,7 @@
 // 位置は「左から何マス目, 上から何マス目」(いちばん左上が 0, 0)
 export default {
   outside: true,   // そと(ひると よるが ある)
+  town: { name: '{ネコン|ねこん}{村|むら}', at: [5.5, 8] },   // ワープで いける まち(着く ばしょ)
   rows: [
     'TTTTTTTTTTTTTTTTTTTTT~~TTTTTTT',
     'T........TT..........~~......T',
