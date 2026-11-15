@@ -38,7 +38,7 @@ export default {
     { kind: 'enemy', x: 5, y: 10, party: 'ほねほね ほねほね', night: true },
   ],
   exits: [
-    { x: 11, y: 17, w: 2, to: 'forest', at: [24.5, 1], dir: 'down' },   // した → 森
+    { x: 11, y: 17, w: 2, to: 'mid2', at: [11.5, 1], dir: 'down' },     // した → いずみの もり
     { x: 11, y: 0, w: 2, to: 'hill', at: [10.5, 14], dir: 'up', need: 'crow', block: ['おおがらすが みちを ふさいでいる!'] },   // うえ → みはらしの おか
   ],
 };

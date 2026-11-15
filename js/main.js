@@ -19,6 +19,8 @@ import shopMap from '../maps/shop.js';
 import home from '../maps/home.js';
 import deep from '../maps/deep.js';
 import hill from '../maps/hill.js';
+import mid1 from '../maps/mid1.js';
+import mid2 from '../maps/mid2.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -42,7 +44,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2 };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length;
   m.objs = m.objs.map(o => {
@@ -317,6 +319,12 @@ const EVENTS = {
         await say(HAMO, ['ジャラ〜ン……♪'.replace('ジャラ〜ン', '{ジャラ〜ン|じゃら〜ん}'), 'この むらは いい ところだね。\nしばらく ここに いようかな。']);
         await say('', ['おおがらすは どこかへ とんでいった。', 'みはらしの おかへの みちが ひらいた!']);
       } });
+  },
+  // いずみの みず: みんな げんきに なる
+  async spring() {
+    const tired = members().some(m => m.s.hp < m.st.maxhp || m.s.mp < m.st.maxmp);
+    if (tired) { healFull(); sfx('heal'); save(); }
+    await say('', ['すきとおった いずみだ。', tired ? 'つめたい みずを のんだ。\nみんなの {体|からだ}が げんきに なった!' : 'つめたくて おいしい みずだ。']);
   },
   // みはらしの おかの たかい だんさ: ハモが かたぐるま → かけらが ひかって のぼれる ように なる
   async kataguruma() {
