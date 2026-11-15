@@ -641,6 +641,10 @@ export function enemySprite(look) {
 }
 export const ENEMY_ROWS = ENEMY;
 DECO.owl = enemySprite('ミミズク');   // パルル町に いる ミミズク(かざり)
+// 第3章の おてつだい: こおばけ・おばけび・ゆきうさぎの こ・できた ゆきだるま・あかい かさ
+DECO.kobake = enemySprite('おばけ'); DECO.wisp = enemySprite('おばけび'); DECO.usako = enemySprite('ゆきうさぎ'); DECO.snowman = enemySprite('ゆきだるま');
+SPR.kasa = paintCv(12, 16, p => { for (let y = 0; y < 5; y++) p(5 - y, 3 + y, 2 + y * 2, 1, y % 2 ? '#e04848' : '#ff5a5a'); p(0, 8, 12, 1, '#a8283a'); p(5, 1, 2, 2, '#ffd23f');
+  p(6, 8, 1, 7, '#5a3418'); p(4, 14, 2, 1, '#5a3418'); p(4, 13, 1, 1, '#5a3418'); });
 export const eyeColor = look => { const d = ENEMY[look] || ENEMY.きのこ; return d.glow || d.pal.e; };
 export const eyePos = look => (ENEMY[look] || ENEMY.きのこ).eye || [4, 10, 6];   // くらやみで 光る 目の いろ   // 確認用
 
@@ -652,6 +656,7 @@ const ARMOR = {
   てつ: { r: '#b8c4d0', b: '#5a6a7a', belt: '#f2c230' },
   レイン: { r: '#f2c230', b: '#3a5ad8', belt: '#e8a020' },   // きいろい レインコート
   マフラー: { r: '#e04848', b: '#4a4a6a', belt: '#ffffff' },  // あかい マフラー
+  ゆき: { r: '#e6f6ff', b: '#5a8ad8', belt: '#7ac8ff' },       // ゆきの よろい
 };
 // ぶき: 手に持つ位置に 描く(x = 持つ場所)
 function drawWeapon(g, look, x, flip, side) {

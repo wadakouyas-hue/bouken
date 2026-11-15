@@ -28,6 +28,7 @@ export default {
     'YYYYYggYYYYYYYYYYYYYYYYYYY',
   ],
   objs: [
+    { kind: 'deco', x: 2, y: 4, pic: 'wisp', label: 'はなす', event: 'wisp', flag: 'wisp2', show: 'tomoAsk', hide: 'wisp2', light: 26 },
     { kind: 'chest', x: 2, y: 4, label: 'あける', give: 'ワープのはね', lines: ['たからばこを あけた!', '♪{ワープ|わーぷ}の はねを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
     { kind: 'look', x: 22, y: 14, label: 'しらべる', gold: 500,
       lines: ['{木|き}の ねもとに ふくろが ある。', '♪500{円|えん} みつけた!'], after: ['もう なにも ない。'] },

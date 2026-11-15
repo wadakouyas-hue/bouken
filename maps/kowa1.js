@@ -30,6 +30,7 @@ export default {
     'YYYYYYYYYYggYYYYYYYYYY',
   ],
   objs: [
+    { kind: 'deco', x: 5, y: 10, pic: 'wisp', label: 'はなす', event: 'wisp', flag: 'wisp1', show: 'tomoAsk', hide: 'wisp1', light: 26 },
     { kind: 'chest', x: 3, y: 10, label: 'あける', give: 'げんきのみず', lines: ['たからばこを あけた!', '♪げんきの みずを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
     { kind: 'enemy', x: 6, y: 4, party: 'こおばけ' },
     { kind: 'enemy', x: 15, y: 5, party: 'おばけび こおばけ' },

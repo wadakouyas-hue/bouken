@@ -5,8 +5,8 @@ export default {
   snow: true,
   enter: [{ need: 'obake', once: 'feverGo', event: 'fever' }, { need: 'sick', once: 'snowHint', event: 'snowHint' }],
   rows: [
-    '222222222222**2222222222',
-    '22********************22',
+    '222222222222**222222*222',
+    '22******************&*22',
     '22*****************2**22',
     '22**2*****************22',
     '22***********1111111**22',
@@ -23,11 +23,16 @@ export default {
     '222222222**2222222222222',
   ],
   objs: [
+    { kind: 'deco', x: 8, y: 2, pic: 'usako', label: 'はなす', event: 'usako', show: 'genki', name: 'ゆきうさぎの こ' },
+    { kind: 'deco', x: 10, y: 2, pic: 'snowman', show: 'yukidaruma' },
+    { kind: 'look', x: 20, y: 1.6, label: 'しらべる', event: 'iceWall', hide: 'iceMelt' },
     { kind: 'look', x: 16, y: 9, label: 'しらべる', lines: ['こおりの うえは つるつる すべる!', 'かべや いわに ぶつかるまで とまらないよ。'] },
     { kind: 'enemy', x: 6, y: 4, party: 'ゆきだるま' },
     { kind: 'enemy', x: 17, y: 11, party: 'ゆきうさぎ ゆきうさぎ' },
   ],
+  swaps: [{ flag: 'iceMelt', cells: [[20, 1, '*']] }],
   exits: [
+    { x: 20, y: 0, to: 'kori1', at: [7.5, 12], dir: 'up' },                     // うえ みぎ → こおりの どうくつ(こおりの かべを とかしてから)
     { x: 5, y: 10, to: 'yama', at: [4.5, 6], dir: 'up' },                         // こや
     { x: 9, y: 15, w: 2, to: 'kowa5', at: [9.5, 1], dir: 'down' },               // した → もりの おく
     { x: 12, y: 0, w: 2, to: 'ice1', at: [9.5, 18], dir: 'up', need: 'sick' },   // うえ → つるつる みずうみ

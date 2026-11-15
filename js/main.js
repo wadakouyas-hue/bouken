@@ -8,7 +8,7 @@ import { clock, tick, toMorning, darkness, isNight, hourNow, timeWords, dayLen }
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import { ready, dataErrors, byId, DATA } from './data.js';
-import { hero, bag, heroStats, healFull, equipLook, equipBest, START_GOLD, members, joinAlly, party } from './hero.js';
+import { hero, bag, heroStats, healFull, equipLook, equipBest, START_GOLD, members, joinAlly, party, bagRemove } from './hero.js';
 import { shop, openShop, shopTap } from './shop.js';
 import { menu, openMenu, menuTap } from './menu.js';
 import { room, furnImg, furnLook, furnSize, furnWork, isFlat, solidCells, canPlace } from './furniture.js';
@@ -53,6 +53,10 @@ import yama1 from '../maps/yama1.js';
 import yama2 from '../maps/yama2.js';
 import yama3 from '../maps/yama3.js';
 import yama4 from '../maps/yama4.js';
+import kori1 from '../maps/kori1.js';
+import kori2 from '../maps/kori2.js';
+import kori3 from '../maps/kori3.js';
+import korioku from '../maps/korioku.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -76,7 +80,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama, yama1, yama2, yama3, yama4 };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama, yama1, yama2, yama3, yama4, kori1, kori2, kori3, korioku };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -388,6 +392,7 @@ stage.addEventListener('pointerdown', e => {
   if (tg.on) { tgTap(); return; }
   if (concert.on) { concertTap(); return; }
   if (care.on) { const b = e.target.closest('[data-c]'); careTap(b ? b.dataset.c : null); return; }
+  if (roll.on) { rollTap(); return; }
   if (paint.open) {
     const b = e.target.closest('[data-p]'); if (b) { paintTap(b.dataset.p); return; }
     const cv = e.target.closest('#paintcv'); if (cv) { const r = cv.getBoundingClientRect(); paintAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
@@ -425,6 +430,7 @@ addEventListener('keydown', e => {
   if (shop.open) { if (e.key === 'Escape') shopTap('#close'); return; }
   if (tg.on) { if (ok) tgTap(); return; }
   if (concert.on) { if (ok) concertTap(); return; }
+  if (roll.on) { if (ok) rollTap(); return; }
   if (care.on) { const k = ['towel', 'water', 'kayu', 'blanket', 'hand'][+e.key - 1]; if (k || ok) careTap(k || null); return; }
   if (paint.open) { if (e.key === 'Escape') paintTap('#close'); return; }
   if (deco.open) { if (e.key === 'Escape') decoTap('#done'); return; }
@@ -534,6 +540,12 @@ function updateTramp(dt) {
   }
   if (tg.msgT <= 0 && tg.msg) { tg.msg = ''; tgShow('おりてきて つく ときに タップ!'); }
 }
+// ゆきだまを ころがす ミニゲーム(タップで おおきく する)
+const roll = { on: false, n: 0, need: 0, done: null, part: '' };
+function startRoll(part, need) { return new Promise(r => { Object.assign(roll, { on: true, n: 0, need, done: r, part }); stickRelease(); rollShow(); }); }
+function rollShow() { $('mini').style.display = 'block'; $('mini').innerHTML = `<div class="mcount">${roll.n}<small>/ ${roll.need}</small></div><div class="mhint">${rubyHTML(`タップして ${roll.part}を ころがそう!`)}</div>`; }
+function rollTap() { if (!roll.on) return; roll.n++; sfx(roll.n % 2 ? 'step' : 'slide'); rollShow();
+  if (roll.n >= roll.need) { roll.on = false; $('mini').style.display = 'none'; sfx('get'); const d = roll.done; roll.done = null; d(); } }
 const campNight = { on: false };      // キャンプの よる(たきびの まわりが あかるい)
 const wait = sec => new Promise(r => setTimeout(r, sec * 1000));
 // おてつだいが 3つ おわったら、 ハモが キャンプに さそう
@@ -918,6 +930,64 @@ const EVENTS = {
     await say('@', ['……うん。 まってる……']);
     await say('', ['ここからは しばらく、 {ハモ|はも}と {メロ|めろ}の ふたりで ぼうけんだ!']);
   },
+  // ===== 第3章の おてつだい =====
+  // こやの ねこの あかい かさ
+  async kasaFind(o) {
+    flags.add('kasaGot'); bag.push('こやのかさ'); o.taken = true; o.gone = true; save(); sfx('get');
+    await say('', ['いわの かげに、 あかい かさが ひっかかっていた!', '♪あかい かさを {手|て}に いれた!']);
+    await say('{メロ|めろ}', ['あまやどりの こやの ねこさんの かさね。 とどけて あげましょう。']);
+  },
+  async kasaGive(o) {
+    bagRemove('こやのかさ'); flags.add('kasaDone'); bag.push('げんきのみず', 'げんきのみず'); hero.gold += 800; chipText = ''; save(); sfx('get');
+    await say(o.name, ['ありがとう! これは むかし だいじな ひとに もらった かさ なんだ。', 'おれいに これを もっていって おくれ。', '♪げんきの みずを 2こと 800{円|えん} もらった!']);
+  },
+  // こおばけの ともだち: もりの おばけびに 「いっしょに あそぼう」
+  async kobake(o) {
+    const N = ['wisp1', 'wisp2', 'wisp3'].filter(f => flags.has(f)).length;
+    if (flags.has('tomoDone')) { await say(o.name, ['みんなで かくれんぼ してるんだ! たのしいよ!', 'ねえ、 @も こんど いっしょに あそぼうね!']); return; }
+    if (!flags.has('tomoAsk')) {
+      await say(o.name, ['あっ、 @たち! あのね……', 'ぼく、 「いっしょに あそぼう」って いえるように なりたいんだ。', 'でも、 まだ ちょっと はずかしくて……', 'この もりの どこかに、 ひとりぼっちの おばけびが 3びき いるの。', 'ぼくの かわりに、 こえを かけて きて くれる?']);
+      await say('@', ['うん、 まかせて!']);
+      flags.add('tomoAsk'); save(); return;
+    }
+    if (N < 3) { await say(o.name, [`おばけびは あと ${3 - N}ひき。`, 'くらい もりの どこかで、 ぽわっと ひかって いるよ。']); return; }
+    flags.add('tomoDone'); bag.push('げんきのみず'); hero.gold += 1000; chipText = ''; save();
+    await say('', ['3びきの おばけびが、 ふわふわ やってきた。']);
+    await say(o.name, ['……あ、 あの……', 'い、 いっしょに あそぼう!']);
+    await say('おばけびたち', ['うん! あそぼう!']);
+    sfx('get');
+    await say(o.name, ['いえた……! ありがとう、 @!', 'これ、 おれいだよ。', '♪げんきの みずと 1000{円|えん} もらった!']);
+    await say(HAMO, ['ちゃんと いえたね。 すごいぞ。']);
+  },
+  async wisp(o) {
+    flags.add(o.flag); save(); sfx('note');
+    const N = ['wisp1', 'wisp2', 'wisp3'].filter(f => flags.has(f)).length;
+    await say('@', ['ねえ、 こおばけが 「いっしょに あそぼう」って!']);
+    await say('おばけび', ['……ほんと? うれしい! いく いく!']);
+    await say('', [N < 3 ? `おばけびは ふわふわ こおばけの ところへ とんでいった。 (あと ${3 - N}ひき)` : 'これで 3びき! こおばけの ところへ もどろう。']);
+  },
+  // ゆきうさぎの こ: おおきな ゆきだるまを つくる
+  async usako(o) {
+    if (flags.has('yukidaruma')) { await say(o.name, ['ゆきだるま、 かっこいいでしょ! ずっと ここに かざって おくね。']); return; }
+    await say(o.name, ['ねえねえ、 おおきな ゆきだるまを つくりたいの。', 'でも ぼく ちいさくて、 ゆきだまが ころがせないの……', 'てつだって くれる?']);
+    await say('@', ['いいよ! いっしょに つくろう!']);
+    await startRoll('からだ', 15);
+    await say('', ['おおきな ゆきだまが できた!']);
+    await startRoll('あたま', 10);
+    await say('', ['あたまを のせて、 えだの うでと にんじんの はなを つけた。']);
+    await fade(() => { flags.add('yukidaruma'); });
+    bag.push('げんきのみず'); hero.gold += 600; chipText = ''; save(); sfx('get');
+    await say(o.name, ['わあ……! できた! ぼくより ずっと おおきい!', 'ありがとう! これ、 あげる!', '♪げんきの みずと 600{円|えん} もらった!']);
+  },
+  // こおりの かべ(ぬくもりの かけらで とける)→ こおりの どうくつ
+  async iceWall() {
+    if (!bag.includes('ぬくもりのかけら')) { await say('', ['ぶあつい こおりの かべで ふさがれている。', 'むこうに どうくつが あるみたい。', 'なにか あたたかい ちからが あれば……']); return; }
+    await say('', ['ぬくもりの かけらが ぽかぽか ひかった……!']);
+    sfx('magic');
+    await fade(() => { flags.add('iceMelt'); applySwaps(cur); save(); });
+    await say('', ['こおりの かべが とけて、 どうくつの いりぐちが あらわれた!']);
+    await say(HAMO, ['なかも つるつるの こおり みたいだ。 ちょっと むずかしそうだね。']);
+  },
   // ===== 第3章 4回目: あらしの かげ =====
   async kageHint() {
     await say('{メロ|めろ}', ['すごい ふぶき……!']);
@@ -1272,6 +1342,7 @@ function update(dt) {
   if (leap.on) { updateLeap(dt); hideAct(); return; }
   if (concert.on) { updateConcert(dt); hideAct(); return; }
   if (care.on) { updateCare(dt); hideAct(); return; }
+  if (roll.on) { hideAct(); return; }
   if (trans.on || nameEntry.open || menu.open || shop.open || deco.open || paint.open || jump.on) { hideAct(); if (jump.on) jump.t += dt; return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
@@ -1567,6 +1638,9 @@ function drawField() {
     ctx.drawImage(img, sx - 6 + (e === player && hand.alone ? Math.floor(tm * 18) % 2 : 0), sy - 15 + jy);   // ひとりの ときは ぶるぶる
     if ((e.kind === 'chest' && !e.taken || e.kind === 'item') && (tm % 1.4) < .35) { ctx.fillStyle = '#fff'; ctx.fillRect(sx + 3, sy - 14, 1, 3); ctx.fillRect(sx + 2, sy - 13, 3, 1); } // きらっ
   }
+  // ゆきだまが だんだん おおきく なる
+  if (roll.on) { const r = 3 + Math.round(roll.n / roll.need * 9), sx = Math.round(player.x - cam.x) + 14, sy = Math.round(player.y - cam.y) - r;
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.fill(); ctx.fillStyle = '#c4d4e4'; ctx.fillRect(sx - r + 2, sy + r - 2, r * 2 - 4, 2); }
   // トランポリンの ミニゲーム: タップの タイミングで わが きいろく ひかる
   if (tg.on && tg.wait <= 0) {
     const now = tg.pending != null || tg.ph > 1 - TG_EARLY / tgPeriod(), sx = Math.round(player.x - cam.x), sy = Math.round(player.y - cam.y);

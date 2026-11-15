@@ -25,6 +25,11 @@ export default {
     'YYYYYYYYYggYYYYYYYYY',
   ],
   objs: [
+    { kind: 'deco', x: 12, y: 4, pic: 'kobake', label: 'はなす', event: 'kobake', show: 'genki', name: 'こおばけ', light: 24 },
+    { kind: 'deco', x: 4, y: 15, pic: 'wisp', label: 'はなす', event: 'wisp', flag: 'wisp3', show: 'tomoAsk', hide: 'wisp3', light: 26 },
+    { kind: 'deco', x: 11, y: 3.4, pic: 'wisp', show: 'tomoDone', light: 20, float: true },
+    { kind: 'deco', x: 13, y: 3.2, pic: 'wisp', show: 'tomoDone', light: 20, float: true },
+    { kind: 'deco', x: 12, y: 2.6, pic: 'wisp', show: 'tomoDone', light: 20, float: true },
     { kind: 'boss', x: 9.5, y: 5, bw: 16, look: 'おばけ', party: 'おおおばけ', event: 'obake', hide: 'obake', name: 'おおおばけ', label: 'はなす',
       lines: ['ヒュ〜〜 ドロドロ……'.replace('ヒュ〜〜 ドロドロ', '{ヒュ〜〜|ひゅ〜〜} {ドロドロ|どろどろ}'), 'こわいだろう〜。 かえれ〜!', 'この もりは、 だれも とおさないぞ〜!'] },
     { kind: 'look', x: 9.5, y: 1.2, label: 'しらべる', lines: ['みちの さきから、 つめたい かぜが ふいてくる。', 'とおくに、 ゆきを かぶった やまが みえる……'] },

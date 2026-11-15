@@ -31,6 +31,7 @@ export default {
     { flag: 'stBridge', cells: [[12, 11, 'B'], [13, 11, 'B'], [12, 12, 'b'], [13, 12, 'b']] },
   ],
   objs: [
+    { kind: 'item', x: 2, y: 3, pic: 'kasa', label: 'ひろう', event: 'kasaFind', show: 'kasaAsk', hide: 'kasaGot' },
     { kind: 'deco', x: 4.5, y: 18, pic: 'furn:トランポリン', label: 'とびこえる', event: 'hop', to: [6, 15] },
     { kind: 'deco', x: 4.5, y: 15, pic: 'furn:トランポリン', label: 'とびこえる', event: 'hop', to: [6, 18] },
     { kind: 'look', x: 11, y: 11.5, label: 'なおす', event: 'bridge', flag: 'stBridge', hide: 'stBridge' },
