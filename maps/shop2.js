@@ -1,5 +1,7 @@
 // パルル町の おみせ(14×9マス)。 shop: うる物(items.csv の id)
 export default {
+  bgm: 'park',
+  quiet: 'owl',
   rows: [
     '##############',
     '#wwvwwwwwwvww#',

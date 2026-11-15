@@ -1,6 +1,7 @@
 // みはらしの おか(20×16マス)。 てっぺんの まえに たかい だんさ(L)。 のぼった さきで とおくを ながめる
 export default {
   outside: true,
+  bgm: 'hill',
   rows: [
     'TTTTTTTTT==TTTTTTTTT',
     'TTTTTT,......,TTTTTT',

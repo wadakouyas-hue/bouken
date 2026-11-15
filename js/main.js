@@ -71,7 +71,7 @@ function resetEnemies(m) {
 
 // ===== ひると よる =====
 // そとの よるは よるの きょく
-const bgmFor = () => cur.quiet && !flags.has(cur.quiet) ? 'silence' : cur.outside && isNight() ? 'night' : cur.bgm || 'village';   // quiet: おとを ぬすまれた まち
+const bgmFor = () => cur.quiet && !flags.has(cur.quiet) ? 'quiet' : cur.outside && isNight() ? 'night' : cur.bgm || 'village';   // quiet: おとを ぬすまれた まち
 let wasNight = false;
 // よるに なった / あさに なった
 function nightChanged() {
