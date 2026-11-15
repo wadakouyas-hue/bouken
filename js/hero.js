@@ -24,8 +24,10 @@ export function allyStats(id) {
 }
 const ALLY_NAME = { hamo: '{ハモ|はも}', melo: '{メロ|めろ}' };
 // パーティ: [{ key, name, pal, s(hp・mp が 入っている もの), st(つよさ) }]
+// away: リズが いない あいだ(第3章 かぜで ねている。 main.js が いれる)
+export const party = { away: false };
 export function members() {
-  const list = [{ key: 'hero', name: hero.name, s: hero, st: heroStats() }];
+  const list = party.away ? [] : [{ key: 'hero', name: hero.name, s: hero, st: heroStats() }];
   for (const k of ['hamo', 'melo']) if (hero[k]) list.push({ key: k, name: ALLY_NAME[k], pal: k, s: hero[k], st: allyStats(k) });
   return list;
 }
@@ -59,10 +61,10 @@ export function gainExp(n) {
     const next = rows().find(r => r.lv === hero.lv + 1);
     if (!next || hero.exp < next.exp) break;
     const before = members().map(m => m.st);
-    const beforeSkills = before[0].skills;
+    const beforeSkills = heroStats().skills;
     hero.lv = next.lv;
     members().forEach((m, i) => { m.s.hp += m.st.maxhp - before[i].maxhp; m.s.mp += m.st.maxmp - before[i].maxmp; });   // ふえた ぶんだけ 回復
-    const learned = next.learn.filter(s => !beforeSkills.includes(s)).map(id => ({ id, who: hero.name }));
+    const learned = party.away ? [] : next.learn.filter(s => !beforeSkills.includes(s)).map(id => ({ id, who: hero.name }));
     for (const k of ['hamo', 'melo']) if (hero[k]) for (const r of rows(k)) if (r.lv === hero.lv) for (const id of r.learn) learned.push({ id, who: ALLY_NAME[k] });
     ups.push({ lv: hero.lv, learned });
   }

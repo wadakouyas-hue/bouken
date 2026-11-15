@@ -3,11 +3,12 @@ import { T, BLOCK, tileImg } from './tiles.js';
 import { charSprite, SPR, enemySprite, heroSprite, eyeColor, eyePos, DECO } from './sprites.js';
 import { paint, openPaint, paintTap, paintAt } from './paint.js';
 import { concert, startConcert, concertTap, updateConcert, drawConcert, rankOf } from './concert.js';
+import { care, startCare, careTap, updateCare, drawCare } from './kanbyo.js';
 import { clock, tick, toMorning, darkness, isNight, hourNow, timeWords, dayLen } from './clock.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import { ready, dataErrors, byId, DATA } from './data.js';
-import { hero, bag, heroStats, healFull, equipLook, equipBest, START_GOLD, members, joinAlly } from './hero.js';
+import { hero, bag, heroStats, healFull, equipLook, equipBest, START_GOLD, members, joinAlly, party } from './hero.js';
 import { shop, openShop, shopTap } from './shop.js';
 import { menu, openMenu, menuTap } from './menu.js';
 import { room, furnImg, furnLook, furnSize, furnWork, isFlat, solidCells, canPlace } from './furniture.js';
@@ -43,6 +44,11 @@ import kowa2 from '../maps/kowa2.js';
 import mayoi from '../maps/mayoi.js';
 import bridge from '../maps/bridge.js';
 import kowa5 from '../maps/kowa5.js';
+import snow1 from '../maps/snow1.js';
+import ice1 from '../maps/ice1.js';
+import ice2 from '../maps/ice2.js';
+import ice3 from '../maps/ice3.js';
+import yama from '../maps/yama.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -66,7 +72,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5 };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5, snow1, ice1, ice2, ice3, yama };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -219,6 +225,8 @@ const player = { x: START.x, y: START.y, dir: 'down', anim: 0, moving: false };
 // マップの 人や物に show: 'フラグ'(その フラグが あると でる) / hide: 'フラグ'(あると きえる) が 書ける
 const flags = new Set();
 const has = f => !f || (Array.isArray(f) ? f.every(x => flags.has(x)) : flags.has(f));
+// リズが かぜで ねている あいだは ハモと メロの ふたりで ぼうけん(第3章)
+const syncParty = () => { party.away = flags.has('sick') && !flags.has('genki'); };
 const shown = o => (!o.show || has(o.show)) && (!o.hide || !flags.has(o.hide)) && (o.step == null || o.step === maze.step);   // step: まよいの もりの だんかい
 const live = () => cur.objs.filter(o => !o.gone && shown(o));
 
@@ -276,7 +284,7 @@ function goExit(e) {
   }
   sfx('warp');
   fadeTo(() => {
-    cur = MAPS[e.to]; resetEnemies(cur); maze.step = 0;
+    cur = MAPS[e.to]; resetEnemies(cur); maze.step = 0; ice.dx = ice.dy = 0;
     Object.assign(player, at(e.at[0], e.at[1]));
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false; trail.length = 0;
     updateCamera(); visit(); save();
@@ -324,15 +332,16 @@ function encounter(o, opt = {}) {
     startBattle(o.party, { bg: rainy() ? 'storm' : null, ...opt }).then(result => fadeTo(() => {
       if (result === 'win') { if (opt.onWin) opt.onWin(); else { o.gone = true; o.spawnT = null; } }
       if (result === 'run') o.cool = 3;          // にげたあと 少しの間は ぶつからない
-      if (result === 'lose') {                   // まけたら 村で 目が さめる。 もっている おかねは はんぶんに
-        cur = MAPS[START.map]; Object.values(MAPS).forEach(resetEnemies);
-        Object.assign(player, { x: START.x, y: START.y, dir: 'up' }); trail.length = 0;
+      if (result === 'lose') {                   // まけたら 村で 目が さめる。 もっている おかねは はんぶんに(リズが ねている あいだは やまの こや)
+        const home = party.away ? { map: 'yama', ...at(4.5, 5) } : START;
+        cur = MAPS[home.map]; Object.values(MAPS).forEach(resetEnemies);
+        Object.assign(player, { x: home.x, y: home.y, dir: 'up' }); trail.length = 0; ice.dx = ice.dy = 0;
         healFull();
         lost = hero.gold - Math.floor(hero.gold / 2); hero.gold -= lost;
       }
       updateCamera(); save();
       playBgm(bgmFor());
-    }, result === 'lose' ? () => openDialog('', ['……はっ!', 'おうちで {目|め}が さめた。 だれかが はこんで くれたみたい。', 'みんなの HPが ぜんぶ もどった!',
+    }, result === 'lose' ? () => openDialog('', ['……はっ!', party.away ? 'こやで {目|め}が さめた。 なんとか もどって こられた みたい。' : 'おうちで {目|め}が さめた。 だれかが はこんで くれたみたい。', 'みんなの HPが ぜんぶ もどった!',
       ...(lost > 0 ? [`でも、 おかねを ${lost}{円|えん} おとして しまった…`] : [])]) : result === 'win' && opt.afterWin ? opt.afterWin : null));
   });
 }
@@ -374,6 +383,7 @@ stage.addEventListener('pointerdown', e => {
   if (shop.open) { const b = e.target.closest('[data-s]'); if (b) shopTap(b.dataset.s); return; }
   if (tg.on) { tgTap(); return; }
   if (concert.on) { concertTap(); return; }
+  if (care.on) { const b = e.target.closest('[data-c]'); careTap(b ? b.dataset.c : null); return; }
   if (paint.open) {
     const b = e.target.closest('[data-p]'); if (b) { paintTap(b.dataset.p); return; }
     const cv = e.target.closest('#paintcv'); if (cv) { const r = cv.getBoundingClientRect(); paintAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
@@ -411,6 +421,7 @@ addEventListener('keydown', e => {
   if (shop.open) { if (e.key === 'Escape') shopTap('#close'); return; }
   if (tg.on) { if (ok) tgTap(); return; }
   if (concert.on) { if (ok) concertTap(); return; }
+  if (care.on) { const k = ['towel', 'water', 'kayu', 'blanket', 'hand'][+e.key - 1]; if (k || ok) careTap(k || null); return; }
   if (paint.open) { if (e.key === 'Escape') paintTap('#close'); return; }
   if (deco.open) { if (e.key === 'Escape') decoTap('#done'); return; }
   if (e.key === 'm' || e.key === 'Escape') { if (menu.open) menuTap('#close'); else if (started && hero.name && !dlg.open && !trans.on) openFieldMenu(); return; }
@@ -527,6 +538,29 @@ async function campCheck() {
     flags.add('campInvite'); save();
     await say(HAMO, ['ねえ、 @。 こんど みんなで {キャンプ|きゃんぷ} しない?', '{メロ|めろ}さんも さそって、 まちの ひがしの はらっぱで!', 'いちど おうちに かえって、 {メロ|めろ}さんに はなして みようよ。']);
   }
+}
+// かんびょう: やくそうを のませて、 ミニゲーム → つぎの あさ リズが げんきに なる
+async function nurse() {
+  await say('{メロ|めろ}', ['@、 おくすりよ。 すこし にがいけど、 がんばって。']);
+  await say('', ['@は やくそうの おちゃを のんだ。']);
+  if (bag.includes('ねつさましそう')) bag.splice(bag.indexOf('ねつさましそう'), 1);
+  await say(HAMO, ['ねつが さがるまで、 ふたりで そばに いよう。']);
+  await say('', ['@の おねがいを よんで、 あう ものを えらんでね。']);
+  let careDone; const cared = new Promise(r => { careDone = r; });
+  await fade(() => { startCare().then(careDone); });
+  await cared;
+  await fade(() => { flags.add('genki'); syncParty(); toMorning(); nightChanged(); healFull(); Object.assign(player, at(2.5, 3), { dir: 'left' }); trail.length = 0; chipText = ''; save(); });
+  await say('', ['……つぎの あさ。']);
+  await say('@', ['……ん……', '{ハモ|はも}…… {メロ|めろ}……']);
+  await say('{メロ|めろ}', ['@! おきたのね!']);
+  await say('', ['@の ねつは すっかり さがっていた!']);
+  await say('@', ['ゆめの なかでも、 ずっと {手|て}が あったかかった。', 'ふたりが ずっと そばに いて くれたから。', 'ありがとう。']);
+  await say(HAMO, ['……うん。 ずっと そばに いたよ。']);
+  await say('{メロ|めろ}', ['げんきに なって、 ほんとうに よかった……']);
+  sfx('get');
+  await say('', ['@が げんきに なった! また 3にんで ぼうけんだ!']);
+  await say(HAMO, ['くろい かげは、 やまの うえの くろい くもの なかだって。']);
+  await say('{メロ|めろ}', ['こんどこそ、 3にんで いきましょう。']);
 }
 const EVENTS = {
   // ガラガラ おおがらすと たたかう
@@ -819,10 +853,61 @@ const EVENTS = {
         await say(HAMO, ['こんどは こわがらせないで、\n「いっしょに あそぼう」って いってごらん。']);
         await say(o.name, ['……うん! やってみる!', 'くろい かげは、 きたの さむい やまの ほうへ とんでいったよ。']);
         await say('', ['おおおばけは ちいさく なって、 にこにこ {手|て}を ふった。']);
-        await say('', ['……くしゅん!', '@の {体|からだ}が ぶるっと ふるえた。']);
-        await say('{メロ|めろ}', ['あら、 @、 ほっぺが あついわ。 だいじょうぶ?']);
-        await say(HAMO, ['あめに ぬれたからかな……', 'いちど まちへ もどって、 あったかく して やすもう。']);
+        await EVENTS.fever();
       } });
+  },
+  // リズが ねつを だす → こやへ(まえの セーブで おおおばけを たおした ひとは、 もりに はいったとき)
+  async fever() {
+    flags.add('feverGo');
+    await say('', ['……くしゅん!', '@の {体|からだ}が ぶるっと ふるえた。']);
+    await say('{メロ|めろ}', ['あら、 @、 ほっぺが あついわ。 だいじょうぶ?']);
+    await say('@', ['……なんだか、 ふらふら する……']);
+    await say('', ['@は その ばに すわりこんで しまった。']);
+    await say(HAMO, ['たいへんだ、 すごい ねつだ!', 'ぼくが おんぶ するよ。', 'さっき もりの きたに、 ちいさな こやが みえたんだ。 いそごう!']);
+    await fade(() => { flags.add('sick'); syncParty(); healFull(); chipText = ''; cur = MAPS.yama; resetEnemies(cur); Object.assign(player, at(2.5, 3), { dir: 'left' }); trail.length = 0; visit(); updateCamera(); save(); playBgm(bgmFor()); });
+    await say('', ['ゆきの なかの ちいさな こやに たどりついた。', 'だれも すんで いない みたい。 だんろに ひを つけた。']);
+    await say('{メロ|めろ}', ['@を ベッドに ねかせましょう。'.replace('ベッド', '{ベッド|べっど}')]);
+    await say('', ['@は ベッドで ねむった。'.replace('ベッド', '{ベッド|べっど}'), 'はあ、 はあ…… くるしそう。']);
+    await say('{メロ|めろ}', ['ねつを さげる おくすりが あれば いいんだけど……', 'そうだわ。 きいた ことが あるの。', 'この さきの こおった みずうみに、\n「ねつさましの やくそう」が さくって。']);
+    await say(HAMO, ['よし、 ふたりで とりに いこう!']);
+    await say('{メロ|めろ}', ['@、 すぐ もどって くるからね。']);
+    await say('@', ['……うん。 まってる……']);
+    await say('', ['ここからは しばらく、 {ハモ|はも}と {メロ|めろ}の ふたりで ぼうけんだ!']);
+  },
+  // ===== 第3章 3回目: かぜと かんびょう =====
+  async snowHint() {
+    await say('{メロ|めろ}', ['さむい! いちめん まっしろね。']);
+    await say(HAMO, ['みずうみは うえの ほうだ。 いそごう!']);
+  },
+  async iceHint() {
+    await say(HAMO, ['みずうみが こおってる……', 'こおりの うえは つるつる すべるよ。', 'いわに ぶつかると とまるから、 よく みて すすもう!']);
+  },
+  // ベッドの リズ: やくそうが あれば かんびょう
+  async sickBed() {
+    if (flags.has('herb')) { await nurse(); return; }
+    await say('@', ['……はあ、 はあ……']);
+    await say('{メロ|めろ}', ['おでこが まだ あついわ……', 'やくそうを とって くるからね。 まっててね。']);
+    if (members().some(m => m.s.hp < m.st.maxhp || m.s.mp < m.st.maxmp)) {   // こやで やすむと げんきに なる
+      healFull(); chipText = ''; save(); sfx('heal');
+      await say('', ['だんろの まえで すこし やすんだ。', '{ハモ|はも}と {メロ|めろ}の HPと MPが ぜんぶ もどった!']);
+    }
+  },
+  // こおりの ぬし(ボス)
+  nushi(o) {
+    encounter({ party: [o.party] }, { boss: true, onWin: () => { flags.add('nushi'); save(); },
+      afterWin: async () => {
+        await say(o.name, ['ヒュウ…… あたたかい……', 'くろい かげに こころを こおらされて いたんだ……', 'ずっと つめたくて、 さむくて、 ひとりで ふるえて いた……']);
+        await say('{メロ|めろ}', ['もう だいじょうぶよ。']);
+        await say(o.name, ['ありがとう。 やくそうは もっていって いいよ。', 'くろい かげは、 やまの うえの くろい くもの なかに いる……']);
+        await say('', ['こおりの ぬしは、 しずかに みずうみの そこへ かえって いった。']);
+      } });
+  },
+  async herb() {
+    flags.add('herb'); bag.push('ねつさましそう'); save(); sfx('get');
+    await say('', ['あおく ひかる はなを みつけた!', '♪ねつさましの やくそうを {手|て}に いれた!']);
+    await say('{メロ|めろ}', ['これで @の ねつが さがるわ!', 'いそいで もどりましょう!']);
+    await fade(() => { cur = MAPS.yama; resetEnemies(cur); Object.assign(player, at(2.5, 3), { dir: 'left' }); trail.length = 0; updateCamera(); save(); playBgm(bgmFor()); });
+    await nurse();
   },
   // ===== パルル町の おてつだい: ちかしつの オルゴール =====
   async orgel(o) {
@@ -937,6 +1022,7 @@ function save() {
 }
 function load(d) {
   for (const f of d.flags || []) flags.add(f);
+  syncParty();
   Object.values(MAPS).forEach(applySwaps);
   cur = MAPS[d.map] || village;
   Object.assign(player, { x: d.x, y: d.y, dir: d.dir });
@@ -1048,6 +1134,33 @@ function slide(axis, dir, sp) {
   const m = Math.sign(best) * Math.min(Math.abs(best), sp);
   if (X) { if (!hits(player.x + m, player.y)) player.x += m; } else if (!hits(player.x, player.y + m)) player.y += m;
 }
+// ===== こおり(1): のると その むきに すべって、 かべや いわに ぶつかるまで とまらない =====
+const ice = { dx: 0, dy: 0 };
+const ICE_SP = 110;
+const footTile = () => [Math.floor(player.x / T), Math.floor((player.y - 3) / T)];
+const onIce = () => { const [tx, ty] = footTile(); return cur.rows[ty]?.[tx] === '1'; };
+function snapIce() { const [tx, ty] = footTile(), c = at(tx, ty); if (!hits(c.x, c.y)) { player.x = c.x; player.y = c.y; } }
+// こおりの うえに いれば true(ふつうには あるかない)
+function iceMove(dt, vx, vy, mag) {
+  if (!ice.dx && !ice.dy) {
+    if (!onIce()) return false;
+    if (mag < 0.3) { player.moving = false; player.anim = 0; return true; }   // とまっている
+    const h = Math.abs(vx) > Math.abs(vy), dx = h ? Math.sign(vx) : 0, dy = h ? 0 : Math.sign(vy);
+    player.dir = h ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    snapIce();
+    if (hits(player.x + dx * 3, player.y + dy * 3)) { player.moving = false; return true; }   // その むきは かべ
+    ice.dx = dx; ice.dy = dy; sfx('slide');
+  }
+  const s = ICE_SP * dt, nx = player.x + ice.dx * s, ny = player.y + ice.dy * s;
+  const ex = exitAt(nx, ny); if (ex) { ice.dx = ice.dy = 0; goExit(ex); return true; }
+  back.x = player.x; back.y = player.y;
+  if (hits(nx, ny)) { snapIce(); ice.dx = ice.dy = 0; player.moving = false; sfx('bump'); return true; }
+  player.x = nx; player.y = ny; player.moving = true; player.anim = 0;
+  const last = trail[0];
+  if (!last || Math.hypot(last.x - player.x, last.y - player.y) >= 2) { trail.unshift({ x: player.x, y: player.y, dir: player.dir }); trail.length = Math.min(trail.length, 20); }
+  if (!onIce()) ice.dx = ice.dy = 0;   // ゆきに ついたら ふつうに あるける
+  return true;
+}
 // ===== カメラ(マップが画面より小さいときは まん中に) =====
 function updateCamera() {
   const mw = cur.w * T, mh = cur.h * T;
@@ -1058,7 +1171,7 @@ function updateCamera() {
 // ===== 毎フレームの更新 =====
 let tm = 0, chipText = '';
 function updateChip() {
-  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open && !deco.open && !paint.open && !jump.on && !stageShow.on;
+  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open && !deco.open && !paint.open && !jump.on && !stageShow.on && !care.on;
   $('hpchip').style.display = show ? 'block' : 'none';
   $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
   $('decobtn').style.display = show && !dlg.open && cur.deco ? 'block' : 'none';
@@ -1066,9 +1179,9 @@ function updateChip() {
   $('clockcv').classList.toggle('two', members().length === 2); $('clockcv').classList.toggle('three', members().length >= 3);   // ひょうじが ふえたら とけいを したに
   if (show) drawClock();
   if (!show) return;
-  const st = heroStats();
-  const t = `${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}  ${hero.gold}{円|えん}` + members().slice(1).map(m => `\n${m.name}  HP ${m.s.hp}/${m.st.maxhp}  MP ${m.s.mp}/${m.st.maxmp}`).join('');
-  if (t !== chipText) { chipText = t; $('hpchip').innerHTML = rubyHTML(t); $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
+  const ms = members(), m0 = ms[0];
+  const t = ms.map((m, i) => `${m.name}  HP ${m.s.hp}/${m.st.maxhp}  MP ${m.s.mp}/${m.st.maxmp}` + (i ? '' : `  ${hero.gold}{円|えん}`)).join('\n');
+  if (t !== chipText) { chipText = t; $('hpchip').innerHTML = rubyHTML(t); $('hpchip').classList.toggle('low', m0.s.hp <= m0.st.maxhp / 4); }
 }
 function update(dt) {
   tm += dt;
@@ -1079,9 +1192,11 @@ function update(dt) {
   if (tg.on) updateTramp(dt);
   if (leap.on) { updateLeap(dt); hideAct(); return; }
   if (concert.on) { updateConcert(dt); hideAct(); return; }
+  if (care.on) { updateCare(dt); hideAct(); return; }
   if (trans.on || nameEntry.open || menu.open || shop.open || deco.open || paint.open || jump.on) { hideAct(); if (jump.on) jump.t += dt; return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
+  syncParty();
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
   if (cur.outside) tick(dt);                              // じかんは そとに いる ときだけ すすむ
   updateWeather(dt); updateHand(dt);
@@ -1093,7 +1208,8 @@ function update(dt) {
   if (kx || ky) { const l = Math.hypot(kx, ky); vx = kx / l; vy = ky / l; }
   const mag = Math.hypot(vx, vy);
   player.moving = mag > 0;
-  if (player.moving) {
+  const slid = iceMove(dt, vx, vy, mag);   // こおりの うえでは すべる
+  if (!slid && player.moving) {
     const sp = 62 * dt;
     back.x = player.x; back.y = player.y;
     player.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'right' : 'left') : (vy > 0 ? 'down' : 'up');
@@ -1111,7 +1227,7 @@ function update(dt) {
     if (!last || Math.hypot(last.x - player.x, last.y - player.y) >= 2) { trail.unshift({ x: player.x, y: player.y, dir: player.dir }); trail.length = Math.min(trail.length, 20); }
     walked += sp * mag;
     if (hintPhase === 1 && walked > 40) { hintPhase = 2; $('hint1').style.display = 'none'; }
-  } else player.anim = 0;
+  } else if (!slid) player.anim = 0;
   // ときどき向きを変える人
   for (const o of cur.objs) if (o.wander && Math.random() < dt * .4) o.dir = ['down', 'left', 'right'][Math.random() * 3 | 0];
   // てきは うろうろ歩く。 ぶつかったら 戦闘
@@ -1165,8 +1281,8 @@ function update(dt) {
 // ===== 描画 =====
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
-  if (battle.on) drawBattle(ctx); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : drawView()); else drawField();
-  if (!battle.on && !stageShow.on && !view.on) { if (rainy()) drawRain(); drawDark(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
+  if (battle.on) drawBattle(ctx); else if (care.on) drawCare(ctx, tm); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : drawView()); else drawField();
+  if (!battle.on && !stageShow.on && !view.on && !care.on) { if (rainy()) drawRain(); if (cur.snow) drawSnow(); drawDark(); if (storm.flash > 0.4) { ctx.fillStyle = `rgba(255,255,240,${(storm.flash - 0.4) * 2.5})`; ctx.fillRect(0, 0, VW, VH); } }
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
 }
@@ -1225,6 +1341,15 @@ function drawDark() {
     const look = byId('enemies', o.party[0])?.look, [ex1, ex2, ey] = eyePos(look);
     ctx.fillStyle = eyeColor(look);
     ctx.fillRect(sx + ex1, sy + ey + hop, 2, 2); ctx.fillRect(sx + ex2, sy + ey + hop, 2, 2);
+  }
+}
+// ゆき(ふわふわ おちてくる)
+function drawSnow() {
+  ctx.fillStyle = 'rgba(200,220,255,.08)'; ctx.fillRect(0, 0, VW, VH);
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  for (let i = 0; i < 60; i++) {
+    const y = ((i * 41 + tm * (18 + i % 5 * 4)) % 220) - 10, x = ((i * 67 + Math.sin(tm * 1.3 + i) * 8 - tm * 6) % 330 + 330) % 330 - 5;
+    ctx.fillRect(Math.round(x), Math.round(y), i % 3 ? 1 : 2, i % 3 ? 1 : 2);
   }
 }
 // あめ(と かぜの すじ)
@@ -1328,7 +1453,14 @@ function drawField() {
     }
     const jy = tg.on && e === player ? -Math.round(tgHeight() * 4 * tg.ph * (1 - tg.ph)) : leap.on && (e === player || e.kind === 'follower') ? leapY() : 0;
     if (e.kind === 'boss') { ctx.drawImage(enemySprite(e.look), sx - 16, sy - 30 + Math.round(Math.sin(tm * 3) * 1.5), 32, 32); continue; }
-    if (e === player) { img = heroSprite(e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0, equipLook()); }
+    if (e === player) { const f = e.moving ? Math.floor(e.anim * 9) % 4 : 0; img = party.away ? charSprite('hamo', e.dir, f) : heroSprite(e.dir, f, equipLook()); }   // リズが ねている あいだは ハモ
+    if (e.kind === 'sick') {                   // ベッドで ねている リズ(ほっぺが あかい)
+      ctx.drawImage(heroSprite('down', 0, equipLook()), 0, 0, 12, 8, sx - 6, sy - 14, 12, 8);
+      ctx.fillStyle = '#5a8ad8'; ctx.fillRect(sx - 6, sy - 7, 12, 9); ctx.fillStyle = '#7aa6f0'; ctx.fillRect(sx - 6, sy - 7, 12, 1);
+      if (flags.has('herb')) { ctx.fillStyle = '#7ac8ff'; ctx.fillRect(sx - 4, sy - 14, 8, 2); }
+      else if (Math.floor(tm * 2) % 2) { ctx.fillStyle = 'rgba(255,80,90,.8)'; ctx.fillRect(sx - 4, sy - 9, 2, 1); ctx.fillRect(sx + 2, sy - 9, 2, 1); }
+      continue;
+    }
     if (e.hand && (e.dir === 'up' || e.dir === 'down')) { ctx.fillStyle = '#ffe2b8'; ctx.fillRect(sx - 7, sy - 7, 4, 1); }   // つないだ て
     else if (e.kind === 'follower') img = charSprite(e.pal, e.dir, e.moving ? Math.floor(player.anim * 9) % 4 : 0);
     else if (e.kind === 'npc') img = charSprite(e.pal, e.dir, 0);

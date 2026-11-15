@@ -246,3 +246,14 @@ rt{font-size:.5em;}
 #mini .mcount small{font-size:.4em;margin-left:calc(var(--u)*2);color:#fff;}
 #mini .mhint{display:inline-block;margin-top:calc(var(--u)*3);font-size:calc(var(--u)*6);background:rgba(18,26,70,.8);border-radius:calc(var(--u)*3);padding:0 calc(var(--u)*5);line-height:1.8;}
 #mini .mpop{font-size:calc(var(--u)*11);font-weight:bold;color:#fff;margin-top:calc(var(--u)*2);}
+/* かんびょうの ミニゲーム */
+#care{position:absolute;inset:0;display:none;}
+#care .cwant,#care .chint{position:absolute;left:calc(var(--u)*90);right:calc(var(--u)*90);top:calc(var(--u)*6);background:#fff;color:#2a2440;border-radius:calc(var(--u)*5);padding:calc(var(--u)*3) calc(var(--u)*6);font-size:calc(var(--u)*8);line-height:1.6;text-align:center;box-shadow:0 calc(var(--u)*1) 0 #18224f;}
+#care .cwant b{display:block;font-size:.7em;color:#7a6a9a;}
+#care .chint{background:#ffd23f;}
+#care .cbtns{position:absolute;left:calc(var(--u)*4);right:calc(var(--u)*4);bottom:calc(var(--u)*4);display:flex;gap:calc(var(--u)*3);}
+#care .cbtns button{flex:1;font:inherit;font-size:calc(var(--u)*6.5);background:#fff8e8;color:#3a2a1a;border:calc(var(--u)*1) solid #8a5a32;border-radius:calc(var(--u)*4);padding:calc(var(--u)*2) 0;display:flex;flex-direction:column;align-items:center;line-height:1.3;}
+#care .cbtns button img{width:calc(var(--u)*16);height:calc(var(--u)*16);image-rendering:pixelated;}
+#care .cbtns button.off{opacity:.55;}
+#care .cbtns button.help{border-color:#ffd23f;background:#fff3a0;animation:cpulse .8s infinite alternate;}
+@keyframes cpulse{to{transform:scale(1.06);}}

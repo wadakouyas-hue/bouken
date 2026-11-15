@@ -3,7 +3,7 @@ export default {
   dark: true,
   scary: true,
   bgm: 'night',
-  enter: [{ once: 'fogHint', event: 'fogHint' }],
+  enter: [{ once: 'fogHint', event: 'fogHint' }, { need: 'obake', once: 'feverGo', event: 'fever' }],
   rows: [
     'YYYYYYYYYggYYYYYYYYY',
     'YYYYYYYYYggYYYYYYYYY',
@@ -35,5 +35,6 @@ export default {
   ],
   exits: [
     { x: 9, y: 17, w: 2, to: 'bridge', at: [7.5, 1], dir: 'down' },      // した → ひとりの はし
+    { x: 9, y: 0, w: 2, to: 'snow1', at: [9.5, 14], dir: 'up', need: 'obake', block: ['おおきな おばけが みちを ふさいでいる……'] },   // うえ → ゆきの のはら
   ],
 };

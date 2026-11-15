@@ -5,7 +5,7 @@ export default {
   dark: true,
   scary: true,
   bgm: 'night',
-  enter: [{ once: 'scaryIntro', event: 'scaryIntro' }],
+  enter: [{ once: 'scaryIntro', event: 'scaryIntro' }, { need: 'obake', once: 'feverGo', event: 'fever' }],
   alone: [
     { id: 'k1', x: 10, y: 8, w: 1, h: 5, wait: [9.4, 13.4] },
   ],

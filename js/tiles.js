@@ -104,6 +104,20 @@ TILE.rope = mk(g => { px(g, 0, 0, 16, 16, '#0a0a14'); px(g, 2, 0, 12, 16, '#8a6a
 TILE.chasm = [0, 1].map(p => mk(g => { px(g, 0, 0, 16, 16, '#0a0a14'); for (let i = 0; i < 4; i++) px(g, rnd() * 16, rnd() * 16, 1, 1, '#1a1a2e'); if (p) px(g, 6, 9, 3, 1, '#16162a'); }));
 TILE.fog = [0, 1].map(p => mk(g => { fgrass(g); for (let i = 0; i < 26; i++) px(g, (rnd() * 16) | 0, (rnd() * 16) | 0, 3, 2, i % 3 ? '#2a1a3a' : '#4a2a5a'); px(g, 2 + p * 7, 6, 5, 2, '#6a4a8a'); }));
 
+// --- ゆきの やま(第3章 かんびょう) ---  * ゆき  1 こおり(すべる)  2 ゆきの き  3 こおりの いわ  4 つめたい みず  6 まるたの かべ  7 ゆきの やね  8 だんろ
+function snow(g) { px(g, 0, 0, 16, 16, '#eef4fb'); for (let i = 0; i < 8; i++) px(g, rnd() * 16, rnd() * 16, 2, 1, rnd() < .6 ? '#d4e2f2' : '#ffffff'); }
+TILE.snow = [0, 1, 2].map(() => mk(snow));
+TILE.ice = [0, 1].map(p => mk(g => { px(g, 0, 0, 16, 16, '#9fd6f2'); px(g, 0, 0, 16, 1, '#c8ecff'); for (let i = 0; i < 3; i++) px(g, rnd() * 14, rnd() * 14, 1, 1, '#e6f8ff');
+  px(g, 2 + p * 5, 3 + p * 4, 4, 1, '#ffffff'); px(g, 3 + p * 5, 4 + p * 4, 2, 1, '#ffffff'); px(g, 10 - p * 6, 11 - p * 2, 3, 1, '#7ab8dc'); }));
+TILE.stree = mk(g => { snow(g); px(g, 7, 12, 2, 4, '#6a4a2a'); for (let r = 0; r < 4; r++) { const w = 4 + r * 3; px(g, 8 - w / 2, 1 + r * 3, w, 3, '#2f6a4a'); px(g, 8 - w / 2, 1 + r * 3, w, 1, '#ffffff'); } px(g, 7, 0, 2, 1, '#ffffff'); });
+TILE.irock = mk(g => { px(g, 0, 0, 16, 16, '#9fd6f2'); circle(g, 8, 9, 7, '#5a7a9a'); circle(g, 7, 8, 6, '#8ab0d0'); circle(g, 5, 5, 3, '#ffffff'); px(g, 9, 12, 4, 1, '#4a6a8a'); });
+TILE.cold = [0, 1].map(p => mk(g => { px(g, 0, 0, 16, 16, '#2a5a98'); px(g, (2 + p * 4) % 12, 4, 4, 1, '#6a9ad8'); px(g, (9 + p * 4) % 12, 11, 4, 1, '#6a9ad8'); px(g, (6 + p * 5) % 14, 8, 2, 1, '#1a4a80'); }));
+TILE.logw = mk(g => { px(g, 0, 0, 16, 16, '#8a5a32'); for (let y = 0; y < 16; y += 4) { px(g, 0, y, 16, 1, '#5a3418'); px(g, 0, y + 1, 16, 1, '#a8744a'); } px(g, 0, 0, 2, 16, '#6a4224'); px(g, 14, 0, 2, 16, '#6a4224'); });
+TILE.sroof = mk(g => { px(g, 0, 0, 16, 16, '#7a3a2a'); for (let y = 2; y < 16; y += 4) px(g, 0, y, 16, 1, '#5a2a1a'); px(g, 0, 0, 16, 6, '#ffffff'); for (let x = 0; x < 16; x += 3) px(g, x, 6, 2, 1 + (x % 2), '#ffffff'); px(g, 0, 5, 16, 1, '#dce8f4'); });
+TILE.fire = [0, 1, 2].map(p => mk(g => { px(g, 0, 0, 16, 16, '#7a7a86'); for (let y = 0; y < 16; y += 4) for (let x = (y / 4 % 2) * 3; x < 16; x += 6) px(g, x, y, 1, 4, '#5a5a66');
+  px(g, 0, 0, 16, 2, '#4a4a56'); px(g, 3, 6, 10, 10, '#1a1414'); px(g, 4, 13, 8, 2, '#6a3a1a');
+  const f = [[5, 9, '#ff5a2a'], [7, 7 + p, '#ffa02a'], [9, 9 - p, '#ff5a2a'], [7, 10, '#ffd23f'], [8 - p, 11, '#fff3a0']]; for (const [x, y, c] of f) px(g, x, y, 2, 13 - y, c); }));
+
 // --- 家の中 ---
 TILE.inTop = mk(g => { px(g, 0, 0, 16, 16, '#5a3a24'); px(g, 0, 0, 16, 1, '#7a5034'); px(g, 0, 15, 16, 1, '#3a2414'); });
 function paper(g) { px(g, 0, 0, 16, 16, '#efdcb4'); for (let x = 2; x < 16; x += 5) px(g, x, 0, 1, 13, '#e2c998'); px(g, 0, 13, 16, 3, '#8a5a32'); px(g, 0, 13, 16, 1, '#a8744a'); }
@@ -136,8 +150,9 @@ TILE.mat = mk(g => { floor(g); px(g, 2, 2, 12, 12, '#4f9a52'); px(g, 3, 3, 10, 1
 // きたの もり  f もりの はな  q i x X はいいろの くさ・はな・き・しげみ  k こわれた はし  n N どうくつの ゆか・かべ  I みき  l はしご  e こわれた はしご  c はこ  u s かいだん
 // あらしの のはら  a ぬれた くさ  A いわ  ^ いわばの いわ  M ぬま  j いたの みち  d かれた き  y たおれた き
 // こわい もり  t つりばし  0 たにぞこ  % くろい きり(ゆうきの かけらで とおれる)
+// ゆきの やま  * ゆき  1 こおり(すべる)  2 ゆきの き  3 こおりの いわ  4 つめたい みず  6 まるたの かべ  7 ゆきの やね  8 だんろ
 // 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  C お店のカウンター  E 出口のマット
-export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e', 'c', 'A', 'M', 'd', 'y', '^', '0']);
+export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e', 'c', 'A', 'M', 'd', 'y', '^', '0', '2', '3', '4', '6', '7', '8']);
 
 export function tileImg(c, x, y, t) {
   const v = (x * 7 + y * 13) % 3;
@@ -158,6 +173,8 @@ export function tileImg(c, x, y, t) {
     case 'I': return TILE.trunk; case 'l': return TILE.ladder; case 'e': return TILE.ladderX;
     case 'a': return TILE.wgrass[(x * 5 + y * 3) % 7 === 0 ? 2 : v % 2]; case 'A': return TILE.rock; case '^': return TILE.rockC; case 'M': return TILE.swamp[(Math.floor(t * 1.5) + x + y) % 2];
     case 't': return TILE.rope; case '0': return TILE.chasm[(x * 3 + y) % 2]; case '%': return TILE.fog[(Math.floor(t * 2) + x + y) % 2];
+    case '*': return TILE.snow[v]; case '1': return TILE.ice[(x + y) % 2]; case '2': return TILE.stree; case '3': return TILE.irock; case '4': return TILE.cold[(Math.floor(t * 1.5) + x) % 2];
+    case '6': return TILE.logw; case '7': return TILE.sroof; case '8': return TILE.fire[Math.floor(t * 6) % 3];
     case 'j': return TILE.board; case 'd': return TILE.dead; case 'y': return TILE.log;
     default: return TILE.grass[v];
   }

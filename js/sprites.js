@@ -91,6 +91,8 @@ export const DECO = {
   flowerC: paintCv(20, 22, p => { p(9, 10, 2, 12, '#3a8a3e'); p(4, 14, 5, 2, '#4fb14f'); p(11, 16, 5, 2, '#4fb14f');
     const pc = ['#ff5a6e', '#ff8ad0', '#ffd23f', '#7ac8ff', '#b07ae8']; [[10, 1], [3, 5], [17, 5], [5, 11], [15, 11]].forEach(([x, y], i) => p(x - 3, y - 1, 6, 5, pc[i])); p(6, 4, 8, 7, '#ffe8a0'); p(8, 6, 4, 3, '#f2a030'); }),
   nest: paintCv(40, 14, p => { p(2, 4, 36, 8, '#7a5230'); p(0, 6, 40, 4, '#8a6238'); for (let x = 1; x < 39; x += 3) p(x, 3 + (x % 2), 4, 1, '#a87a4a'); p(4, 11, 32, 2, '#5a3a1c'); for (let x = 3; x < 37; x += 5) p(x, 8, 3, 1, '#5a3a1c'); }),
+  herb: paintCv(12, 14, p => { p(5, 6, 2, 8, '#3a8a5a'); p(2, 9, 3, 2, '#4fb07a'); p(7, 10, 3, 2, '#4fb07a');
+    for (const [x, y] of [[5, 0], [1, 3], [9, 3], [3, 6], [7, 6]]) { p(x, y, 3, 3, '#7ac8ff'); p(x + 1, y + 1, 1, 1, '#ffffff'); } p(5, 3, 2, 2, '#ffd23f'); }),
   firefly: paintCv(5, 5, p => { p(1, 1, 3, 3, '#d8ff7a'); p(2, 0, 1, 5, '#a8e050'); p(0, 2, 5, 1, '#a8e050'); p(2, 2, 1, 1, '#ffffff'); }),
 };
 
@@ -469,6 +471,96 @@ const ENEMY = {
     'k..............k',
     '................',
     '................'] },
+  // ころころ ゆきだるま(ゆきの やま)
+  ゆきだるま: { eye: [5, 9, 4], glow: '#7ac8ff', pal: { k: '#3a4a6a', w: '#ffffff', g: '#cfe0f0', e: '#1a1a2a', n: '#ff8a2a', r: '#e04848', b: '#6a4a2a' }, rows: [
+    '.....kkkkk......',
+    '....kbbbbbk.....',
+    '...kkkkkkkkk....',
+    '....kwwwwwk.....',
+    '...kwewwwewk....',
+    '...kwwnnwwwk....',
+    '...kgwwwwwgk....',
+    '..krrrrrrrrrk...',
+    '.kwwwwwwwwwwwk..',
+    'kwwwwwwkwwwwwwk.',
+    'kwwwwwwwwwwwwwk.',
+    'kgwwwwwkwwwwwgk.',
+    'kggwwwwwwwwwggk.',
+    '.kggggggggggggk.',
+    '..kkkkkkkkkkkk..',
+    '................'] },
+  // つらら こうもり
+  つららこうもり: { eye: [7, 9, 5], glow: '#7ae8ff', pal: { k: '#1a2a4a', b: '#4a6aa8', B: '#2a4a88', w: '#e6f8ff', i: '#9fd6f2', e: '#ffffff' }, rows: [
+    '................',
+    '................',
+    'k.....k..k.....k',
+    'bk...kbkkbk...kb',
+    'bbk..kbbbbk..kbb',
+    'bbbk.kbebebk.kbb',
+    'bbbbkkbbbbbkkbbb',
+    '.bbbbbbwbwbbbbb.',
+    '..BbbbbbbbbbbB..',
+    '...B.BbbbbB.B...',
+    '......kiik......',
+    '.......ii.......',
+    '.......i........',
+    '................',
+    '................',
+    '................'] },
+  // ぴょん ゆきうさぎ
+  ゆきうさぎ: { eye: [5, 9, 6], glow: '#ff7a9a', pal: { k: '#5a6a8a', w: '#ffffff', g: '#d8e4f0', p: '#ffb0c8', e: '#e0405a' }, rows: [
+    '....kk...kk.....',
+    '...kwpk.kwpk....',
+    '...kwpk.kwpk....',
+    '...kwwk.kwwk....',
+    '....kwkkkwk.....',
+    '...kwwwwwwwk....',
+    '..kwwewwwewwk...',
+    '..kwwwwpwwwwk...',
+    '..kpwwwwwwwpk...',
+    '...kwwwwwwwk....',
+    '..kwwwwwwwwwk...',
+    '.kgwwwwwwwwwgk..',
+    '.kgwwwwwwwwwgkk.',
+    '..kggwwwwwggkwk.',
+    '...kkkkkkkkk.k..',
+    '................'] },
+  // すべる ペンギン
+  ペンギン: { eye: [6, 8, 3], glow: '#ffd23f', pal: { k: '#1a1a2a', b: '#2a3a5a', w: '#ffffff', y: '#ffb02a', e: '#1a1a2a', r: '#e04848' }, rows: [
+    '.....kkkkk......',
+    '....kbbbbbk.....',
+    '...kbbbbbbbk....',
+    '...kbwewewbk....',
+    '...kbwwyywbk....',
+    '...kbbwyywbbk...',
+    '..kbbwwwwwwbk...',
+    '.kbbwwwwwwwwbk..',
+    '.kbbwwwwwwwwbk..',
+    'kbb.kwwwwwwk.bk.',
+    'kb..kwwwwwwk..k.',
+    '....kwwwwwwk....',
+    '....kbwwwwbk....',
+    '.....kkkkkk.....',
+    '....yyy..yyy....',
+    '................'] },
+  // こおりの ぬし(ボス)
+  こおりのぬし: { eye: [4, 10, 5], glow: '#7ae8ff', pal: { k: '#1a2a4a', w: '#ffffff', i: '#bfe8ff', I: '#7ab8e0', d: '#4a7ab0', e: '#1a3a8a', t: '#e6f8ff' }, rows: [
+    '..t....tt....t..',
+    '..kt..kiik..tk..',
+    '...kkkiiiikkk...',
+    '..kiiiiiiiiiik..',
+    '.kiiwiiiiiiwiik.',
+    '.kiieeiiiieeiik.',
+    'kiiieeiiiieeiiik',
+    'kiiiiiikkiiiiiik',
+    'kIiiiiktwkiiiiIk',
+    'kIIiiiiiiiiiiIIk',
+    'kdIIiiiiiiiiIIdk',
+    '.kdIIIiiiiIIIdk.',
+    '.kddIIIIIIIIddk.',
+    '..kkdddddddddk..',
+    '...tk.kk.kk.kt..',
+    '................'] },
   // こおばけ・おおおばけ(ボス)
   おばけ: { eye: [4, 10, 4], glow: '#ffffff', pal: { k: '#2a2a3a', w: '#f4f4ff', g: '#c8c8e0', e: '#1a1a2a', p: '#ff9ab0', t: '#ff5a7a' }, rows: [
     '.....kkkkkk.....',
@@ -505,6 +597,7 @@ const ARMOR = {
   かわ: { r: '#a0683a', b: '#4a3020', belt: '#f2c230' },
   てつ: { r: '#b8c4d0', b: '#5a6a7a', belt: '#f2c230' },
   レイン: { r: '#f2c230', b: '#3a5ad8', belt: '#e8a020' },   // きいろい レインコート
+  マフラー: { r: '#e04848', b: '#4a4a6a', belt: '#ffffff' },  // あかい マフラー
 };
 // ぶき: 手に持つ位置に 描く(x = 持つ場所)
 function drawWeapon(g, look, x, flip, side) {
