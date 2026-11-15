@@ -28,7 +28,7 @@ export function startBattle(ids, opt = {}) {
   const enemies = defs.map((d, i) => {
     let name = d.name;
     if (count[d.id] > 1) { seen[d.id] = (seen[d.id] || 0) + 1; name += ' ' + 'ABCDE'[seen[d.id] - 1]; }
-    return { d, name, cond: {}, hp: d.hp, mp: d.mp, x: 105 + (i - (n - 1) / 2) * 66, y: opt.boss ? 132 : 118, size: opt.boss ? 56 : 32, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
+    return { d, name, cond: {}, hp: d.hp, mp: d.mp, scary: !!opt.scary, x: 105 + (i - (n - 1) / 2) * 66, y: opt.boss ? 132 : 118, size: opt.boss ? (opt.scary ? 68 : 56) : 32, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
   });
   const ms = members(), spots = SPOTS[Math.min(ms.length, 3) - 1];
   const party = ms.map((m, i) => ({ ...m, cond: {}, x: spots[i][0], y: spots[i][1], flash: 0, lunge: 0, guard: false }));   // cond: ステータス いじょう
@@ -105,7 +105,7 @@ function chooseCommand(m, first) {
       { html: 'じゅもん', fn: () => skills('じゅもん') },
       { html: 'わざ', fn: () => skills('わざ') },
       { html: 'どうぐ', fn: items },
-      { html: 'にげる', off: !first || B.boss, fn: () => { if (B.boss) note('ボスからは にげられない!'.replace('ボス', '{ボス|ぼす}')); else if (!first) note('にげるは さいしょの ひとが えらぶよ'); else done({ type: 'run' }); } },
+      ...(m.key === 'hero' && bag.includes('ゆうきのかけら') && B.enemies.some(e => e.alive && e.scary) ? [{ html: 'ゆうき', fn: () => done({ type: 'brave' }) }] : [{ html: 'にげる', off: !first || B.boss, fn: () => { if (B.boss) note('ボスからは にげられない!'.replace('ボス', '{ボス|ぼす}')); else if (!first) note('にげるは さいしょの ひとが えらぶよ'); else done({ type: 'run' }); } }]),
     ], canGassou ? 'six' : false);
     const skills = kind => {
       const list = st(m).skills.map(id => byId('skills', id)).filter(s => s && s.type === kind && s.effect !== 'ワープ');
@@ -227,12 +227,14 @@ async function lunge(who) { who.lunge = 0.3; await wait(0.3); }
 async function hitEnemy(t, r) {
   if (r.miss) { sfx('miss'); await say(`${t.name}は ひらりと よけた!`); return; }
   if (r.crit) await say('すごい いちげき!', 0.7);
+  if (t.scary) r = { ...r, dmg: Math.max(1, Math.round(r.dmg * 0.25)), mult: 1 };   // おおきくて こわい あいだは ききにくい
   sfx('hit'); t.flash = 0.4; t.hp -= r.dmg; popup(t.x, t.y - t.size - 8, r.dmg, r.mult > 1 ? 'weak' : '');
   if (t.hp > 0) await wake(t);
   if (r.mult > 1) await say('よわい ところを ついた!', 0.9);
   if (r.mult < 1) await say('あまり きいていない…', 0.9);
   await say(`${t.name}に ${r.dmg}の {ダメージ|だめーじ}!`);
   if (t.hp <= 0) { t.alive = false; sfx('defeat'); await say(`${t.name}を やっつけた!`); }
+  else if (t.scary && !B.scaryTold) { B.scaryTold = true; await say('おおきくて こわくて、 ちからが はいらない……'); if (bag.includes('ゆうきのかけら')) await say('「ゆうき」を だせば…… !?'); }
 }
 async function cureMember(t) {
   await effect('song', [t]);
@@ -248,6 +250,15 @@ async function memberAct(m, cmd) {
   const s0 = st(m);
   if (!(await canAct(m))) return;
   if (cmd.type === 'gassou') { await gassou(); return; }
+  if (cmd.type === 'brave') {                // ゆうきを だす → こわい てきが ちいさく なる
+    await say(`${nameOf(m)}は なみだを こらえて、 まえに でた!`, 1.2);
+    await say('「こ、 こわく なんか ない!」', 1.2);
+    await effect('star', B.enemies.filter(e => e.alive && e.scary));
+    for (const e of B.enemies) if (e.scary) { e.scary = false; e.size = 44; }
+    sfx('magic'); await say('ゆうきの かけらが ひかった!', 1);
+    await say('おおおばけが みるみる ちいさく なった!', 1.2);
+    return;
+  }
   if (cmd.type === 'attack') {
     const t = cmd.target.alive ? cmd.target : alive()[0];
     await say(`${m.name}の こうげき!`, 0.6); await lunge(m);

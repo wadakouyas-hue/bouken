@@ -91,6 +91,7 @@ export const DECO = {
   flowerC: paintCv(20, 22, p => { p(9, 10, 2, 12, '#3a8a3e'); p(4, 14, 5, 2, '#4fb14f'); p(11, 16, 5, 2, '#4fb14f');
     const pc = ['#ff5a6e', '#ff8ad0', '#ffd23f', '#7ac8ff', '#b07ae8']; [[10, 1], [3, 5], [17, 5], [5, 11], [15, 11]].forEach(([x, y], i) => p(x - 3, y - 1, 6, 5, pc[i])); p(6, 4, 8, 7, '#ffe8a0'); p(8, 6, 4, 3, '#f2a030'); }),
   nest: paintCv(40, 14, p => { p(2, 4, 36, 8, '#7a5230'); p(0, 6, 40, 4, '#8a6238'); for (let x = 1; x < 39; x += 3) p(x, 3 + (x % 2), 4, 1, '#a87a4a'); p(4, 11, 32, 2, '#5a3a1c'); for (let x = 3; x < 37; x += 5) p(x, 8, 3, 1, '#5a3a1c'); }),
+  firefly: paintCv(5, 5, p => { p(1, 1, 3, 3, '#d8ff7a'); p(2, 0, 1, 5, '#a8e050'); p(0, 2, 5, 1, '#a8e050'); p(2, 2, 1, 1, '#ffffff'); }),
 };
 
 DECO.lanternOn = DECO.lantern[1]; DECO.lantern = DECO.lantern[0];
@@ -414,6 +415,78 @@ const ENEMY = {
     '...kkRRRRRRkk...',
     '.....kkkkkk.....',
     '................'] },
+  // ふわふわ おばけび(こわい もり)
+  おばけび: { eye: [5, 9, 6], glow: '#7ac8ff', pal: { k: '#1a2a5a', b: '#5aa0ff', B: '#3a6ad8', w: '#cfe8ff', e: '#1a1a3a' }, rows: [
+    '.......k........',
+    '......kbk.......',
+    '.....kbwbk......',
+    '....kbwwbk..k...',
+    '...kbbwwbbk.kbk.',
+    '..kbbbbbbbbkbk..',
+    '..kbbeebbeebbk..',
+    '.kbbbeebbeebbbk.',
+    '.kbbbbbbbbbbbbk.',
+    '.kbbbbkkkbbbbbk.',
+    '.kBbbbbbbbbbbBk.',
+    '..kBBbbbbbbBBk..',
+    '...kBBBBBBBBk...',
+    '....kkBBBBkk....',
+    '......kkkk......',
+    '................'] },
+  // びっくり きのこ
+  びっくりきのこ: { eye: [5, 10, 9], glow: '#ffffff', pal: { k: '#2a1a2a', p: '#a050c8', P: '#7a3098', w: '#ffffff', e: '#1a1a1a', s: '#f0e0c8', d: '#e0c0f0' }, rows: [
+    '................',
+    '.....kkkkkk.....',
+    '...kkppddppkk...',
+    '..kppppppppppk..',
+    '.kppdpppppdpppk.',
+    '.kpppppppppppdk.',
+    'kPPPPPPPPPPPPPPk',
+    '.kkkkkkkkkkkkkk.',
+    '...kwwwskwwwsk..',
+    '...kweeskweesk..',
+    '...kwwwskwwwsk..',
+    '...ksssssssssk..',
+    '...kssskkkssk...',
+    '....kssssssk....',
+    '.....kkkkkk.....',
+    '................'] },
+  // もじゃもじゃ もりぐも
+  もりぐも: { eye: [5, 9, 6], glow: '#ff4a4a', pal: { k: '#1a1a1a', b: '#3a2e3a', B: '#5a4a5a', r: '#ff4a4a', w: '#ffffff' }, rows: [
+    '................',
+    '................',
+    '.k....kkkk....k.',
+    '..k..kbbbbk..k..',
+    '...kkbbbbbbkk...',
+    'kk..kbbbbbbk..kk',
+    '..kkbrrbbrrbkk..',
+    '....kbbbbbbk....',
+    '.kkkbbwbbwbbkkk.',
+    'k...kbbbbbbk...k',
+    '...kkBbbbbBkk...',
+    '..k..kBbbBk..k..',
+    '.k....kkkk....k.',
+    'k..............k',
+    '................',
+    '................'] },
+  // こおばけ・おおおばけ(ボス)
+  おばけ: { eye: [4, 10, 4], glow: '#ffffff', pal: { k: '#2a2a3a', w: '#f4f4ff', g: '#c8c8e0', e: '#1a1a2a', p: '#ff9ab0', t: '#ff5a7a' }, rows: [
+    '.....kkkkkk.....',
+    '...kkwwwwwwkk...',
+    '..kwwwwwwwwwwk..',
+    '.kwwwwwwwwwwwwk.',
+    '.kwweewwwweewwk.',
+    'kwwweewwwweewwwk',
+    'kwwwwwwwwwwwwwwk',
+    'kwpwwwkkkkwwwpwk',
+    'kwwwwwkttkwwwwwk',
+    'kwwwwwwkkwwwwwwk',
+    'kgwwwwwwwwwwwwgk',
+    'kggwwwwwwwwwwggk',
+    '.kgggwwwwwwgggk.',
+    '.kgkgggkkgggkgk.',
+    '..k.kgk..kgk.k..',
+    '.....k....k.....'] },
 };
 const ecache = {};
 export function enemySprite(look) {

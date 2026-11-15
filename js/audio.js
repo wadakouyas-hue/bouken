@@ -276,6 +276,13 @@ export function sfx(name) {
       const g = ac.createGain(); g.gain.setValueAtTime(.001, t); g.gain.exponentialRampToValueAtTime(.7, t + .15); g.gain.exponentialRampToValueAtTime(.001, t + .75);
       s.connect(f).connect(g).connect(sfxBus); s.start(t); s.stop(t + .8); break;
     }
+    case 'whisper': { // こわい もりの ささやき(ひそひそ……)
+      for (let i = 0; i < 3; i++) hiss(t + i * .16, .05 + Math.random() * .04, 'bandpass', 1800 + Math.random() * 1600, 4, .14, sfxBus);
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine';
+      o.frequency.setValueAtTime(330, t + .5); o.frequency.linearRampToValueAtTime(250, t + 1.4);
+      g.gain.setValueAtTime(.001, t + .5); g.gain.linearRampToValueAtTime(.05, t + .8); g.gain.linearRampToValueAtTime(.001, t + 1.4);
+      o.connect(g).connect(sfxBus); o.start(t + .5); o.stop(t + 1.5); break;
+    }
     case 'warp': { // 場面が切り替わる
       const o = ac.createOscillator(), g = ac.createGain();
       o.type = 'triangle'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(160, t + .25);

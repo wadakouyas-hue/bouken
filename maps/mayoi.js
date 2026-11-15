@@ -1,0 +1,46 @@
+// こわい もり3 まよいの もり(24×16マス)。 ホタルが とんでいく ほうへ すすむ(maze)
+// maze.route: ただしい でぐちの じゅん(N うえ / E みぎ / W ひだり)。 まちがえると さいしょに もどる。 step: その だんかいで でる ホタル
+export default {
+  dark: true,
+  scary: true,
+  bgm: 'night',
+  maze: { route: ['W', 'N', 'E'], start: [11.5, 13], next: { to: 'bridge', at: [7.5, 22], dir: 'up' } },
+  enter: [{ once: 'mayoiHint', event: 'mayoiHint' }],
+  rows: [
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+    'YYYYYYYYggggggggYYYYYYYY',
+    'YYYYYYYYgoggggogYYYYYYYY',
+    'YYYYYYYYggggggggYYYYYYYY',
+    'gggggggggggggggggggggggg',
+    'gggggggggggggggggggggggg',
+    'YYYYYYYYggggggggYYYYYYYY',
+    'YYYYYYYYgoggggogYYYYYYYY',
+    'YYYYYYYYggggggggYYYYYYYY',
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+    'YYYYYYYYYYYggYYYYYYYYYYY',
+  ],
+  objs: [
+    { kind: 'deco', x: 9, y: 7.4, pic: 'firefly', float: true, light: 30, step: 0 },
+    { kind: 'deco', x: 6, y: 7.8, pic: 'firefly', float: true, light: 30, step: 0 },
+    { kind: 'deco', x: 3, y: 7.3, pic: 'firefly', float: true, light: 30, step: 0 },
+    { kind: 'deco', x: 11.6, y: 4.4, pic: 'firefly', float: true, light: 30, step: 1 },
+    { kind: 'deco', x: 12.2, y: 2.6, pic: 'firefly', float: true, light: 30, step: 1 },
+    { kind: 'deco', x: 11.5, y: 0.9, pic: 'firefly', float: true, light: 30, step: 1 },
+    { kind: 'deco', x: 15.4, y: 7.5, pic: 'firefly', float: true, light: 30, step: 2 },
+    { kind: 'deco', x: 18, y: 7.1, pic: 'firefly', float: true, light: 30, step: 2 },
+    { kind: 'deco', x: 21, y: 7.8, pic: 'firefly', float: true, light: 30, step: 2 },
+    { kind: 'enemy', x: 9, y: 9, party: 'もりぐも こおばけ' },
+    { kind: 'enemy', x: 15, y: 5, party: 'おばけび びっくりきのこ' },
+  ],
+  exits: [
+    { x: 11, y: 0, w: 2, maze: 'N' },
+    { x: 23, y: 7, h: 2, maze: 'E' },
+    { x: 0, y: 7, h: 2, maze: 'W' },
+    { x: 11, y: 15, w: 2, to: 'kowa2', at: [24, 1.5], dir: 'left' },     // した → ささやきの もり
+  ],
+};

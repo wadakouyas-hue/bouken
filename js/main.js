@@ -38,6 +38,11 @@ import storm2 from '../maps/storm2.js';
 import hut from '../maps/hut.js';
 import storm3 from '../maps/storm3.js';
 import storm4 from '../maps/storm4.js';
+import kowa1 from '../maps/kowa1.js';
+import kowa2 from '../maps/kowa2.js';
+import mayoi from '../maps/mayoi.js';
+import bridge from '../maps/bridge.js';
+import kowa5 from '../maps/kowa5.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -61,7 +66,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4 };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest, cellar, house2, house3, storm1, storm2, hut, storm3, storm4, kowa1, kowa2, mayoi, bridge, kowa5 };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
@@ -119,6 +124,30 @@ function sheltered() {
   if (ty < 0 || ty >= cur.h) return false;
   for (let k = 1; k <= 2; k++) { const x = tx - cur.wind.dx * k; if (x < 0 || x >= cur.w) break; if (BLOCK.has(cur.rows[ty][x])) return true; }
   return false;
+}
+
+// ===== こわい もり(第3章): ハモが てを つなぐ / ほそい みちは ひとりで =====
+// マップの scary: てを つないで となりを あるく。 alone: [{ id, x, y, w, h, wait: [x, y], done }] ほそい みち(ハモは wait で まつ)
+// ゆうきの かけらを もらった あとは、 ほそい みちも みんなで とおれる
+const hand = { alone: null, whisper: 1.5 };
+function zoneAt() {
+  if (!cur.scary || flags.has('yuuki')) return null;
+  const tx = Math.floor(player.x / T), ty = Math.floor((player.y - 3) / T);
+  return (cur.alone || []).find(z => tx >= z.x && tx < z.x + (z.w || 1) && ty >= z.y && ty < z.y + (z.h || 1)) || null;
+}
+function updateHand(dt) {
+  const z = zoneAt();
+  if (z && hand.alone !== z) {
+    hand.alone = z; hand.whisper = 1.2;
+    if (!flags.has('alone:' + z.id)) { flags.add('alone:' + z.id); save(); EVENTS.aloneStart(z); }
+  } else if (!z && hand.alone) {
+    const z0 = hand.alone, w = at(...z0.wait); hand.alone = null; trail.length = 0;
+    if (Math.hypot(player.x - w.x, player.y - w.y) > 44) {           // むこうがわに でた
+      if (z0.done) EVENTS[z0.done](z0);
+      else if (!flags.has('aloneOk:' + z0.id)) { flags.add('aloneOk:' + z0.id); save(); EVENTS.aloneEnd(z0); }
+    }
+  }
+  if (hand.alone && (hand.whisper -= dt) <= 0) { hand.whisper = 2.6 + Math.random() * 2; sfx('whisper'); }
 }
 
 // ===== ひると よる =====
@@ -190,7 +219,7 @@ const player = { x: START.x, y: START.y, dir: 'down', anim: 0, moving: false };
 // マップの 人や物に show: 'フラグ'(その フラグが あると でる) / hide: 'フラグ'(あると きえる) が 書ける
 const flags = new Set();
 const has = f => !f || (Array.isArray(f) ? f.every(x => flags.has(x)) : flags.has(f));
-const shown = o => (!o.show || has(o.show)) && (!o.hide || !flags.has(o.hide));
+const shown = o => (!o.show || has(o.show)) && (!o.hide || !flags.has(o.hide)) && (o.step == null || o.step === maze.step);   // step: まよいの もりの だんかい
 const live = () => cur.objs.filter(o => !o.gone && shown(o));
 
 // ===== 当たり判定 =====
@@ -199,12 +228,13 @@ function tileSolid(x, y) {
   if (tx < 0 || ty < 0 || tx >= cur.w || ty >= cur.h) return true;
   const c = cur.rows[ty][tx];
   if (c === 'L') return !bag.includes('かたぐるまのかけら');      // たかい だんさ: かたぐるまの かけらが あると のぼれる
+  if (c === '%') return !bag.includes('ゆうきのかけら');          // くろい きり: ゆうきの かけらが あると とおれる
   return BLOCK.has(c) || !!cur.solid?.has(tx + ',' + ty);
 }
 function solidAt(x, y) {
   if (tileSolid(x, y)) return true;
   for (const o of live()) {
-    if (o.kind === 'look' || o.kind === 'item' || o.kind === 'enemy' || o.kind === 'furn') continue;  // 家具はタイルで止まる/落ちている物は通れる/てきは ぶつかると戦闘
+    if (o.kind === 'look' || o.kind === 'item' || o.kind === 'enemy' || o.kind === 'furn' || o.float) continue;   // float: とんでいる もの(ホタル)は とおれる  // 家具はタイルで止まる/落ちている物は通れる/てきは ぶつかると戦闘
     const bw = o.bw || 6;   // bw: よこはばの はんぶん(ボスは おおきい)
     if (x > o.x - bw && x < o.x + bw && y > o.y - 6 && y < o.y + 1) return true;
   }
@@ -225,14 +255,28 @@ function exitAt(x, y) {
 const FADE = 0.25;
 const trans = { on: false, t: 0, fn: null, after: null };
 function fadeTo(fn, after) { stickRelease(); trans.on = true; trans.t = 0; trans.fn = fn; trans.after = after || null; }
+// まよいの もり: ただしい でぐちなら つぎの だんかいへ、 まちがえたら さいしょから
+const maze = { step: 0 };
+function goMaze(e) {
+  const mz = cur.maze, ok = e.maze === mz.route[maze.step], last = ok && maze.step === mz.route.length - 1;
+  sfx('warp');
+  fadeTo(() => {
+    maze.step = ok && !last ? maze.step + 1 : 0;
+    if (last) { cur = MAPS[mz.next.to]; Object.assign(player, at(...mz.next.at), { dir: mz.next.dir }); }
+    else Object.assign(player, at(...mz.start), { dir: 'up' });
+    resetEnemies(cur); player.anim = 0; player.moving = false; trail.length = 0;
+    updateCamera(); save(); playBgm(bgmFor());
+  }, ok ? (last ? runEnter : null) : () => openDialog('', ['あれ? さっきの ばしょに もどって きた みたい……', 'ホタルが とんでいく ほうへ いってみよう。']));
+}
 function goExit(e) {
+  if (e.maze) { goMaze(e); return; }
   if (e.need && !has(e.need)) {           // まだ とおれない 出入り口
     Object.assign(player, back); player.moving = false; stickRelease(); for (const k in keys) keys[k] = false;
     openDialog('', e.block || ['まだ いけないみたい。']); return;
   }
   sfx('warp');
   fadeTo(() => {
-    cur = MAPS[e.to]; resetEnemies(cur);
+    cur = MAPS[e.to]; resetEnemies(cur); maze.step = 0;
     Object.assign(player, at(e.at[0], e.at[1]));
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false; trail.length = 0;
     updateCamera(); visit(); save();
@@ -309,7 +353,7 @@ function stickMove(p) {
   sknob.style.left = stick.x + 'px'; sknob.style.top = stick.y + 'px';
 }
 // セリフの @ は 主人公の なまえ になる
-function openDialog(name, lines, onEnd) { stickRelease(); openDlg(name, lines.map(l => l.replace(/@/g, hero.name)), onEnd); }
+function openDialog(name, lines, onEnd) { stickRelease(); openDlg((name || '').replace(/@/g, hero.name), lines.map(l => l.replace(/@/g, hero.name)), onEnd); }
 
 let started = false, near = null;
 const back = { x: 0, y: 0 };      // ひとつ まえの ばしょ(とおれない 出入り口で もどす)
@@ -709,6 +753,77 @@ const EVENTS = {
         await say(HAMO, ['うん。 みんな いっしょだよ。', 'きょうは いちど まちへ もどって、 じゅんびを しよう。']);
       } });
   },
+  // ===== 第3章 2かいめ: こわい もり(ゆうき) =====
+  async pushTree() {
+    if (!flags.has('kumo')) { await say('', ['おおきな {木|き}が たおれていて、 とおれない。', 'むこうに、 くらい もりが みえる……']); return; }
+    await say('', ['おおきな {木|き}が たおれている。 むこうに くらい もりが みえる。']);
+    await say(HAMO, ['みんなで おせば、 うごくかも!', 'せーの……!']);
+    sfx('rise');
+    await fade(() => { flags.add('treeMoved'); applySwaps(cur); });
+    save();
+    await say('', ['{ゴゴゴ|ごごご}…… {木|き}が うごいた!', 'くらい もりへの みちが ひらいた。']);
+  },
+  async scaryIntro() {
+    await say('', ['くらくて、 しんと した もりだ。', '{ヒュウウ|ひゅうう}…… どこかで へんな おとが する。', '@は {ハモ|はも}の うしろに かくれた。']);
+    await say('@', ['……こわいよう。']);
+    await say(HAMO, ['だいじょうぶ。 ぼくが {手|て}を つないでるから。']);
+    sfx('get');
+    await say('', ['♪{ハモ|はも}と {手|て}を つないだ!']);
+    await say('{メロ|めろ}', ['わたしも うしろに いるからね。']);
+  },
+  async aloneStart(z) {
+    const L = {
+      k1: [[HAMO, ['ここは みちが ほそくて、 ふたりで ならんで とおれないね。', 'ぼくは ここで まってる。 ちゃんと みてるから、 だいじょうぶ。']],
+        ['', ['@は {ハモ|はも}の {手|て}を はなした……', '{ヒソヒソ|ひそひそ}…… こわい こえが きこえる。', '@は なきそうに なりながら、 いっぽ ふみだした。']]],
+      k2a: [[HAMO, ['また ほそい みちだ。', '@、 いける? ぼくは ここで みてるよ。']], ['', ['@は ぐっと {手|て}を にぎって、 あるきだした。']]],
+      k2b: [['{メロ|めろ}', ['@、 ゆっくりで いいのよ。']], [HAMO, ['ここで みてるからね。']]],
+      br: [[HAMO, ['この はしは、 ひとりずつ しか わたれないんだって。', '@…… こわかったら、 もどって きても いいんだよ。']],
+        ['', ['@は、 くびを よこに ふった。']], [HAMO, ['……うん。 ぼくは ここで、 ずっと みてる。', '@なら できるよ。']]],
+    }[z.id] || [[HAMO, ['ぼくは ここで まってるよ。']]];
+    for (const [n, l] of L) await say(n, l);
+  },
+  async aloneEnd(z) {
+    const L = { k1: [HAMO, ['えらかったね、 @! ちゃんと みてたよ。']], k2a: [HAMO, ['すごい! どんどん つよく なってるね。']], k2b: ['{メロ|めろ}', ['よく がんばったわね、 @。']] }[z.id] || [HAMO, ['えらかったね!']];
+    sfx('ok');
+    await say('', ['{ハモ|はも}と {メロ|めろ}が おいついてきた。']);
+    await say(...L);
+    await say('', ['@は また {ハモ|はも}と {手|て}を つないだ。']);
+  },
+  // ひとりの はしを わたりきった → ゆうきの かけら
+  async braveBridge() {
+    if (flags.has('yuuki')) return;
+    await say('@', ['{ハモ|はも}ー! わたれたよー!']);
+    await fade(() => { trail.length = 0; });
+    await say('', ['{ハモ|はも}と {メロ|めろ}が、 はしを わたって きた。']);
+    await say(HAMO, ['すごいよ、 @! ひとりで わたれたね!']);
+    await say('@', ['こわかった……', 'でも、 {ハモ|はも}が ずっと みてて くれたから いけた。']);
+    await say(HAMO, ['……うん。 ずっと みてたよ。']);
+    await say('{メロ|めろ}', ['@、 とっても かっこよかったわ。']);
+    flags.add('yuuki'); bag.push('ゆうきのかけら'); save(); sfx('get');
+    await say('', ['@の むねの なかで、 なにかが あたたかく ひかった。', '♪「ゆうき」の かけらを {手|て}に いれた!', 'こわい ばしょも、 すすめる ように なった!']);
+  },
+  async mayoiHint() {
+    await say('{メロ|めろ}', ['あら、 みちが いくつも あるわ……']);
+    await say(HAMO, ['みて! ホタルが いる。'.replace('ホタル', '{ホタル|ほたる}'), '{ホタル|ほたる}が とんでいく ほうへ いってみよう!']);
+  },
+  async fogHint() {
+    await say('', ['くろい きりが たちこめている……', 'ゆうきの かけらが ぽっと ひかった。']);
+    await say('@', ['……もう こわくない。 いこう!']);
+  },
+  // おおおばけ(ボス): おおきくて こうげきが ききにくい → 「ゆうき」で ちいさく なる
+  obake(o) {
+    encounter({ party: [o.party] }, { boss: true, scary: true, onWin: () => { flags.add('obake'); save(); },
+      afterWin: async () => {
+        await say(o.name, ['うわあん、 まいった〜……', 'ほんとうは ぼく、 こわがられて ばかりで、\nずっと ひとりぼっち だったんだ……', 'そしたら くろい かげが きて、\n「もっと みんなを こわがらせろ」って……']);
+        await say('{メロ|めろ}', ['ひとりぼっちは、 さびしいわよね。']);
+        await say(HAMO, ['こんどは こわがらせないで、\n「いっしょに あそぼう」って いってごらん。']);
+        await say(o.name, ['……うん! やってみる!', 'くろい かげは、 きたの さむい やまの ほうへ とんでいったよ。']);
+        await say('', ['おおおばけは ちいさく なって、 にこにこ {手|て}を ふった。']);
+        await say('', ['……くしゅん!', '@の {体|からだ}が ぶるっと ふるえた。']);
+        await say('{メロ|めろ}', ['あら、 @、 ほっぺが あついわ。 だいじょうぶ?']);
+        await say(HAMO, ['あめに ぬれたからかな……', 'いちど まちへ もどって、 あったかく して やすもう。']);
+      } });
+  },
   // ===== パルル町の おてつだい: ちかしつの オルゴール =====
   async orgel(o) {
     const OR = '{オルゴール|おるごーる}';
@@ -920,6 +1035,19 @@ $('pNew').addEventListener('click', () => {
   clearSave(); location.reload();
 });
 
+// すべりこみ(axis: よせる むき、 dir: すすみたい むき)。 となりの マスも ふくめて、 すすめる マスの まんなかが 10ドット いないなら そっちへ
+function slide(axis, dir, sp) {
+  const X = axis === 'x', v = X ? player.x : player.y - 2, t = Math.floor(v / T);
+  let best = null;
+  for (const c of [t - 1, t, t + 1]) {
+    const cv = c * T + 8, d = cv - v; if (Math.abs(d) >= 10) continue;
+    const ok = X ? !hits(cv, player.y + dir * 3) : !hits(player.x + dir * 3, cv + 2);
+    if (ok && (best === null || Math.abs(d) < Math.abs(best))) best = d;
+  }
+  if (best === null || Math.abs(best) < 0.3) return;
+  const m = Math.sign(best) * Math.min(Math.abs(best), sp);
+  if (X) { if (!hits(player.x + m, player.y)) player.x += m; } else if (!hits(player.x, player.y + m)) player.y += m;
+}
 // ===== カメラ(マップが画面より小さいときは まん中に) =====
 function updateCamera() {
   const mw = cur.w * T, mh = cur.h * T;
@@ -956,7 +1084,7 @@ function update(dt) {
   if (!started || !hero.name) return;
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
   if (cur.outside) tick(dt);                              // じかんは そとに いる ときだけ すすむ
-  updateWeather(dt);
+  updateWeather(dt); updateHand(dt);
   if (isNight() !== wasNight) nightChanged();
   // 入力
   let vx = stick.vx, vy = stick.vy;
@@ -971,10 +1099,13 @@ function update(dt) {
     player.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'right' : 'left') : (vy > 0 ? 'down' : 'up');
     const nx = player.x + vx * sp;
     let ex = exitAt(nx, player.y); if (ex) { goExit(ex); return; }
-    if (!hits(nx, player.y)) player.x = nx;
+    const okX = !hits(nx, player.y); if (okX) player.x = nx;
     const ny = player.y + vy * sp;
     ex = exitAt(player.x, ny); if (ex) { goExit(ex); return; }
-    if (!hits(player.x, ny)) player.y = ny;
+    const okY = !hits(player.x, ny); if (okY) player.y = ny;
+    // すべりこみ: ほそい みちの いりぐちで すこし ずれていたら、 みちの まんなかへ よせる
+    if (!okY && Math.abs(vy) >= Math.abs(vx)) slide('x', Math.sign(vy), sp);
+    else if (!okX && Math.abs(vx) > Math.abs(vy)) slide('y', Math.sign(vx), sp);
     player.anim += dt * mag;
     const last = trail[0];
     if (!last || Math.hypot(last.x - player.x, last.y - player.y) >= 2) { trail.unshift({ x: player.x, y: player.y, dir: player.dir }); trail.length = Math.min(trail.length, 20); }
@@ -1073,7 +1204,8 @@ const dg = darkCv.getContext('2d');
 function drawDark() {
   const k = darkness(), a = (cur.dark ? 1 : (cur.outside ? 1 : cur.deco ? 0.7 : 0) * k) * (1 - Math.min(1, storm.flash / 0.3));   // そとの よると どうくつ(dark)は 明るい丸の そとは まっくら(かみなりが ひかると みえる)
   if (a <= 0.01) return;
-  const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: cur.lightR || (bag.includes('キャンプのかけら') ? 80 : 40) }];
+  const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: hand.alone ? 30 : cur.lightR || (bag.includes('キャンプのかけら') ? 80 : 40) }];
+  if (hand.alone) { const w = at(...hand.alone.wait); lights.push({ x: w.x - cam.x, y: w.y - 8 - cam.y, r: 30 }); }   // まっている ハモの ところも すこし あかるい
   for (const o of live()) if (o.light) lights.push({ x: o.x - cam.x, y: o.y - 6 - cam.y, r: o.light + Math.sin(tm * 9) * 2 });   // たきび など
   if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
   dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, VW, VH);
@@ -1158,7 +1290,13 @@ function drawField() {
   if (deco.open) drawDeco(ctx, cam, tm);
   // なかま(ハモ)は 主人公の すこし うしろを ついてくる
   const followers = members().slice(1).map((m, i) => {
-    const f = trail[7 + i * 7] || trail[trail.length - 1] || { x: player.x, y: player.y + 1, dir: player.dir };
+    if (hand.alone) { const w = at(hand.alone.wait[0] + i * 0.9, hand.alone.wait[1] + i * 0.2), dx = player.x - w.x, dy = player.y - w.y;   // ほそい みちの てまえで まっている
+      return { kind: 'follower', pal: m.pal, x: w.x, y: w.y, dir: Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'), moving: false }; }
+    if (cur.scary && i === 0 && !jump.on) {                           // こわい もり: ハモが となりで てを つなぐ
+      const side = player.dir === 'left' || player.dir === 'right';
+      return { kind: 'follower', pal: m.pal, x: player.x + (side ? (player.dir === 'left' ? 3 : -3) : 11), y: player.y + (side ? 5 : 0), dir: player.dir, moving: player.moving, hand: true };
+    }
+    const f = trail[(cur.scary ? 7 : 7 + i * 7)] || trail[trail.length - 1] || { x: player.x, y: player.y + 1, dir: player.dir };
     if (jump.on) return { kind: 'follower', pal: m.pal, x: player.x + (i ? -14 : 14), y: player.y + 2, dir: 'down', moving: false, hop: i + 1 };
     return { kind: 'follower', pal: m.pal, x: f.x, y: f.y + (trail.length ? 0 : i), dir: f.dir, moving: player.moving };
   });
@@ -1190,13 +1328,14 @@ function drawField() {
     }
     const jy = tg.on && e === player ? -Math.round(tgHeight() * 4 * tg.ph * (1 - tg.ph)) : leap.on && (e === player || e.kind === 'follower') ? leapY() : 0;
     if (e.kind === 'boss') { ctx.drawImage(enemySprite(e.look), sx - 16, sy - 30 + Math.round(Math.sin(tm * 3) * 1.5), 32, 32); continue; }
-    if (e === player) img = heroSprite(e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0, equipLook());
+    if (e === player) { img = heroSprite(e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0, equipLook()); }
+    if (e.hand && (e.dir === 'up' || e.dir === 'down')) { ctx.fillStyle = '#ffe2b8'; ctx.fillRect(sx - 7, sy - 7, 4, 1); }   // つないだ て
     else if (e.kind === 'follower') img = charSprite(e.pal, e.dir, e.moving ? Math.floor(player.anim * 9) % 4 : 0);
     else if (e.kind === 'npc') img = charSprite(e.pal, e.dir, 0);
     else if (e.kind === 'sign') img = SPR.sign;
     else if (e.kind === 'item') img = SPR[e.pic] || SPR.potion;
     else img = e.taken ? SPR.chestOpen : SPR.chest;
-    ctx.drawImage(img, sx - 6, sy - 15 + jy);
+    ctx.drawImage(img, sx - 6 + (e === player && hand.alone ? Math.floor(tm * 18) % 2 : 0), sy - 15 + jy);   // ひとりの ときは ぶるぶる
     if ((e.kind === 'chest' && !e.taken || e.kind === 'item') && (tm % 1.4) < .35) { ctx.fillStyle = '#fff'; ctx.fillRect(sx + 3, sy - 14, 1, 3); ctx.fillRect(sx + 2, sy - 13, 3, 1); } // きらっ
   }
   // トランポリンの ミニゲーム: タップの タイミングで わが きいろく ひかる
