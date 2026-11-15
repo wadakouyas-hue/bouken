@@ -7,12 +7,15 @@ import { ready, dataErrors, byId, DATA } from './data.js';
 import { hero, bag, heroStats, healFull, equipLook, equipBest, START_GOLD } from './hero.js';
 import { shop, openShop, shopTap } from './shop.js';
 import { menu, openMenu, menuTap } from './menu.js';
+import { room, furnImg, furnLook, furnSize, furnWork, isFlat, solidCells, canPlace } from './furniture.js';
+import { deco, openDeco, decoTile, decoTap, drawDeco } from './deco.js';
 import { battle, startBattle, updateBattle, drawBattle, battleTap } from './battle.js';
 import { nameEntry, askName, nameKey } from './nameentry.js';
 import village from '../maps/village.js';
 import house from '../maps/house.js';
 import forest from '../maps/forest.js';
 import shopMap from '../maps/shop.js';
+import home from '../maps/home.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -36,7 +39,7 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap };
+const MAPS = { village, house, forest, shop: shopMap, home };
 for (const [name, m] of Object.entries(MAPS)) {
   m.w = m.rows[0].length; m.h = m.rows.length;
   m.objs = m.objs.map(o => {
@@ -45,10 +48,44 @@ for (const [name, m] of Object.entries(MAPS)) {
     if (o.kind === 'enemy') Object.assign(r, { party: o.party.split(/\s+/), hx: p.x, hy: p.y, tx: p.x, ty: p.y, timer: 0, cool: 0 });
     return r;
   });
+  m.base = m.objs;   // かぐ いがいの 人や物
 }
 let cur = village;
 const mapName = () => Object.keys(MAPS).find(k => MAPS[k] === cur);
-function resetEnemies(m) { for (const o of m.objs) if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 }); }
+function resetEnemies(m) {
+  for (const o of m.objs) {
+    if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
+    if (o.again) { o.taken = false; o.gone = false; }   // また おちている もの(きの えだ など)
+  }
+}
+
+// ===== かぐ(もようがえ が できる マップ) =====
+const placed = m => room.placed[Object.keys(MAPS).find(k => MAPS[k] === m)] || [];
+// かぐの 当たり判定と、しらべる ための 印を つくりなおす
+function refreshRoom(m) {
+  if (!m.deco) return;
+  const list = placed(m);
+  m.solid = solidCells(list);
+  m.objs = [...m.base, ...list.filter(f => !isFlat(furnLook(f.id))).map(f => {
+    const [w, h] = furnSize(furnLook(f.id)), work = furnWork(furnLook(f.id));
+    return { kind: 'furn', furn: f, work, label: work || 'しらべる', ...at(f.x + (w - 1) / 2, f.y + h - 1) };
+  })];
+}
+// セーブの かぐを たしかめて(へんな ものは しまう)、 ない マップは さいしょの おきかたに
+function setupRooms(saved) {
+  room.stash = (saved?.stash || []).filter(id => byId('furniture', id));
+  for (const [name, m] of Object.entries(MAPS)) {
+    if (!m.deco) continue;
+    const src = saved?.placed?.[name] || (m.furniture || []).map(f => ({ ...f }));
+    const list = [];
+    for (const f of src) {
+      if (!byId('furniture', f.id)) continue;
+      if (canPlace(m, list, f.id, f.x, f.y, null, () => false)) list.push({ id: f.id, x: f.x, y: f.y }); else room.stash.push(f.id);
+    }
+    room.placed[name] = list;
+    refreshRoom(m);
+  }
+}
 
 // ===== キャラ =====
 const START = { map: 'village', ...at(5, 8) };
@@ -58,12 +95,12 @@ const live = () => cur.objs.filter(o => !o.gone);
 // ===== 当たり判定 =====
 function tileSolid(x, y) {
   const tx = Math.floor(x / T), ty = Math.floor(y / T);
-  return tx < 0 || ty < 0 || tx >= cur.w || ty >= cur.h || BLOCK.has(cur.rows[ty][tx]);
+  return tx < 0 || ty < 0 || tx >= cur.w || ty >= cur.h || BLOCK.has(cur.rows[ty][tx]) || !!cur.solid?.has(tx + ',' + ty);
 }
 function solidAt(x, y) {
   if (tileSolid(x, y)) return true;
   for (const o of live()) {
-    if (o.kind === 'look' || o.kind === 'item' || o.kind === 'enemy') continue;  // 家具はタイルで止まる/落ちている物は通れる/てきは ぶつかると戦闘
+    if (o.kind === 'look' || o.kind === 'item' || o.kind === 'enemy' || o.kind === 'furn') continue;  // 家具はタイルで止まる/落ちている物は通れる/てきは ぶつかると戦闘
     if (x > o.x - 6 && x < o.x + 6 && y > o.y - 6 && y < o.y + 1) return true;
   }
   return false;
@@ -156,8 +193,14 @@ stage.addEventListener('pointerdown', e => {
   if (menu.open) { const b = e.target.closest('[data-m]'); if (b) menuTap(b.dataset.m); return; }
   if (shop.open) { const b = e.target.closest('[data-s]'); if (b) shopTap(b.dataset.s); return; }
   if (trans.on) return;
+  if (deco.open) {
+    const b = e.target.closest('[data-d]'); if (b) { decoTap(b.dataset.d); return; }
+    if (e.target.closest('#deco .dpick, #deco .dside')) return;
+    const p = local(e); decoTile(Math.floor((p.x / S + cam.x) / T), Math.floor((p.y / S + cam.y) / T)); return;
+  }
   if (dlg.open) { advance(); return; }
   if (e.target.closest('#menubtn')) { openFieldMenu(); return; }
+  if (e.target.closest('#decobtn')) { startDeco(); return; }
   if (e.target.closest('#act') || e.target.closest('#actbtn')) { if (near) interact(near); return; }
   const p = local(e), wx = p.x / S + cam.x, wy = p.y / S + cam.y;
   if (near && Math.abs(wx - near.x) < 10 && wy > near.y - 18 && wy < near.y + 3) { interact(near); return; } // 近くの人や物を直接タップ
@@ -178,6 +221,7 @@ addEventListener('keydown', e => {
   if (nameEntry.open) { if (e.key === 'Backspace') nameKey('#del'); else if (e.key === 'Enter') nameKey('#ok'); return; }
   if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
   if (shop.open) { if (e.key === 'Escape') shopTap('#close'); return; }
+  if (deco.open) { if (e.key === 'Escape') decoTap('#done'); return; }
   if (e.key === 'm' || e.key === 'Escape') { if (menu.open) menuTap('#close'); else if (started && hero.name && !dlg.open && !trans.on) openFieldMenu(); return; }
   if (menu.open) return;
   keys[e.key] = true;
@@ -187,6 +231,13 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key] = false; });
 
+// もようがえ を はじめる(人が いる マスには おけない)
+function startDeco() {
+  stickRelease(); for (const k in keys) keys[k] = false;
+  const m = cur, people = [player, ...m.base.filter(o => o.kind === 'npc')];
+  const blocked = (x, y) => people.some(p => p.x + 5 > x * T && p.x - 5 < (x + 1) * T && p.y - 1 > y * T && p.y - 6 < (y + 1) * T);
+  openDeco(m, placed(m), blocked, () => { refreshRoom(m); save(); });
+}
 function openFieldMenu() { stickRelease(); sfx('ok'); for (const k in keys) keys[k] = false; openMenu(() => { chipText = ''; save(); }); }
 
 // ===== 調べる・話す・ひろう =====
@@ -202,6 +253,7 @@ function interact(o) {
     openDialog(o.name, lines, after);
     return;
   }
+  if (o.kind === 'furn') { useFurn(o); return; }
   if (o.taken) { openDialog(o.name, o.after || ['もう なにも ない。']); return; }
   if (o.give) {
     o.taken = true; bag.push(o.give);
@@ -216,6 +268,15 @@ function healAt(o) {
   if (hero.hp >= st.maxhp && hero.mp >= st.maxmp) return;
   healFull(); sfx('heal'); save();
   openDialog(o.name, ['つかれた かおを しているね。 すこし やすんで いきな。', '@の {体|からだ}が げんきに なった!']);
+}
+// かぐを しらべる: ベッドで ねる / さぎょうだいで つくる / ほかは せつめい
+function useFurn(o) {
+  const f = byId('furniture', o.furn.id);
+  if (o.work === 'ねる') {
+    sfx('heal');
+    fadeTo(() => { healFull(); save(); }, () => openDialog('', ['ぐっすり ねむった…', '@の HPと MPが ぜんぶ もどった!', 'きょうの ぼうけんを きろくしたよ。']));
+  } else if (o.work === 'つくる') openShop({ name: f?.name || 'さぎょうだい', craft: true }, () => { chipText = ''; save(); });
+  else openDialog('', [f?.desc || 'かぐ']);
 }
 function advance() { sfx('next'); advanceDlg(); }
 hooks.onType = () => sfx('type');
@@ -233,7 +294,8 @@ function save() {
   writeSave({
     v: 1, map: mapName(),
     x: Math.round(player.x), y: Math.round(player.y), dir: player.dir,
-    bag: [...bag], done: allObjs().filter(o => o.taken).map(o => o.key), talked: talkedOnce,
+    bag: [...bag], done: allObjs().filter(o => o.taken && !o.again).map(o => o.key), talked: talkedOnce,
+    room: { placed: room.placed, stash: [...room.stash] },
     hero: { ...hero },
   });
 }
@@ -267,7 +329,9 @@ const boot = ready.then(() => {
   for (const [name, m] of Object.entries(MAPS)) for (const o of m.objs) if (o.kind === 'enemy')
     for (const id of o.party) if (!byId('enemies', id)) dataErrors.push(`maps/${name}.js の てき「${id}」が enemies.csv に ありません。`);
   for (const [name, m] of Object.entries(MAPS)) for (const o of m.objs) for (const id of [...(o.shop || []), ...(o.give ? [o.give] : [])])
-    if (!byId('items', id)) dataErrors.push(`maps/${name}.js の どうぐ「${id}」が items.csv に ありません。`);
+    if (!byId('items', id) && !byId('furniture', id)) dataErrors.push(`maps/${name}.js の どうぐ「${id}」が items.csv に ありません。`);
+  setupRooms(saved?.room);
+  for (const [name, m] of Object.entries(MAPS)) for (const f of m.furniture || []) if (!byId('furniture', f.id)) dataErrors.push(`maps/${name}.js の かぐ「${f.id}」が furniture.csv に ありません。`);
   if (saved) load(saved);
   if (dataErrors.length) {
     const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -341,9 +405,10 @@ function updateCamera() {
 // ===== 毎フレームの更新 =====
 let tm = 0, chipText = '';
 function updateChip() {
-  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open;
+  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open && !deco.open;
   $('hpchip').style.display = show ? 'block' : 'none';
   $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
+  $('decobtn').style.display = show && !dlg.open && cur.deco ? 'block' : 'none';
   if (!show) return;
   const st = heroStats(), t = `${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}  ${hero.gold}{円|えん}`;
   if (t !== chipText) { chipText = t; $('hpchip').innerHTML = rubyHTML(t); $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
@@ -354,7 +419,7 @@ function update(dt) {
   updateChip();
   if (battle.on) { updateBattle(dt); $('act').style.display = 'none'; return; }
   const hideAct = () => { $('act').style.display = 'none'; $('actbtn').classList.remove('show'); };
-  if (trans.on || nameEntry.open || menu.open || shop.open) { hideAct(); return; }
+  if (trans.on || nameEntry.open || menu.open || shop.open || deco.open) { hideAct(); return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
@@ -437,7 +502,13 @@ function drawField() {
     if (tx >= cur.w || ty >= cur.h) continue;
     ctx.drawImage(tileImg(cur.rows[ty][tx], tx, ty, tm), tx * T - cam.x, ty * T - cam.y);
   }
-  const ents = [player, ...live().filter(o => o.kind !== 'look')].sort((a, b) => a.y - b.y);
+  // かぐ(じゅうたん → ほかの かぐ の じゅん)
+  if (cur.deco) for (const flat of [true, false]) for (const f of placed(cur)) {
+    const lk = furnLook(f.id); if (isFlat(lk) !== flat) continue;
+    ctx.drawImage(furnImg(lk), f.x * T - cam.x, f.y * T - cam.y);
+  }
+  if (deco.open) drawDeco(ctx, cam, tm);
+  const ents = [player, ...live().filter(o => o.kind !== 'look' && o.kind !== 'furn')].sort((a, b) => a.y - b.y);
   for (const e of ents) {
     const sx = Math.round(e.x - cam.x), sy = Math.round(e.y - cam.y);
     if (e.kind === 'enemy' && e.cool > 0 && Math.floor(tm * 10) % 2) continue;   // にげたあとは ちかちか
@@ -452,7 +523,7 @@ function drawField() {
     if (e === player) img = heroSprite(e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0, equipLook());
     else if (e.kind === 'npc') img = charSprite(e.pal, e.dir, 0);
     else if (e.kind === 'sign') img = SPR.sign;
-    else if (e.kind === 'item') img = SPR.potion;
+    else if (e.kind === 'item') img = SPR[e.pic] || SPR.potion;
     else img = e.taken ? SPR.chestOpen : SPR.chest;
     ctx.drawImage(img, sx - 6, sy - 15);
     if ((e.kind === 'chest' && !e.taken || e.kind === 'item') && (tm % 1.4) < .35) { ctx.fillStyle = '#fff'; ctx.fillRect(sx + 3, sy - 14, 1, 3); ctx.fillRect(sx + 2, sy - 13, 3, 1); } // きらっ

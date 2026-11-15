@@ -21,6 +21,7 @@ export const PAL = {
   oba:  { k: '#2a1e1a', h: '#c8c8d2', s: '#f0c49a', e: '#2a1e1a', r: '#8a5ab8', b: '#6a4a8a', o: '#4a3a2a' },
   shop1: { k: '#2a1e1a', h: '#8a4a2a', s: '#f6c9a0', e: '#2a1e1a', r: '#4fb07a', b: '#e8e0c8', o: '#4a3a2a' },
   shop2: { k: '#2a1e1a', h: '#2a2a2a', s: '#e8b88a', e: '#2a1e1a', r: '#8a96a4', b: '#4a4a5a', o: '#2a2a2a' },
+  shop3: { k: '#2a1e1a', h: '#c87a3a', s: '#f6c9a0', e: '#2a1e1a', r: '#e8a040', b: '#7a4a24', o: '#4a3a2a' },
   bank:  { k: '#2a1e1a', h: '#4a3a2a', s: '#f6c9a0', e: '#2a1e1a', r: '#2a3a6a', b: '#2a3a6a', o: '#1a1a1a' },
   obj:  { k: '#2a1e1a', w: '#e0ab62', d: '#8a5a2a', p: '#8a5a2a', c: '#b5652a', y: '#f2c230', x: '#3a2210',
           g: '#dff4ff', l: '#4fd16a', L: '#c8ffd0', n: '#b07a40' }};
@@ -30,6 +31,9 @@ const CHEST = ["............", "............", "............", "............", "
 const CHEST_OPEN = ["............", "............", "............", ".kkkkkkkkkk.", ".kcccccccck.", ".kyyyyyyyyk.", ".kkkkkkkkkk.", ".kxxxxxxxxk.", ".kxxxxxxxxk.", ".kyyyyyyyyk.", ".kcccyyccck.", ".kcccccccck.", ".kcccccccck.", ".kyyyyyyyyk.", ".kkkkkkkkkk.", "............"];
 // かいふくやく(びん)
 const POTION = ["............", "............", "............", "............", "............", ".....kk.....", "....knnk....", "....kkkk....", "....kggk....", "...kggggk...", "..kllllllk..", "..kLlllllk..", "..kLlllllk..", "..kllllllk..", "...kkkkkk...", "............"];
+
+// きの えだ(おちている ざいりょう)
+const BRANCH = ["............", "............", "............", "............", "............", "............", "............", "............", "..........k.", ".........kn.", "...kk...knk.", "..knnkkknk..", "..kknnnnk...", "...kkknnnk..", "......kkkk..", "............"];
 
 function build(rows, pal, flip) {
   const w = rows[0].length;
@@ -46,7 +50,7 @@ export function charSprite(palName, dir, f) {
   const legs = side ? [LEGS.sA, LEGS.sB, LEGS.sA, LEGS.sB][f] : [LEGS.fA, LEGS.fB, LEGS.fA, LEGS.fC][f];
   return cache[key] = build([...head, ...body, ...legs], PAL[palName] || PAL.oji, dir === 'left');
 }
-export const SPR = { sign: build(SIGN, PAL.obj), chest: build(CHEST, PAL.obj), chestOpen: build(CHEST_OPEN, PAL.obj), potion: build(POTION, PAL.obj) };
+export const SPR = { sign: build(SIGN, PAL.obj), chest: build(CHEST, PAL.obj), chestOpen: build(CHEST_OPEN, PAL.obj), potion: build(POTION, PAL.obj), branch: build(BRANCH, PAL.obj) };
 
 // ===== てき(16×16ドット) =====
 const ENEMY = {

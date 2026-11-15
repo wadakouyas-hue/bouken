@@ -180,3 +180,26 @@ rt{font-size:.5em;}
 #shop .srow{display:flex;gap:calc(var(--u)*3);align-items:center;}
 #shop .srow span{width:calc(var(--u)*34);font-weight:bold;}
 #shop .srow button{flex:1;height:calc(var(--u)*22);font-size:calc(var(--u)*6.5);font-weight:bold;}
+
+/* もようがえ */
+#decobtn{position:absolute;right:calc(var(--u)*4);top:calc(var(--u)*30);pointer-events:auto;display:none;background:#ffd23f;color:#18224f;border:calc(var(--u)*.75) solid #fff;
+  border-radius:calc(var(--u)*3);font-size:calc(var(--u)*6);line-height:2.3;padding:0 calc(var(--u)*4);font-weight:bold;}
+#deco{position:absolute;inset:0;display:none;}
+#deco button{font:inherit;color:#fff;background:rgba(255,255,255,.1);border:calc(var(--u)*.75) solid rgba(255,255,255,.7);border-radius:calc(var(--u)*3);
+  min-height:calc(var(--u)*18);font-size:calc(var(--u)*6);font-weight:bold;}
+#deco button.go{background:#ffd23f;color:#18224f;margin-top:auto;}
+#deco .dside{position:absolute;right:calc(var(--u)*3);top:calc(var(--u)*3);bottom:calc(var(--u)*3);width:calc(var(--u)*58);box-sizing:border-box;pointer-events:auto;
+  display:flex;flex-direction:column;gap:calc(var(--u)*3);background:rgba(18,26,70,.93);border:calc(var(--u)*.75) solid #fff;border-radius:calc(var(--u)*3);padding:calc(var(--u)*3);}
+#deco .dtitle{font-weight:bold;font-size:calc(var(--u)*6.5);color:#ffd23f;}
+#deco .dmsg{font-size:calc(var(--u)*5);line-height:1.7;}
+#deco .dpick{position:absolute;left:calc(var(--u)*40);right:calc(var(--u)*66);top:calc(var(--u)*12);bottom:calc(var(--u)*12);box-sizing:border-box;pointer-events:auto;
+  display:flex;flex-direction:column;gap:calc(var(--u)*3);background:rgba(18,26,70,.96);border:calc(var(--u)*1) solid #fff;border-radius:calc(var(--u)*4);padding:calc(var(--u)*4);}
+#deco .dlist{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.5);overflow:auto;flex:1;min-height:0;align-content:start;}
+#deco .dlist button{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:0 calc(var(--u)*3);}
+#deco small{font-size:.75em;color:#bfe0ff;}
+
+/* さぎょうだい */
+#shop .slist button.dim{opacity:.6;}
+#shop .smats{flex:1;display:flex;flex-wrap:wrap;gap:calc(var(--u)*2) calc(var(--u)*5);}
+#shop .smats .ok{color:#8ef08a;}
+#shop .smats .ng{color:#ff9a9a;}

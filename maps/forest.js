@@ -33,6 +33,12 @@ export default {
       lines: ['たからばこを あけた!', '♪きの ぼうを {手|て}に いれた!', '{メニュー|めにゅー}の 「そうび」で もてるよ。'], after: ['もう からっぽだ。'] },
     { kind: 'chest', x: 27, y: 13, label: 'あける', give: 'かわのよろい',
       lines: ['たからばこを あけた!', '♪かわの よろいを {手|て}に いれた!', '{メニュー|めにゅー}の 「そうび」で きがえられるよ。'], after: ['もう からっぽだ。'] },
+    // again: true … もりに 入りなおすと また おちている(さぎょうだいの ざいりょう)
+    { kind: 'item', x: 2, y: 11, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
+    { kind: 'item', x: 16, y: 8, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
+    { kind: 'item', x: 23, y: 5, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
+    { kind: 'item', x: 17, y: 16, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
+    { kind: 'item', x: 28, y: 11, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
     { kind: 'enemy', x: 14, y: 10, party: 'きのこ' },
     { kind: 'enemy', x: 10, y: 5, party: 'どんぐり' },
     { kind: 'enemy', x: 19, y: 13, party: 'はっぱ きのこ' },

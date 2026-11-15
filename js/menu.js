@@ -35,7 +35,7 @@ export function menuTap(k) {
 
 function useItem() {
   const it = byId('items', sel); if (!it || !bag.includes(it.id)) return;
-  if (it.kind !== 'かいふく') { msg = it.kind === 'だいじ' ? 'だいじに もっておこう。' : '「そうび」で つかうよ。'; return; }
+  if (it.kind !== 'かいふく') { msg = it.kind === 'だいじ' ? 'だいじに もっておこう。' : it.kind === 'ざいりょう' ? 'おうちの さぎょうだいで つかうよ。' : '「そうび」で つかうよ。'; return; }
   if (hero.hp >= heroStats().maxhp) { msg = 'HPは まんたんだよ。'; return; }
   bagRemove(it.id); const n = heal(it.val); sfx('heal');
   msg = `${it.name}を つかった! HPが ${n} かいふくした!`;

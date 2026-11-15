@@ -1,18 +1,19 @@
 // data/ フォルダの CSV を読み込む(書き方がまちがっていても止まらず、まちがいを知らせる)
-export const DATA = { party: [], enemies: [], skills: [], items: [] };
+export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [] };
 export const dataErrors = [];
 export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
 export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ'];     // よろいの「みため」
 export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
+export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい'];   // かぐの「みため」(js/furniture.js にある絵)
 
 const SPEC = {
   party: { file: 'data/party.csv', label: 'みかた',
     cols: { id: 'id', name: 'なまえ', lv: 'レベル', exp: 'けいけんち', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', learn: 'おぼえる わざ' },
     nums: ['lv', 'exp', 'hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd'], lists: ['learn'], optional: ['name', 'learn', 'mag', 'spr'] },
   enemies: { file: 'data/enemies.csv', label: 'てき',
-    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', exp: 'けいけんち', gold: 'おかね', weak: 'よわい', resist: 'つよい', skills: 'わざ' },
-    nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp', 'gold'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist', 'gold'],
+    cols: { id: 'id', name: 'なまえ', look: 'みため', move: 'うごき', hp: 'HP', mp: 'MP', atk: 'こうげき', def: 'ぼうぎょ', mag: 'まりょく', spr: 'せいしん', spd: 'すばやさ', exp: 'けいけんち', gold: 'おかね', weak: 'よわい', resist: 'つよい', skills: 'わざ', drop: 'おとすもの', rate: 'かくりつ' },
+    nums: ['hp', 'mp', 'atk', 'def', 'mag', 'spr', 'spd', 'exp', 'gold', 'rate'], lists: ['skills', 'weak', 'resist'], optional: ['skills', 'move', 'mag', 'spr', 'weak', 'resist', 'gold', 'drop', 'rate'],
     choices: { move: ['うろうろ', 'ゆっくり', 'はやい'] } },
   skills: { file: 'data/skills.csv', label: 'わざ・じゅもん',
     cols: { id: 'id', name: 'なまえ', type: 'ぶんるい', elem: 'ぞくせい', mp: 'MP', effect: 'こうか', target: 'あいて', pow: 'いりょく', desc: 'せつめい' },
@@ -20,7 +21,13 @@ const SPEC = {
     choices: { elem: ['なし', ...ELEMENTS], type: ['わざ', 'じゅもん'], effect: ['こうげき', 'かいふく'], target: ['ひとり', 'ぜんぶ', 'じぶん'] } },
   items: { file: 'data/items.csv', label: 'どうぐ・そうび',
     cols: { id: 'id', name: 'なまえ', kind: 'しゅるい', val: 'こうか', look: 'みため', price: 'ねだん', desc: 'せつめい' },
-    nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'よろい', 'ぶき', 'だいじ'] } },
+    nums: ['val', 'price'], optional: ['desc', 'look', 'price'], choices: { kind: ['かいふく', 'よろい', 'ぶき', 'ざいりょう', 'だいじ'] } },
+  furniture: { file: 'data/furniture.csv', label: 'かぐ',
+    cols: { id: 'id', name: 'なまえ', look: 'みため', price: 'ねだん', desc: 'せつめい' },
+    nums: ['price'], optional: ['desc', 'price'], choices: { look: FURN_LOOKS } },
+  recipes: { file: 'data/recipes.csv', label: 'つくりかた',
+    cols: { id: 'つくるもの', m1: 'ざいりょう1', n1: 'かず1', m2: 'ざいりょう2', n2: 'かず2', m3: 'ざいりょう3', n3: 'かず3' },
+    nums: ['n1', 'n2', 'n3'], optional: ['m2', 'n2', 'm3', 'n3'] },
 };
 
 const norm = s => String(s ?? '').normalize('NFKC').replace(/\s+/g, '').toLowerCase();   // 全角/半角・スペースの ちがいを なくす
@@ -108,6 +115,14 @@ async function loadAll() {
     const ok = it.kind === 'よろい' ? ARMOR_LOOKS : it.kind === 'ぶき' ? WEAPON_LOOKS : null;
     if (ok && it.look && !ok.includes(it.look)) { dataErrors.push(`どうぐ(items.csv)「${it.id}」: みためは ${ok.join(' / ')} のどれかにしてください。`); it.look = ''; }
   }
+  for (const e of DATA.enemies) if (e.drop && !byId('items', e.drop)) { dataErrors.push(`てき(enemies.csv)「${e.id}」: おとすもの「${e.drop}」が items.csv に ありません。`); e.drop = ''; }
+  // つくりかた: ざいりょうを { id, n } の ならびに まとめる
+  for (const r of DATA.recipes) {
+    if (!byId('items', r.id) && !byId('furniture', r.id)) dataErrors.push(`つくりかた(recipes.csv)「${r.id}」: つくるものが items.csv にも furniture.csv にも ありません。`);
+    r.mats = [[r.m1, r.n1], [r.m2, r.n2], [r.m3, r.n3]].filter(([m]) => m).map(([id, n]) => ({ id, n: Math.max(1, n || 1) }));
+    for (const m of r.mats) if (!byId('items', m.id)) dataErrors.push(`つくりかた(recipes.csv)「${r.id}」: ざいりょう「${m.id}」が items.csv に ありません。`);
+  }
+  DATA.recipes = DATA.recipes.filter(r => (byId('items', r.id) || byId('furniture', r.id)) && r.mats.length && r.mats.every(m => byId('items', m.id)));
   if (!DATA.party.some(p => p.id === 'hero')) dataErrors.push('みかた(party.csv)に id が hero の行が ありません。');
 }
 export const ready = loadAll();
