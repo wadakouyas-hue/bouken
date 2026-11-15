@@ -34,6 +34,7 @@ export const PAL = {
   shop1: { k: '#2a1e1a', h: '#a87a4a', t: '#7a5230', s: '#f0dcc0', e: '#2a1e1a', p: '#e07a6a', r: '#4fb07a', b: '#e8e0c8', o: '#4a3a2a' },
   shop2: { k: '#2a1e1a', h: '#8a8a96', g: '#5a5a66', s: '#c8c8d2', e: '#2a1e1a', p: '#f08aa0', r: '#8a96a4', b: '#4a4a5a', o: '#2a2a2a' },
   shop3: { k: '#2a1e1a', h: '#f0dca0', t: '#d0a860', s: '#fff4d8', e: '#2a1e1a', p: '#f08aa0', r: '#e8a040', b: '#7a4a24', o: '#4a3a2a' },
+  paint: { k: '#2a1e1a', h: '#d8c0a0', g: '#8a5a3a', s: '#fff4e0', e: '#2a1e1a', p: '#f08aa0', r: '#e04848', b: '#3a3a6a', o: '#2a2a2a' },   // えかきの ねこ
   bank:  { k: '#15101a', h: '#2e2e38', s: '#ffffff', e: '#ffd23f', p: '#f08aa0', r: '#2a3a6a', b: '#2a3a6a', o: '#1a1a1a' },
   obj:  { k: '#2a1e1a', w: '#e0ab62', d: '#8a5a2a', p: '#8a5a2a', c: '#b5652a', y: '#f2c230', x: '#3a2210',
           g: '#dff4ff', l: '#4fd16a', L: '#c8ffd0', n: '#b07a40' }};
@@ -72,6 +73,17 @@ function drawGuitar(g, dir) {
   else { const x = dir === 'left' ? 9 : 1; p(x, 0, 1, 8, '#5a3418'); p(x + (dir === 'left' ? 0 : 0), 7, 2, 4, '#d0782a'); }
 }
 export const SPR = { sign: build(SIGN, PAL.obj), chest: build(CHEST, PAL.obj), chestOpen: build(CHEST_OPEN, PAL.obj), potion: build(POTION, PAL.obj), branch: build(BRANCH, PAL.obj) };
+
+// ===== かざり(テント・たきび・ことりの いえ) =====
+function paintCv(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); fn((x, y, ww, hh, col) => { g.fillStyle = col; g.fillRect(x, y, ww, hh); }); return c; }
+export const DECO = {
+  tent: paintCv(28, 20, p => { for (let y = 0; y < 18; y++) { const w = Math.round(2 + y * 1.4); p(14 - w / 2, y + 1, w, 1, y % 4 === 0 ? '#e8a040' : '#f0c060'); }
+    p(14, 1, 1, 18, '#a87020'); for (let y = 8; y < 19; y++) { const w = Math.round((y - 8) * 0.8); p(14 - w / 2, y, w, 1, '#3a2a1a'); } p(0, 19, 28, 1, '#5a4a2a'); }),
+  fire: [0, 1].map(f => paintCv(12, 12, p => { p(1, 9, 10, 2, '#7a4a24'); p(2, 8, 2, 4, '#5a3418'); p(8, 8, 2, 4, '#5a3418');
+    p(3, 4 + f, 6, 5 - f, '#e8401a'); p(4, 2 - f + 1, 4, 6, '#ff8a2a'); p(5, 1 + f, 2, 6, '#ffd23f'); p(5, 6, 2, 2, '#fff3a0'); })),
+  birdhouse: paintCv(10, 12, p => { p(0, 2, 10, 2, '#c84a3a'); p(1, 0, 8, 2, '#e05a4a'); p(1, 4, 8, 7, '#d8a060'); p(4, 6, 2, 2, '#3a2210'); p(4, 11, 2, 1, '#7a4a24'); p(2, 4, 1, 7, '#b8804a'); }),
+  bird: paintCv(6, 5, p => { p(1, 1, 4, 3, '#5ab0ff'); p(0, 2, 1, 1, '#5ab0ff'); p(5, 2, 1, 1, '#f2c230'); p(3, 1, 1, 1, '#2a1e1a'); p(1, 4, 1, 1, '#e8a040'); p(3, 4, 1, 1, '#e8a040'); }),
+};
 
 // ===== てき(16×16ドット) =====
 const ENEMY = {

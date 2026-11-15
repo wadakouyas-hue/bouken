@@ -2,7 +2,7 @@
 import { DATA, byId } from './data.js';
 
 export const START_GOLD = 200;   // さいしょの おかね
-export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null }, gold: START_GOLD, bank: 0, hamo: null };   // hamo: なかまの ハモ({hp, mp})。 いなければ null   // gold: もっている おかね  bank: ぎんこうに あずけた おかね   // hp が -1 なら「まだ はじめていない」
+export const hero = { name: '', lv: 1, exp: 0, hp: -1, mp: -1, equip: { ぶき: null, よろい: null }, gold: START_GOLD, bank: 0, hamo: null, melo: null };   // hamo: なかまの ハモ({hp, mp})。 いなければ null   // gold: もっている おかね  bank: ぎんこうに あずけた おかね   // hp が -1 なら「まだ はじめていない」
 export const bag = [];                                             // 持ち物(items.csv の id)
 
 const rows = (id = 'hero') => DATA.party.filter(r => r.id === id).sort((a, b) => a.lv - b.lv);
@@ -22,14 +22,14 @@ export function allyStats(id) {
   for (const r of rs) if (r.lv <= hero.lv) { row = r; for (const s of r.learn) if (!skills.includes(s)) skills.push(s); }
   return { maxhp: row.hp, maxmp: row.mp, atk: row.atk, def: row.def, mag: row.mag, spr: row.spr, spd: row.spd, skills, baseAtk: row.atk, baseDef: row.def };
 }
-const ALLY_NAME = { hamo: '{ハモ|はも}' };
+const ALLY_NAME = { hamo: '{ハモ|はも}', melo: '{メロ|めろ}' };
 // パーティ: [{ key, name, pal, s(hp・mp が 入っている もの), st(つよさ) }]
 export function members() {
   const list = [{ key: 'hero', name: hero.name, s: hero, st: heroStats() }];
-  if (hero.hamo) list.push({ key: 'hamo', name: ALLY_NAME.hamo, pal: 'hamo', s: hero.hamo, st: allyStats('hamo') });
+  for (const k of ['hamo', 'melo']) if (hero[k]) list.push({ key: k, name: ALLY_NAME[k], pal: k, s: hero[k], st: allyStats(k) });
   return list;
 }
-export function joinAlly(id) { if (id === 'hamo' && !hero.hamo) { const st = allyStats('hamo'); hero.hamo = { hp: st.maxhp, mp: st.maxmp }; } }
+export function joinAlly(id) { if (ALLY_NAME[id] && !hero[id]) { const st = allyStats(id); hero[id] = { hp: st.maxhp, mp: st.maxmp }; } }
 // そうびしている物(持っていなければ なし)
 export function equipped(slot) { const id = hero.equip[slot]; return id && bag.includes(id) ? byId('items', id) : null; }
 export const equipLook = () => ({ armor: equipped('よろい')?.look || '', weapon: equipped('ぶき')?.look || '' });

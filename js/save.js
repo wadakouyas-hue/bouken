@@ -24,11 +24,13 @@ function check(d) {
   const r = d.room && typeof d.room === 'object' ? d.room : null, placed = {};
   if (r && r.placed && typeof r.placed === 'object') for (const [k, list] of Object.entries(r.placed))
     if (Array.isArray(list)) placed[k] = list.filter(f => f && typeof f.id === 'string' && Number.isInteger(f.x) && Number.isInteger(f.y)).slice(0, 200).map(f => ({ id: f.id, x: f.x, y: f.y }));
-  d.room = r ? { placed, stash: strs(r.stash) } : null;
+  const paint = r && Array.isArray(r.paint) ? r.paint.filter(c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 20) : null;
+  d.room = r ? { placed, stash: strs(r.stash), paint: paint && paint.length ? paint : null } : null;
   const h = d.hero, num = (v, min) => Number.isFinite(v) && v >= min;
   d.hero = h && typeof h.name === 'string' && h.name && num(h.lv, 1) && num(h.exp, 0) && num(h.hp, 0) && num(h.mp, 0)
     ? { name: h.name.slice(0, 8), lv: Math.floor(h.lv), exp: h.exp, hp: h.hp, mp: h.mp,
         hamo: h.hamo && num(h.hamo.hp, 0) && num(h.hamo.mp, 0) ? { hp: h.hamo.hp, mp: h.hamo.mp } : null,
+        melo: h.melo && num(h.melo.hp, 0) && num(h.melo.mp, 0) ? { hp: h.melo.hp, mp: h.melo.mp } : null,
         gold: num(h.gold, 0) ? Math.floor(h.gold) : null, bank: num(h.bank, 0) ? Math.floor(h.bank) : 0,
         equip: h.equip && typeof h.equip === 'object' ? { ぶき: typeof h.equip.ぶき === 'string' ? h.equip.ぶき : null, よろい: typeof h.equip.よろい === 'string' ? h.equip.よろい : null } : null } : null;
   return d;

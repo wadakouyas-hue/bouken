@@ -25,10 +25,15 @@ export default {
   noFurn: [[5, 7], [6, 7]],
   objs: [
     // メロ(主人公の おかあさん ねこ)。 heal: うたで HP・MPを もどしてくれる
-    { kind: 'npc', x: 7, y: 3, pal: 'melo', name: '{メロ|めろ}', label: 'はなす', heal: true,
+    { kind: 'npc', x: 7, y: 3, pal: 'melo', name: '{メロ|めろ}', label: 'はなす', heal: true, hide: 'campGo',
       lines: ['おかえり、 @。 つかれたら いつでも かえって おいで。'],
       healLines: ['すこし やすんで いきなさい。 {歌|うた}を うたって あげる。', '♪ラ〜ラ〜ララ〜♪'.replace('ラ〜ラ〜ララ〜', '{ラ〜ラ〜ララ〜|ら〜ら〜らら〜}'), 'みんなの {体|からだ}が げんきに なった!'],
       talk: [
+        { need: 'campInvite', not: 'campGo', set: 'campGo', heal: false, lines: [
+          'おかえり。 あら、 {キャンプ|きゃんぷ}?',
+          'すてきね! {パルル|ぱるる}{町|まち}の ひがしの はらっぱね。',
+          'さきに いって、 {テント|てんと}と たきびを じゅんび しておくわ!',
+        ] },
         { not: 'intro', set: 'intro', heal: false, lines: [
           'おはよう、 @。 よく ねむれた?',
           'ねえ、 {森|もり}の おくの 「みはらしの おか」って しってる?',

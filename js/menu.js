@@ -50,6 +50,8 @@ function castSpell(key) {
   const m = who(key);
   if (s.effect !== 'かいふく') { msg = 'たたかいの ときに つかうよ。'; return; }
   if (hero.mp < s.mp) { msg = 'MPが たりないよ。'; return; }
+  if (key === 'all') { if (members().every(x => x.s.hp >= x.st.maxhp)) { msg = 'みんな まんたんだよ。'; return; }
+    hero.mp -= s.mp; for (const x of members()) heal(s.pow + Math.floor(heroStats().mag / 2), x); sfx('heal'); msg = `「${s.name}」! みんなの HPが かいふくした!`; changed(); return; }
   if (m.s.hp >= m.st.maxhp) { msg = `${m.name}の HPは まんたんだよ。`; return; }
   hero.mp -= s.mp; const n = heal(s.pow + Math.floor(heroStats().mag / 2), m); sfx('heal');
   msg = `「${s.name}」! ${m.name}の HPが ${n} かいふくした!`;
@@ -113,7 +115,7 @@ function spellsView() {
   if (!list.length) return '<div class="mempty">まだ じゅもんを おぼえていないよ</div>';
   const s = byId('skills', sel);
   return `<div class="mtop">MP ${hero.mp}/${st.maxmp}</div><div class="mlist">${list.map(x => btn('sel:' + x.id, `${R(x.name)}<small>MP ${x.mp}</small>`, sel === x.id ? 'on' : '')).join('')}</div>` +
-    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'ワープ' ? warpBtns() : s.effect === 'かいふく' ? forWho('cast', 'となえる') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
+    (s ? `<div class="mdetail">${R(s.desc || s.name)}${s.effect === 'ワープ' ? warpBtns() : s.effect === 'かいふく' && s.target === 'みんな' ? btn('cast:all', 'となえる', 'go') : s.effect === 'かいふく' ? forWho('cast', 'となえる') : `<small>${s.elem !== 'なし' ? s.elem + '  ' : ''}(たたかいで つかう)</small>`}</div>` : '<div class="mdetail mhint">じゅもんを えらんでね</div>');
 }
 function equipView() {
   const st = heroStats();

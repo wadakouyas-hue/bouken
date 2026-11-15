@@ -33,8 +33,31 @@ export default {
   objs: [
     { kind: 'npc', x: 12, y: 12, pal: 'shop3', name: 'まちの ねこ', label: 'はなす',
       lines: ['ここは {パルル|ぱるる}{町|まち}。 ふんすいの ある こうえんの まちよ。', 'でも さいきん、 ふんすいの おとも\nとりの うたも きこえないの……'] },
+    // ===== おてつだい1: トランポリン =====
     { kind: 'npc', x: 7, y: 16, pal: 'girl', name: 'こねこ', label: 'はなす', wander: true,
-      lines: ['トランポリン、 たのしいよ!'.replace('トランポリン', '{トランポリン|とらんぽりん}'), 'でもね、 はねても ぽよーんって おとが しないの。 へんなの。'] },
+      talk: [{ need: 'tramp', lines: ['また いっしょに とぼうね!', 'トランポリンの まえで 「とぶ」を おしてね。'.replace('トランポリン', '{トランポリン|とらんぽりん}')] }],
+      lines: ['{トランポリン|とらんぽりん}、 たのしいよ! いっしょに とぼうよ!', 'でもね、 はねても ぽよーんって おとが しないの。 へんなの。', 'トランポリンの まえで 「とぶ」を おしてね。'.replace('トランポリン', '{トランポリン|とらんぽりん}')] },
+    { kind: 'look', x: 4.5, y: 18, label: 'とぶ', event: 'tramp' },
+    // ===== おてつだい2: えかき(ぬりえ) =====
+    { kind: 'npc', x: 6, y: 7, pal: 'paint', name: 'えかきの ねこ', label: 'はなす',
+      talk: [
+        { need: 'paint', then: 'paint', lines: ['また いっしょに えを かく?'] },
+        { then: 'paint', lines: ['こんにちは。 わたしは えを かくのが すきなの。', 'いっしょに かかない? すきな いろで ぬってみて!'] },
+      ] },
+    // ===== おてつだい3: こうさく(ことりの いえ) =====
+    { kind: 'npc', x: 25, y: 16, pal: 'oba', name: 'ことりずきの ねこ', label: 'はなす',
+      talk: [
+        { need: 'craft', lines: ['ことりの いえ、 ありがとう!', 'ことりが かえって きたわ。 なきごえが きこえたら いいのにね。'] },
+        { not: 'craft', set: 'birdtalk', lines: ['さいきん、 ことりが いなくなって さみしいの。', 'あの {木|き}に すむ ばしょが あれば、 かえって くるかしら……'] },
+      ] },
+    { kind: 'deco', x: 22, y: 18, pic: 'furn:さぎょうだい', label: 'つくる', event: 'birdhouse' },
+    { kind: 'deco', x: 28, y: 15.2, pic: 'birdhouse', show: 'craft' },
+    { kind: 'item', x: 2, y: 19, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
+    { kind: 'item', x: 20, y: 19, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
+    // ===== キャンプ(まちの ひがしの はらっぱ) =====
+    { kind: 'deco', x: 28.5, y: 18, pic: 'tent', show: 'campGo', hide: 'camp' },
+    { kind: 'deco', x: 26.5, y: 17.4, pic: 'fire', light: 56, show: 'campGo', hide: 'camp' },
+    { kind: 'npc', x: 25, y: 18.4, pal: 'melo', name: '{メロ|めろ}', label: 'はなす', show: 'campGo', hide: 'camp', event: 'camp', lines: [] },
     { kind: 'npc', x: 26.5, y: 13, pal: 'oji', name: 'としよりの ねこ', label: 'はなす',
       lines: ['よるに なると、 おおきな {ミミズク|みみずく}が\nまちの うえを とんでいくんじゃ。', 'あいつが まちの おとを もっていって しまったのかも しれん。', 'きたの もりの おくに すんでいると いう はなしじゃが……'] },
     { kind: 'sign', x: 17, y: 6, name: 'かんばん', label: 'よむ', lines: ['ステージの ある おみせ'.replace('ステージ', '{ステージ|すてーじ}'), 'まいばん たのしい えんそうかい!'] },
@@ -44,6 +67,6 @@ export default {
     { x: 15, y: 21, w: 2, to: 'hill', at: [9.5, 1], dir: 'down' },          // した → みはらしの おか
     { x: 15, y: 4, to: 'cafe', at: [6.5, 8], dir: 'up' },                   // ステージの ある おみせ
     { x: 26, y: 10, to: 'shop2', at: [6.5, 7], dir: 'up' },                 // パルル町の おみせ
-    { x: 28, y: 0, w: 2, to: 'town2', at: [28.5, 2], need: 'ch2gate', block: ['この さきは きたの もり。', 'いまは まだ いけない みたい。'] },
+    { x: 28, y: 0, w: 2, to: 'town2', at: [28.5, 2], need: 'north', block: ['この さきは きたの もり。', 'みちは まだ つくっている ところ。(つぎの かいで できるよ)'] },   // TODO: 第2章3回目で きたの もりへ
   ],
 };

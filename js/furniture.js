@@ -1,6 +1,7 @@
 // かぐ(もようがえ で おける もの)の 絵と、おける場所の きまり
 import { byId } from './data.js';
 import { T, px } from './tiles.js';
+import { colorAt } from './paint.js';
 
 // みため → おおきさ(マス)と はたらき
 const SIZE = { ベッド: [1, 2], テーブル: [2, 1], じゅうたん: [2, 2], き: [1, 2] };
@@ -9,7 +10,7 @@ export const isFlat = look => look === 'じゅうたん';            // うえ�
 export const furnWork = look => look === 'ベッド' ? 'ねる' : look === 'さぎょうだい' ? 'つくる' : '';
 
 // もっている かぐ: placed = おいてある もの(マップごと)、 stash = しまってある もの(id の ならび)
-export const room = { placed: {}, stash: [] };
+export const room = { placed: {}, stash: [], paint: null };   // paint: ぬりえの いろ(かぐの 「え」)
 
 // ===== 絵(うしろは すきとおり) =====
 function circle(g, cx, cy, r, col) { g.fillStyle = col; for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r * .6) g.fillRect(cx + x, cy + y, 1, 1); }
@@ -57,7 +58,17 @@ const PAINT = {
     px(g, 2, 8, 12, 4, '#2a1e1a'); px(g, 3, 8, 10, 3, '#e6e2d4'); px(g, 3, 12, 2, 4, '#f2f0e6'); px(g, 11, 12, 2, 4, '#f2f0e6'); px(g, 3, 15, 2, 1, '#2a1e1a'); px(g, 11, 15, 2, 1, '#2a1e1a'); },
 };
 const cache = {};
+// え(イーゼルに ぬりえが かざってある)
+function easel() {
+  const c = document.createElement('canvas'); c.width = T; c.height = T; const g = c.getContext('2d');
+  px(g, 3, 11, 1, 5, '#7a4a24'); px(g, 12, 11, 1, 5, '#7a4a24'); px(g, 7, 11, 2, 4, '#5a3418');
+  px(g, 0, 1, 16, 11, '#5a3418'); px(g, 1, 2, 14, 9, '#ffffff');
+  const cols = room.paint || [];
+  for (let y = 0; y < 9; y++) for (let x = 0; x < 14; x++) px(g, 1 + x, 2 + y, 1, 1, cols.length ? colorAt(cols, (x + .5) / 14, (y + .5) / 9) : '#f4f2ec');
+  return c;
+}
 export function furnImg(look) {
+  if (look === 'え') { const k = 'え' + (room.paint || []).join(); return cache[k] || (cache[k] = easel()); }
   if (cache[look]) return cache[look];
   const [w, h] = furnSize(look), c = document.createElement('canvas'); c.width = w * T; c.height = h * T;
   const g = c.getContext('2d'); (PAINT[look] || PAINT.タンス)(g);

@@ -13,7 +13,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const fill = s => s.replace(/@/g, hero.name);
 const alive = () => B.enemies.filter(e => e.alive);
 const up = () => B.party.filter(m => m.s.hp > 0);          // たおれていない みかた
-const SPOTS = [[[262, 112]], [[248, 100], [282, 138]]];     // みかたの たちいち(1人 / 2人)
+const SPOTS = [[[262, 112]], [[248, 100], [282, 138]], [[244, 94], [284, 118], [248, 144]]];     // みかたの たちいち(1人 / 2人 / 3人)
 
 // ===== はじめる(ids: てきの id の ならび、 opt.boss: ボス せん) → 'win' / 'lose' / 'run' =====
 export function startBattle(ids, opt = {}) {
@@ -30,7 +30,7 @@ export function startBattle(ids, opt = {}) {
     if (count[d.id] > 1) { seen[d.id] = (seen[d.id] || 0) + 1; name += ' ' + 'ABCDE'[seen[d.id] - 1]; }
     return { d, name, cond: {}, hp: d.hp, mp: d.mp, x: 105 + (i - (n - 1) / 2) * 66, y: opt.boss ? 132 : 118, size: opt.boss ? 56 : 32, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
   });
-  const ms = members(), spots = SPOTS[Math.min(ms.length, 2) - 1];
+  const ms = members(), spots = SPOTS[Math.min(ms.length, 3) - 1];
   const party = ms.map((m, i) => ({ ...m, cond: {}, x: spots[i][0], y: spots[i][1], flash: 0, lunge: 0, guard: false }));   // cond: ステータス いじょう
   B = { enemies, party, boss: !!opt.boss, waits: [], shake: 0, fx: [], flashScreen: 0, btns: [], t: 0, turnOf: null };
   battle.on = true;
@@ -110,7 +110,8 @@ function chooseCommand(m, first) {
         html: `${rubyHTML(s.name)}<small>MP ${s.mp}${s.elem && s.elem !== 'なし' ? ' ' + s.elem : ''}</small>`, off: m.s.mp < s.mp,
         fn: () => {
           if (m.s.mp < s.mp) { note('MPが たりないよ'); return; }
-          if (s.effect === 'こうげき' && s.target === 'ひとり') pick(t => done({ type: 'skill', skill: s, target: t }), () => skills(kind));
+          if ((s.effect === 'こうげき' || s.effect === 'じょうたい') && s.target === 'ひとり') pick(t => done({ type: 'skill', skill: s, target: t }), () => skills(kind));
+          else if (s.effect === 'かいふく' && s.target === 'みんな') done({ type: 'skill', skill: s });
           else if (s.effect === 'かいふく') pickAlly(t => done({ type: 'skill', skill: s, target: t }), () => skills(kind));
           else done({ type: 'skill', skill: s });
         } })), { html: 'もどる', fn: main }], true);
@@ -200,8 +201,7 @@ function popup(x, y, text, cls) {
 }
 function updateStat() {
   const bar = (v, m, c) => `<span class="bar"><span style="width:${Math.max(0, Math.min(100, v / (m || 1) * 100))}%;background:${c}"></span></span>`;
-  const two = B.party.length > 1;
-  $('bstat').className = two ? 'two' : '';
+  $('bstat').className = ['', '', 'two', 'three'][B.party.length] || '';
   $('bstat').innerHTML = B.party.map(m => {
     const s = m.s, t = st(m);
     return `<div class="bmem${B.turnOf === m.key ? ' on' : ''}${s.hp <= 0 ? ' down' : ''}"><div class="bname">${rubyHTML(m.name)}${m.key === 'hero' ? ` <small>${rubyHTML('{レベル|れべる}')}${hero.lv}</small>` : ''}${condChips(m)}</div>` +
@@ -251,7 +251,8 @@ async function memberAct(m, cmd) {
     const s = cmd.skill;
     m.s.mp -= s.mp; updateStat();
     await say(`${m.name}は 「${s.name}」を ${s.type === 'じゅもん' ? 'となえた' : 'つかった'}!`, 1.1);
-    if (s.effect === 'かいふく') await healMember(cmd.target || m, s.pow + Math.floor(s0.mag / 2));   // かいふく = いりょく + まりょく ÷ 2
+    if (s.effect === 'かいふく' && s.target === 'みんな') { for (const t of up()) await healMember(t, s.pow + Math.floor(s0.mag / 2)); }
+    else if (s.effect === 'かいふく') await healMember(cmd.target || m, s.pow + Math.floor(s0.mag / 2));   // かいふく = いりょく + まりょく ÷ 2
     else if (s.effect === 'まもる') { m.guard = true; await say(`${m.name}は みんなの まえに たった!`, 1); }
     else {
       if (s.type === 'わざ') await lunge(m);

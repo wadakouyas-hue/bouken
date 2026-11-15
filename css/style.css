@@ -219,3 +219,18 @@ rt{font-size:.5em;}
 .cond{display:inline-block;font-size:calc(var(--u)*3.8);line-height:1.5;padding:0 calc(var(--u)*1.5);margin-left:calc(var(--u)*1.5);border-radius:calc(var(--u)*2);color:#fff;font-weight:bold;vertical-align:middle;}
 .c-ねむり{background:#5a6ad8;} .c-どく{background:#8a3ab8;} .c-しびれ{background:#d8a020;} .c-わらい{background:#e8609a;} .c-くさい{background:#6a8a3a;}
 #battle .econd{position:absolute;width:calc(var(--u)*48);text-align:center;pointer-events:none;}
+#bstat.three{width:calc(var(--u)*246);display:grid;grid-template-columns:1fr 1fr 1fr;gap:calc(var(--u)*3);}
+#bstat.three .bmem.on{background:rgba(255,210,63,.25);box-shadow:0 0 0 calc(var(--u)*.75) #ffd23f;}
+#clockcv.three{top:calc(var(--u)*46);}
+
+/* ぬりえ */
+#paint{position:absolute;inset:calc(var(--u)*5);display:none;flex-direction:column;gap:calc(var(--u)*3);pointer-events:auto;background:rgba(18,26,70,.96);border:calc(var(--u)*1) solid #fff;
+  border-radius:calc(var(--u)*4);padding:calc(var(--u)*4) calc(var(--u)*6);box-sizing:border-box;font-size:calc(var(--u)*6);}
+#paint .pmain{display:flex;gap:calc(var(--u)*6);align-items:center;flex:1;min-height:0;}
+#paint canvas{width:calc(var(--u)*192);height:calc(var(--u)*120);image-rendering:pixelated;border-radius:calc(var(--u)*2);flex:none;}
+#paint .ppal{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--u)*3);flex:1;}
+#paint .ppal button{height:calc(var(--u)*24);border:calc(var(--u)*.75) solid rgba(255,255,255,.5);border-radius:calc(var(--u)*3);}
+#paint .ppal button.on{border:calc(var(--u)*2) solid #ffd23f;box-shadow:0 0 0 calc(var(--u)*1) #18224f inset;}
+#paint .pfoot{display:flex;justify-content:flex-end;gap:calc(var(--u)*4);}
+#paint .pfoot button{font:inherit;color:#fff;background:rgba(255,255,255,.15);border:calc(var(--u)*.75) solid rgba(255,255,255,.6);border-radius:calc(var(--u)*3);height:calc(var(--u)*18);padding:0 calc(var(--u)*10);}
+#paint .pfoot button.go{background:#ffd23f;color:#18224f;font-weight:bold;}
