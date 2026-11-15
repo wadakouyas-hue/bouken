@@ -1,11 +1,11 @@
 // data/ フォルダの CSV を読み込む(書き方がまちがっていても止まらず、まちがいを知らせる)
-export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [] };
+export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [], time: [] };
 export const dataErrors = [];
-export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
+export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
 export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ'];     // よろいの「みため」
 export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
-export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい'];   // かぐの「みため」(js/furniture.js にある絵)
+export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい', 'ランプ', 'ほねのいす'];   // かぐの「みため」(js/furniture.js にある絵)
 
 const SPEC = {
   party: { file: 'data/party.csv', label: 'みかた',
@@ -25,6 +25,8 @@ const SPEC = {
   furniture: { file: 'data/furniture.csv', label: 'かぐ',
     cols: { id: 'id', name: 'なまえ', look: 'みため', price: 'ねだん', desc: 'せつめい' },
     nums: ['price'], optional: ['desc', 'price'], choices: { look: FURN_LOOKS } },
+  time: { file: 'data/time.csv', label: 'じかん',
+    cols: { id: 'なまえ', min: 'ふん' }, nums: ['min'] },
   recipes: { file: 'data/recipes.csv', label: 'つくりかた',
     cols: { id: 'つくるもの', m1: 'ざいりょう1', n1: 'かず1', m2: 'ざいりょう2', n2: 'かず2', m3: 'ざいりょう3', n3: 'かず3' },
     nums: ['n1', 'n2', 'n3'], optional: ['m2', 'n2', 'm3', 'n3'] },

@@ -105,13 +105,49 @@ const ENEMY = {
     '.....kkkkkk.....',
     '......k..k......',
     '.....kk..kk.....'] },
+  // よるの まもの(目は 4〜5れつめ と 10〜11れつめ、 6〜7ぎょうめ。 くらやみで 光る)
+  ゾンビねこ: { pal: { k: '#2a1e1a', f: '#86b07e', F: '#5f8a5a', s: '#3a2a2a', e: '#d8ff5a', p: '#c87a8a' }, rows: [
+    '................',
+    '.kk..........kk.',
+    '.kfk........kfk.',
+    '.kffkkkkkkkkffk.',
+    'kffffffffffffffk',
+    'kfFfffffffffsfFk',
+    'kfffeeffffeefsfk',
+    'kfffeeffffeefffk',
+    'kfsffffppffffffk',
+    'kfsfffkffkfffffk',
+    '.kffffkkkkfffFk.',
+    '..kffffffffffk..',
+    '..kfFfssfffffk..',
+    '..kffffffffffk..',
+    '..kffk....kffk..',
+    '..kkkk....kkkk..'] },
+  ほねほね: { pal: { k: '#2a1e1a', w: '#f2f0e6', d: '#3a3450', e: '#7ad8ff' }, rows: [
+    '................',
+    '.kk..........kk.',
+    '.kwk........kwk.',
+    '.kwwkkkkkkkkwwk.',
+    'kwwwwwwwwwwwwwwk',
+    'kwwwddwwwwddwwwk',
+    'kwwweewwwweewwwk',
+    'kwwwddwkkwddwwwk',
+    '.kwwkwkwwkwkwwk.',
+    '..kkwwwwwwwwkk..',
+    '...kwkkkkkkwk...',
+    '...kwwwwwwwwk...',
+    '...kwkkkkkkwk...',
+    '...kwwwwwwwwk...',
+    '..kwwk....kwwk..',
+    '..kkkk....kkkk..'] },
 };
 const ecache = {};
 export function enemySprite(look) {
   const d = ENEMY[look] || ENEMY.きのこ;
   return ecache[look] || (ecache[look] = build(d.rows, d.pal));
 }
-export const ENEMY_ROWS = ENEMY;   // 確認用
+export const ENEMY_ROWS = ENEMY;
+export const eyeColor = look => (ENEMY[look] || ENEMY.きのこ).pal.e;   // くらやみで 光る 目の いろ   // 確認用
 
 // ===== 主人公(そうびで 見た目が かわる) =====
 // よろい: 上着(r)と ズボン(b)の色、ベルト

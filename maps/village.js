@@ -4,6 +4,7 @@
 // セリフの頭に ♪ を付けると、その行で「手に入れた!」の音が鳴る
 // 位置は「左から何マス目, 上から何マス目」(いちばん左上が 0, 0)
 export default {
+  outside: true,   // そと(ひると よるが ある)
   rows: [
     'TTTTTTTTTTTTTTTTTTTTT~~TTTTTTT',
     'T........TT..........~~......T',
@@ -35,6 +36,9 @@ export default {
       lines: ['← はじまりの {村|むら}    {森|もり}の みち →'] },
     { kind: 'sign', x: 23, y: 8, name: 'かんばん', label: 'よむ',
       lines: ['おみせ\nどうぐ ・ ぶきと ぼうぐ ・ かぐ ・ ぎんこう'] },
+    // night: true … よるだけ でてくる まもの(あさに なると いなくなる)
+    { kind: 'enemy', x: 16, y: 2, party: 'ゾンビねこ', night: true },
+    { kind: 'enemy', x: 8, y: 16, party: 'ほねほね', night: true },
     { kind: 'chest', x: 26, y: 12, label: 'あける', give: 'りんご',
       lines: ['たからばこを あけた!', '♪{赤|あか}い りんごを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
   ],

@@ -18,6 +18,7 @@ function check(d) {
   if (typeof d.map !== 'string' || !Number.isFinite(d.x) || !Number.isFinite(d.y)) return null;
   if (!['up', 'down', 'left', 'right'].includes(d.dir)) d.dir = 'down';
   const strs = a => Array.isArray(a) ? a.filter(s => typeof s === 'string').slice(0, 500) : [];
+  d.clock = Number.isFinite(d.clock) && d.clock >= 0 ? d.clock : 0;
   d.bag = strs(d.bag); d.done = strs(d.done); d.talked = !!d.talked;
   // かぐ: placed = { マップ名: [{ id, x, y }] }、 stash = しまってある かぐ
   const r = d.room && typeof d.room === 'object' ? d.room : null, placed = {};

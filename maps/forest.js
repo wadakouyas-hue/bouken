@@ -1,5 +1,6 @@
 // 森(30×20マス)— はじめての 戦闘を する予定の場所
 export default {
+  outside: true,   // そと(ひると よるが ある)
   bgm: 'forest',   // 流す曲(js/music.js)
   rows: [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
@@ -39,6 +40,10 @@ export default {
     { kind: 'item', x: 23, y: 5, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
     { kind: 'item', x: 17, y: 16, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
     { kind: 'item', x: 28, y: 11, label: 'ひろう', give: 'きのえだ', pic: 'branch', again: true, lines: ['♪きの えだを ひろった!'] },
+    { kind: 'enemy', x: 6, y: 12, party: 'ゾンビねこ', night: true },
+    { kind: 'enemy', x: 15, y: 17, party: 'ほねほね', night: true },
+    { kind: 'enemy', x: 24, y: 5, party: 'ゾンビねこ ほねほね', night: true },
+    { kind: 'enemy', x: 9, y: 1, party: 'ほねほね', night: true },
     { kind: 'enemy', x: 14, y: 10, party: 'きのこ' },
     { kind: 'enemy', x: 10, y: 5, party: 'どんぐり' },
     { kind: 'enemy', x: 19, y: 13, party: 'はっぱ きのこ' },

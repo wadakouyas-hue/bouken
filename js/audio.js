@@ -194,6 +194,8 @@ export function sfx(name) {
       g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.001, t + .25); o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .26);
       hiss(t, .2, 'lowpass', 800, .7, .15, sfxBus); break;
     }
+    case 'step':   // よるの まものの あしおと(ざっ)
+      hiss(t, .14, 'bandpass', 650, 1.2, .09, sfxBus); hiss(t + .02, .18, 'lowpass', 250, .7, .08, sfxBus); break;
     case 'miss':   // よけた
       { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(400, t); o.frequency.exponentialRampToValueAtTime(1200, t + .15);
         g.gain.setValueAtTime(.07, t); g.gain.exponentialRampToValueAtTime(.001, t + .18); o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .2); } break;

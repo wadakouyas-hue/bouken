@@ -1,6 +1,7 @@
 // ぼうけんの たび — 本体
 import { T, BLOCK, tileImg } from './tiles.js';
-import { charSprite, SPR, enemySprite, heroSprite } from './sprites.js';
+import { charSprite, SPR, enemySprite, heroSprite, eyeColor } from './sprites.js';
+import { clock, tick, toMorning, darkness, isNight } from './clock.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import { ready, dataErrors, byId, DATA } from './data.js';
@@ -45,7 +46,7 @@ for (const [name, m] of Object.entries(MAPS)) {
   m.objs = m.objs.map(o => {
     const p = at(o.x, o.y);
     const r = { dir: 'down', ...o, key: `${name}:${o.x},${o.y}`, ...p };   // key はセーブで使う名札
-    if (o.kind === 'enemy') Object.assign(r, { party: o.party.split(/\s+/), hx: p.x, hy: p.y, tx: p.x, ty: p.y, timer: 0, cool: 0 });
+    if (o.kind === 'enemy') Object.assign(r, { gone: !!o.night, party: o.party.split(/\s+/), hx: p.x, hy: p.y, tx: p.x, ty: p.y, timer: 0, cool: 0 });
     return r;
   });
   m.base = m.objs;   // かぐ いがいの 人や物
@@ -54,9 +55,23 @@ let cur = village;
 const mapName = () => Object.keys(MAPS).find(k => MAPS[k] === cur);
 function resetEnemies(m) {
   for (const o of m.objs) {
-    if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
+    if (o.kind === 'enemy') Object.assign(o, { gone: !!o.night && !isNight(), x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
     if (o.again) { o.taken = false; o.gone = false; }   // また おちている もの(きの えだ など)
   }
+}
+
+// ===== ひると よる =====
+// そとの よるは よるの きょく
+const bgmFor = () => cur.outside && isNight() ? 'night' : cur.bgm || 'village';
+let wasNight = false;
+// よるに なった / あさに なった
+function nightChanged() {
+  wasNight = isNight();
+  for (const m of Object.values(MAPS)) for (const o of m.objs) if (o.night) {
+    if (wasNight) Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
+    else o.gone = true;
+  }
+  if (cur.outside && !battle.on) playBgm(bgmFor());
 }
 
 // ===== かぐ(もようがえ が できる マップ) =====
@@ -127,7 +142,7 @@ function goExit(e) {
     Object.assign(player, at(e.at[0], e.at[1]));
     player.dir = e.dir || player.dir; player.anim = 0; player.moving = false;
     updateCamera(); save();
-    playBgm(cur.bgm || 'village');
+    playBgm(bgmFor());
   });
 }
 function updateTrans(dt) {
@@ -153,7 +168,7 @@ function encounter(o) {
         lost = hero.gold - Math.floor(hero.gold / 2); hero.gold -= lost;
       }
       updateCamera(); save();
-      playBgm(cur.bgm || 'village');
+      playBgm(bgmFor());
     }, result === 'lose' ? () => openDialog('', ['……はっ!', '{目|め}が さめた。 むらの ひとが はこんで くれたみたい。', '@の HPが ぜんぶ もどった!',
       ...(lost > 0 ? [`でも、 おかねを ${lost}{円|えん} おとして しまった…`] : [])]) : null));
   });
@@ -274,7 +289,9 @@ function useFurn(o) {
   const f = byId('furniture', o.furn.id);
   if (o.work === 'ねる') {
     sfx('heal');
-    fadeTo(() => { healFull(); save(); }, () => openDialog('', ['ぐっすり ねむった…', '@の HPと MPが ぜんぶ もどった!', 'きょうの ぼうけんを きろくしたよ。']));
+    const night = darkness() > 0;            // よるに ねると あさに なる
+    fadeTo(() => { healFull(); if (night) { toMorning(); nightChanged(); } save(); },
+      () => openDialog('', ['ぐっすり ねむった…', ...(night ? ['あさに なった! いい {天気|てんき}だ!'] : []), '@の HPと MPが ぜんぶ もどった!', 'きょうの ぼうけんを きろくしたよ。']));
   } else if (o.work === 'つくる') openShop({ name: f?.name || 'さぎょうだい', craft: true }, () => { chipText = ''; save(); });
   else openDialog('', [f?.desc || 'かぐ']);
 }
@@ -292,7 +309,7 @@ function allObjs() { return Object.values(MAPS).flatMap(m => m.objs); }
 function save() {
   if (!started || !hero.name) return;
   writeSave({
-    v: 1, map: mapName(),
+    v: 1, map: mapName(), clock: Math.round(clock.t),
     x: Math.round(player.x), y: Math.round(player.y), dir: player.dir,
     bag: [...bag], done: allObjs().filter(o => o.taken && !o.again).map(o => o.key), talked: talkedOnce,
     room: { placed: room.placed, stash: [...room.stash] },
@@ -310,6 +327,7 @@ function load(d) {
   const done = new Set(d.done);
   for (const o of allObjs()) if (done.has(o.key)) markTaken(o);
   talkedOnce = d.talked;
+  clock.t = d.clock || 0; wasNight = isNight(); Object.values(MAPS).forEach(resetEnemies);
   if (d.hero) Object.assign(hero, d.hero);
   if (!d.hero || !d.hero.equip) { hero.equip = { ぶき: null, よろい: null }; equipBest(); }   // 自動そうびの ころの セーブ
   if (!d.hero || d.hero.gold == null) hero.gold = START_GOLD;                               // おかねが なかった ころの セーブ
@@ -350,7 +368,7 @@ function start() {
   boot.then(async () => {
     if (!hero.name) hero.name = await askName();
     if (hero.hp < 0) healFull();
-    playBgm(cur.bgm || 'village');
+    playBgm(bgmFor());
     if (saved) { hintPhase = 2; save(); return; }   // つづきからは すぐ遊べる
     save();
     setTimeout(() => openDialog('', ['{目|め}が さめた。 いい {天気|てんき}だ!', 'どこへ いこうかな?'], () => { hintPhase = 1; $('hint1').style.display = 'block'; }), 300);
@@ -410,7 +428,7 @@ function updateChip() {
   $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
   $('decobtn').style.display = show && !dlg.open && cur.deco ? 'block' : 'none';
   if (!show) return;
-  const st = heroStats(), t = `${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}  ${hero.gold}{円|えん}`;
+  const st = heroStats(), t = `${isNight() ? '🌙' : '☀'} ${hero.name}  HP ${hero.hp}/${st.maxhp}  MP ${hero.mp}/${st.maxmp}  ${hero.gold}{円|えん}`;
   if (t !== chipText) { chipText = t; $('hpchip').innerHTML = rubyHTML(t); $('hpchip').classList.toggle('low', hero.hp <= st.maxhp / 4); }
 }
 function update(dt) {
@@ -423,6 +441,8 @@ function update(dt) {
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
   autoT += dt; if (autoT > 30) { autoT = 0; save(); }   // 30秒ごとに自動セーブ
+  if (cur.outside) tick(dt);                              // じかんは そとに いる ときだけ すすむ
+  if (isNight() !== wasNight) nightChanged();
   // 入力
   let vx = stick.vx, vy = stick.vy;
   const kx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0);
@@ -471,6 +491,8 @@ function update(dt) {
       o.stuck = Math.hypot(o.x - ox, o.y - oy) < s * 0.3 ? (o.stuck || 0) + dt : 0;
       if (o.chase && o.stuck > 0.5) { o.chase = false; o.giveup = 2; o.timer = 0; o.stuck = 0; }
     }
+    // よるの まものが おいかけて くると あしおと
+    if (o.night && o.chase && dp < 130 && (o.stepT = (o.stepT || 0) - dt) <= 0) { o.stepT = mv === 'はやい' ? 0.26 : 0.45; sfx('step'); }
     if (!o.cool && Math.hypot(o.x - player.x, o.y - player.y) < 12) { encounter(o); return; }
   }
   updateCamera();
@@ -493,8 +515,34 @@ function update(dt) {
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
   if (battle.on) drawBattle(ctx); else drawField();
+  if (!battle.on) drawDark();
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
+}
+// よるの くらやみ: 主人公(と ランプ)の まわりだけ あかるい
+const darkCv = document.createElement('canvas'); darkCv.width = VW; darkCv.height = VH;
+const dg = darkCv.getContext('2d');
+function drawDark() {
+  const k = darkness(), a = (cur.outside ? 0.86 : cur.deco ? 0.6 : 0) * k;
+  if (a <= 0.01) return;
+  const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: bag.includes('キャンプのかけら') ? 80 : 44 }];
+  if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
+  dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, VW, VH);
+  dg.fillStyle = `rgba(6,8,32,${a})`; dg.fillRect(0, 0, VW, VH);
+  dg.globalCompositeOperation = 'destination-out';
+  for (const l of lights) {
+    const gr = dg.createRadialGradient(l.x, l.y, l.r * 0.4, l.x, l.y, l.r);
+    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    dg.fillStyle = gr; dg.fillRect(l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
+  }
+  dg.globalCompositeOperation = 'source-over';
+  ctx.drawImage(darkCv, 0, 0);
+  // くらやみで 光る 目(ときどき まばたき)
+  for (const o of live()) if (o.kind === 'enemy' && o.night && Math.floor(tm * 3 + o.hx) % 9) {
+    const sx = Math.round(o.x - cam.x) - 8, sy = Math.round(o.y - cam.y) - 16, hop = o.moving ? Math.round(Math.abs(Math.sin(tm * 8 + o.hx)) * -2) : 0;
+    ctx.fillStyle = eyeColor(byId('enemies', o.party[0])?.look);
+    ctx.fillRect(sx + 4, sy + 6 + hop, 2, 2); ctx.fillRect(sx + 10, sy + 6 + hop, 2, 2);
+  }
 }
 function drawField() {
   const x0 = Math.max(0, Math.floor(cam.x / T)), y0 = Math.max(0, Math.floor(cam.y / T));
