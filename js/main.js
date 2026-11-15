@@ -98,7 +98,7 @@ let cur = home;
 function applySwaps(m) {
   if (!m.swaps) return;
   const rows = m.rows0.map(r => r.split(''));
-  for (const sw of m.swaps) if (flags.has(sw.flag)) {
+  for (const sw of m.swaps) if (flags.has(sw.flag) && !(sw.not && flags.has(sw.not))) {   // not: その フラグが つくと もとに もどる(第4章の あきの すがた)
     if (sw.chars) for (const r of rows) for (let i = 0; i < r.length; i++) if (sw.chars[r[i]]) r[i] = sw.chars[r[i]];
     for (const [x, y, c] of sw.cells || []) rows[y][x] = c;
   }

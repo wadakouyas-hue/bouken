@@ -64,9 +64,9 @@ export default {
     { kind: 'enemy', x: 16, y: 2, party: 'ゾンビねこ', night: true },
     { kind: 'enemy', x: 8, y: 16, party: 'ほねほね', night: true },
     // 第4章 おまつりの じゅんび
-    { kind: 'deco', x: 9, y: 7.6, pic: 'chochin', show: 'ch4start', float: true }, { kind: 'deco', x: 18, y: 7.6, pic: 'chochin', show: 'ch4start', float: true }, { kind: 'deco', x: 26, y: 10.9, pic: 'chochin', show: 'ch4start', float: true },
-    { kind: 'deco', x: 13.5, y: 12, pic: 'yatai', show: 'ch4start' },
-    { kind: 'deco', x: 8.5, y: 18.6, pic: 'flowers', show: 'ch4start' },
+    { kind: 'deco', x: 9, y: 7.6, pic: 'chochin', show: 'ch4start', hide: 'ch4', float: true }, { kind: 'deco', x: 18, y: 7.6, pic: 'chochin', show: 'ch4start', hide: 'ch4', float: true }, { kind: 'deco', x: 26, y: 10.9, pic: 'chochin', show: 'ch4start', hide: 'ch4', float: true },
+    { kind: 'deco', x: 13.5, y: 12, pic: 'yatai', show: 'ch4start', hide: 'ch4' },
+    { kind: 'deco', x: 8.5, y: 18.6, pic: 'flowers', show: 'ch4start', hide: 'ch4' },
     { kind: 'npc', x: 12, y: 15.5, pal: 'hamo', name: '{ハモ|はも}', label: 'はなす', show: 'ch4start', hide: 'prepAll', dir: 'up', event: 'hamoWork' },
     { kind: 'npc', x: 15, y: 15.5, pal: 'melo', name: '{メロ|めろ}', label: 'はなす', show: 'ch4start', hide: 'prepAll', dir: 'up', event: 'meloWork' },
     { kind: 'npc', x: 19, y: 12, pal: 'pasha', name: '{パシャ|ぱしゃ}', label: 'はなす', show: 'ch4start', dir: 'left', event: 'pasha' },
@@ -75,7 +75,8 @@ export default {
       lines: ['たからばこを あけた!', '♪{赤|あか}い りんごを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
   ],
   // 第4章: あきの むら(もみじ・おちば)と モグの おみせ(ようしょくやさんと はなやさん)
-  swaps: [{ flag: 'ch4start', chars: { T: '!', '.': ';' }, cells: [[2, 14, 'V'], [2, 15, 'V'], [3, 14, 'V'], [3, 15, 'V'], [4, 14, 'V'], [4, 15, 'V'], [5, 14, 'V'], [5, 15, 'V'], [6, 14, 'V'], [6, 15, 'V'], [7, 14, 'V'], [7, 15, 'V'], [2, 16, 'H'], [3, 16, 'W'], [4, 16, 'H'], [5, 16, 'H'], [6, 16, 'W'], [7, 16, 'H'], [2, 17, 'h'], [3, 17, 'h'], [4, 17, 'D'], [5, 17, 'h'], [6, 17, 'h'], [7, 17, 'h'], [2, 18, ','], [3, 18, ','], [6, 18, ','], [7, 18, ',']] }],
+  // あきの すがたは 第4章の あいだだけ(ch4 = 第4章 クリアで もとに もどる)。 おみせは そのまま のこる
+  swaps: [{ flag: 'ch4start', not: 'ch4', chars: { T: '!', '.': ';' } }, { flag: 'ch4start', cells: [[2, 14, 'V'], [2, 15, 'V'], [3, 14, 'V'], [3, 15, 'V'], [4, 14, 'V'], [4, 15, 'V'], [5, 14, 'V'], [5, 15, 'V'], [6, 14, 'V'], [6, 15, 'V'], [7, 14, 'V'], [7, 15, 'V'], [2, 16, 'H'], [3, 16, 'W'], [4, 16, 'H'], [5, 16, 'H'], [6, 16, 'W'], [7, 16, 'H'], [2, 17, 'h'], [3, 17, 'h'], [4, 17, 'D'], [5, 17, 'h'], [6, 17, 'h'], [7, 17, 'h'], [2, 18, ','], [3, 18, ','], [6, 18, ','], [7, 18, ',']] }],
   enter: [{ need: 'ch3', once: 'autumnGo', event: 'autumn' }, { need: 'inviteGot', once: 'sneak', event: 'sneak' }],
   // 出入り口: ここに入ると 別のマップへ (to=行き先, at=着く場所, dir=着いたときの向き)
   exits: [
