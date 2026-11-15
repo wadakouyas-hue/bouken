@@ -96,11 +96,11 @@ function chooseCommand(m, first) {
     const pick = (then, back) => { const a = alive(); if (a.length === 1) then(a[0]); else targetButtons(a, then, back, 'どの てきに する? てきを タップしてね'); };
     // かいふくする あいて(みかたが ひとりなら じぶん)
     const pickAlly = (then, back, ask) => { if (B.party.length === 1) then(B.party[0]); else targetButtons(B.party, then, back, ask || 'だれを かいふく する? タップしてね'); };
-    // がっそう: 3にん そろって うごける とき、 さいしょの ひとが えらべる(1かいの たたかいで 1かい。 3にんの MPを GASSOU_MP ずつ つかう)
+    // がっそう: 3にん そろって うごける とき、 さいしょの ひとが えらべる(1かいの たたかいで 1かい。 3にんとも さいだい MPの 2わりを つかう)
     const canGassou = first && B.party.length === 3 && B.party.some(x => x.key === 'hamo') && B.party.some(x => x.key === 'melo') && bag.includes('がっそうのかけら') && !B.gassou && up().length === 3 && B.party.every(x => !x.cond.ねむり && !x.cond.わらい);
-    const gassouMp = canGassou && B.party.every(x => x.s.mp >= GASSOU_MP);
+    const gassouMp = canGassou && B.party.every(x => x.s.mp >= gassouCost(x));
     const main = () => setButtons([
-      ...(canGassou ? [{ html: `がっそう<small>MP${GASSOU_MP}ずつ</small>`, off: !gassouMp, fn: () => gassouMp ? done({ type: 'gassou' }) : note(`MPが ${GASSOU_MP}より すくない ひとが いるよ`) }] : []),
+      ...(canGassou ? [{ html: `がっそう<small>MP 2わり</small>`, off: !gassouMp, fn: () => gassouMp ? done({ type: 'gassou' }) : note('MPが たりない ひとが いるよ') }] : []),
       { html: 'たたかう', fn: () => pick(t => done({ type: 'attack', target: t }), main) },
       { html: 'じゅもん', fn: () => skills('じゅもん') },
       { html: 'わざ', fn: () => skills('わざ') },
@@ -343,9 +343,11 @@ async function throwItem(m, it, target) {
   for (const t of targets) { const before = Object.keys(t.cond).length; await inflict(t, s); if (Object.keys(t.cond).length === before) await say(`${t.name}には きかなかった!`, 0.9); }
 }
 // がっそう: 3にんで えんそうして てき ぜんぶに こうげき + みんな すこし かいふく。 かけらが おおいほど つよい
-const GASSOU_MP = 4;
+// 3にんとも さいだい MPの 2わり(20%)を つかう(2026-11-15 オーナーの希望。 まえは 4ずつ)
+const GASSOU_RATE = 0.2;
+const gassouCost = m => Math.max(1, Math.round(st(m).maxmp * GASSOU_RATE));
 async function gassou() {
-  for (const m of B.party) m.s.mp = Math.max(0, m.s.mp - GASSOU_MP); updateStat();
+  for (const m of B.party) m.s.mp = Math.max(0, m.s.mp - gassouCost(m)); updateStat();
   const k = bag.filter(id => id.endsWith('のかけら')).length;
   const [h, a, b] = ['hero', 'hamo', 'melo'].map(key => B.party.find(x => x.key === key));
   await say(`みんなで 「がっそう」!`, 1.2);
