@@ -67,7 +67,7 @@ export const battleButtons = () => B ? B.btns.length : 0;
 function setButtons(items, wide) {   // items: [{html, fn, off}]
   B.btns = items.map(it => it.fn);
   const box = $('bcmd');
-  box.className = wide ? 'wide' : '';
+  box.className = typeof wide === 'string' ? wide : wide ? 'wide' : '';
   box.innerHTML = items.map((it, i) => `<button data-b="${i}"${it.off ? ' class="off"' : ''}>${it.html}</button>`).join('');
   box.style.display = items.length ? 'grid' : 'none';
   if (items.length) $('bmsg').style.display = 'none';
@@ -96,13 +96,16 @@ function chooseCommand(m, first) {
     const pick = (then, back) => { const a = alive(); if (a.length === 1) then(a[0]); else targetButtons(a, then, back, 'どの てきに する? てきを タップしてね'); };
     // かいふくする あいて(みかたが ひとりなら じぶん)
     const pickAlly = (then, back, ask) => { if (B.party.length === 1) then(B.party[0]); else targetButtons(B.party, then, back, ask || 'だれを かいふく する? タップしてね'); };
+    // がっそう: 3にん そろって うごける とき、 さいしょの ひとが えらべる(1かいの たたかいで 1かい)
+    const canGassou = first && B.party.length === 3 && bag.includes('がっそうのかけら') && !B.gassou && up().length === 3 && B.party.every(x => !x.cond.ねむり && !x.cond.わらい);
     const main = () => setButtons([
+      ...(canGassou ? [{ html: 'がっそう', fn: () => done({ type: 'gassou' }) }] : []),
       { html: 'たたかう', fn: () => pick(t => done({ type: 'attack', target: t }), main) },
       { html: 'じゅもん', fn: () => skills('じゅもん') },
       { html: 'わざ', fn: () => skills('わざ') },
       { html: 'どうぐ', fn: items },
       { html: 'にげる', off: !first || B.boss, fn: () => { if (B.boss) note('ボスからは にげられない!'.replace('ボス', '{ボス|ぼす}')); else if (!first) note('にげるは さいしょの ひとが えらぶよ'); else done({ type: 'run' }); } },
-    ]);
+    ], canGassou ? 'six' : false);
     const skills = kind => {
       const list = st(m).skills.map(id => byId('skills', id)).filter(s => s && s.type === kind && s.effect !== 'ワープ');
       if (!list.length) { note(kind === 'じゅもん' ? 'じゅもんを つかえないよ' : 'まだ わざを おぼえていないよ'); return; }
@@ -243,6 +246,7 @@ async function healMember(t, n) {
 async function memberAct(m, cmd) {
   const s0 = st(m);
   if (!(await canAct(m))) return;
+  if (cmd.type === 'gassou') { await gassou(); return; }
   if (cmd.type === 'attack') {
     const t = cmd.target.alive ? cmd.target : alive()[0];
     await say(`${m.name}の こうげき!`, 0.6); await lunge(m);
@@ -272,6 +276,24 @@ async function memberAct(m, cmd) {
     bagRemove(it.id);
     await say(`${m.name}は ${it.name}を つかった!`, 1);
     if (it.kind === 'なおす') await cureMember(cmd.target || m); else await healMember(cmd.target || m, it.val);
+  }
+}
+// がっそう: 3にんで えんそうして てき ぜんぶに こうげき + みんな すこし かいふく。 かけらが おおいほど つよい
+async function gassou() {
+  const k = bag.filter(id => id.endsWith('のかけら')).length;
+  const [h, a, b] = ['hero', 'hamo', 'melo'].map(key => B.party.find(x => x.key === key));
+  await say(`みんなで 「がっそう」!`, 1.2);
+  sfx('chord'); for (const m of B.party) m.lunge = 0.3; await wait(0.3);
+  await effect('notes', alive()); await effect('star', alive());
+  const pow = ((h ? st(h).atk : 0) + (a ? st(a).atk : 0) + (b ? st(b).mag : 0)) * 0.6 * (1 + 0.1 * k);
+  for (const t of alive()) {
+    const dmg = Math.max(1, Math.round((pow - t.d.def / 2) * rnd(0.9, 1.1)));
+    await hitEnemy(t, { dmg, mult: 1 });
+  }
+  if (up().length) {
+    await effect('song', up());
+    for (const m of up()) { const got = heal(Math.round(st(m).maxhp * 0.15), m); popup(m.x, m.y - 44, '+' + got, 'heal'); }
+    updateStat(); await say('みんなの HPが すこし かいふくした!');
   }
 }
 async function hurtMember(t, r) {
@@ -321,6 +343,7 @@ async function run() {
       if (m.cond.ねむり || m.cond.わらい) { actors.push({ who: m, spd: st(m).spd, cmd: { type: 'none' } }); continue; }   // えらべない(ねむり・わらい)
       const cmd = await chooseCommand(m, i === 0 || up().slice(0, i).every(x => x.cond.ねむり || x.cond.わらい));
       if (cmd.type === 'run') { ran = true; break; }
+      if (cmd.type === 'gassou') { B.gassou = true; actors.push({ who: m, spd: 9999, cmd }); break; }   // みんなで いっしょに
       actors.push({ who: m, spd: st(m).spd * rnd(0.8, 1.2), cmd });
     }
     if (ran) {

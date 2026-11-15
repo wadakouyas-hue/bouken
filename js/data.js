@@ -1,5 +1,5 @@
 // data/ フォルダの CSV を読み込む(書き方がまちがっていても止まらず、まちがいを知らせる)
-export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [], time: [], tramp: [] };
+export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [], time: [], tramp: [], concert: [] };
 export const dataErrors = [];
 export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね', 'からす', 'かえる', 'スカンク', 'いのしし', 'こうもり', 'ミミズク', 'ねずみ'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
 export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ'];     // よろいの「みため」
@@ -29,6 +29,8 @@ const SPEC = {
     nums: ['price'], optional: ['desc', 'price'], choices: { look: FURN_LOOKS } },
   tramp: { file: 'data/tramp.csv', label: 'トランポリンの ごほうび',
     cols: { id: 'かい', prize: 'もらえるもの' }, nums: [] },
+  concert: { file: 'data/concert.csv', label: 'がっそうの ごほうび',
+    cols: { id: 'てん', prize: 'もらえるもの' }, nums: [] },
   time: { file: 'data/time.csv', label: 'じかん',
     cols: { id: 'なまえ', min: 'ふん' }, nums: ['min'] },
   recipes: { file: 'data/recipes.csv', label: 'つくりかた',
@@ -129,6 +131,7 @@ async function loadAll() {
     for (const m of r.mats) if (!byId('items', m.id)) dataErrors.push(`つくりかた(recipes.csv)「${r.id}」: ざいりょう「${m.id}」が items.csv に ありません。`);
   }
   DATA.recipes = DATA.recipes.filter(r => (byId('items', r.id) || byId('furniture', r.id)) && r.mats.length && r.mats.every(m => byId('items', m.id)));
+  for (const r of DATA.concert) if (!byId('items', r.prize) && !byId('furniture', r.prize)) dataErrors.push(`がっそうの ごほうび(concert.csv)「${r.id}てん」: 「${r.prize}」が items.csv にも furniture.csv にも ありません。`);
   for (const r of DATA.tramp) if (!byId('items', r.prize) && !byId('furniture', r.prize)) dataErrors.push(`トランポリンの ごほうび(tramp.csv)「${r.id}かい」: 「${r.prize}」が items.csv にも furniture.csv にも ありません。`);
   if (!DATA.party.some(p => p.id === 'hero')) dataErrors.push('みかた(party.csv)に id が hero の行が ありません。');
 }

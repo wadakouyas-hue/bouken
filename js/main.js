@@ -2,6 +2,7 @@
 import { T, BLOCK, tileImg } from './tiles.js';
 import { charSprite, SPR, enemySprite, heroSprite, eyeColor, eyePos, DECO } from './sprites.js';
 import { paint, openPaint, paintTap, paintAt } from './paint.js';
+import { concert, startConcert, concertTap, updateConcert, drawConcert, rankOf } from './concert.js';
 import { clock, tick, toMorning, darkness, isNight, hourNow, timeWords, dayLen } from './clock.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
@@ -289,6 +290,7 @@ stage.addEventListener('pointerdown', e => {
   if (menu.open) { const b = e.target.closest('[data-m]'); if (b) menuTap(b.dataset.m); return; }
   if (shop.open) { const b = e.target.closest('[data-s]'); if (b) shopTap(b.dataset.s); return; }
   if (tg.on) { tgTap(); return; }
+  if (concert.on) { concertTap(); return; }
   if (paint.open) {
     const b = e.target.closest('[data-p]'); if (b) { paintTap(b.dataset.p); return; }
     const cv = e.target.closest('#paintcv'); if (cv) { const r = cv.getBoundingClientRect(); paintAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
@@ -325,6 +327,7 @@ addEventListener('keydown', e => {
   if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
   if (shop.open) { if (e.key === 'Escape') shopTap('#close'); return; }
   if (tg.on) { if (ok) tgTap(); return; }
+  if (concert.on) { if (ok) concertTap(); return; }
   if (paint.open) { if (e.key === 'Escape') paintTap('#close'); return; }
   if (deco.open) { if (e.key === 'Escape') decoTap('#done'); return; }
   if (e.key === 'm' || e.key === 'Escape') { if (menu.open) menuTap('#close'); else if (started && hero.name && !dlg.open && !trans.on) openFieldMenu(); return; }
@@ -378,7 +381,8 @@ function interact(o) {
 const say = (name, lines) => new Promise(r => openDialog(name, lines, r));
 const fade = fn => new Promise(r => fadeTo(fn, r));
 const HAMO = '{ハモ|はも}';
-const view = { on: false };       // おかの うえからの けしき
+const view = { on: false, kind: null, t0: 0 };       // おかの うえからの けしき(kind 'storm': 第3章の よこく)
+const stageShow = { on: false };  // がっそうの ステージの え
 const jump = { on: false, t: 0 };     // トランポリンで とんでいる
 // かわを とびこえる(ひとっとびの ジャンプ)
 const leap = { on: false };
@@ -597,6 +601,45 @@ const EVENTS = {
         await say('', ['ミミズクが つばさを ひろげると、'.replace('ミミズク', '{ミミズク|みみずく}'), 'たくさんの おとが きらきら ひかりながら、\nまちの ほうへ とんでいった!', '♪まちの おとが もどった!']);
         await say(HAMO, ['やったね、 @!', '{パルル|ぱるる}{町|まち}へ かえろう!']);
       } });
+  },
+  // ===== 第2章 さいご: ステージで はじめての がっそう =====
+  async concert() {
+    const MASTER = '{マスター|ますたー}', first = !flags.has('ch2');
+    if (first) {
+      await say(HAMO, ['@、 やろうよ! ぼくが {ギター|ぎたー}、 {メロ|めろ}さんが うた。', '@は {スネア|すねあ}だ!']);
+      await say('{メロ|めろ}', ['みんなで いっしょに えんそうするの、 はじめてね。', 'ドキドキするけど…… たのしみ!'.replace('ドキドキ', '{ドキドキ|どきどき}')]);
+    }
+    await say('', ['ひかる しかくが、 まるい わに きたら タップ!', '{スネア|すねあ}を たたいて、 みんなと あわせよう!']);
+    await fade(() => { stageShow.on = true; });
+    if (first) { sfx('clap'); await say(MASTER, ['みなさん、 おまたせ しました!', 'こんやの えんそうは、 この 3にんです!']); }
+    const r = await startConcert();
+    sfx('clap');
+    const best = r.score > (rec.concert || 0); if (best) rec.concert = r.score;
+    save();
+    await say('', [rankOf(r.score), `${r.score}てん!(ぴったり ${r.great}かい・いいね ${r.good}かい)`]);
+    if (first) {
+      await say('', ['パチパチパチ……! おおきな はくしゅ!'.replace('パチパチパチ', '{パチパチパチ|ぱちぱちぱち}')]);
+      await say('おとどろぼうの {ミミズク|みみずく}', ['ホー! みんなで きく おとは、 こんなに たのしいんだね!']);
+      await say(HAMO, ['みんなで えんそうするって、 いいね。', 'ぼく、 ずっと ひとりで ひいてたから……\nいま、 すごく うれしいんだ。']);
+      await say('{メロ|めろ}', ['わたしも。 また 3にんで えんそう しましょうね。']);
+    } else await say(MASTER, [best ? 'さいこう きろくだ! すばらしい!' : `さいこう きろくは ${rec.concert}てん だよ。 また きいて いきたいなあ。`]);
+    await fade(() => { stageShow.on = false; });
+    // ごほうび(data/concert.csv)
+    for (const row of DATA.concert) { const need = +row.id, k = 'concert' + need; if (!(r.score >= need) || flags.has(k)) continue;
+      const it = byId('items', row.prize), fu = !it && byId('furniture', row.prize); if (!it && !fu) continue;
+      flags.add(k); if (it) bag.push(it.id); else room.stash.push(fu.id); save();
+      await say(MASTER, [`${need}てん いじょう! これは おれいだよ。`, `♪${(it || fu).name}を もらった!`, ...(fu ? ['おうちの 「もようがえ」で おけるよ。'] : [])]);
+    }
+    if (!first) return;
+    flags.add('ch2'); bag.push('がっそうのかけら'); save();
+    await say('', ['@の むねの なかで、 なにかが あたたかく ひかった。', '♪「がっそう」の かけらを {手|て}に いれた!', '3にん そろうと、 たたかいで 「がっそう」が できる ように なった!']);
+    // 第3章の よこく
+    await fade(() => { view.on = true; view.kind = 'storm'; view.t0 = tm; });
+    await say('', ['……その よる。', 'とおくの そらに、 くろい くもが ゆっくりと ひろがっていた。']);
+    sfx('thunder');
+    await say('', ['ゴロゴロ……'.replace('ゴロゴロ', '{ゴロゴロ|ごろごろ}')]);
+    await fade(() => { view.on = false; view.kind = null; });
+    await say('', ['だい2しょう 「たのしい まいにち」 おしまい。', 'つづく……']);
   },
   // ===== パルル町の おてつだい: ちかしつの オルゴール =====
   async orgel(o) {
@@ -819,7 +862,7 @@ function updateCamera() {
 // ===== 毎フレームの更新 =====
 let tm = 0, chipText = '';
 function updateChip() {
-  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open && !deco.open && !paint.open && !jump.on;
+  const show = started && hero.name && !battle.on && !nameEntry.open && !menu.open && !shop.open && !deco.open && !paint.open && !jump.on && !stageShow.on;
   $('hpchip').style.display = show ? 'block' : 'none';
   $('menubtn').style.display = show && !dlg.open ? 'block' : 'none';
   $('decobtn').style.display = show && !dlg.open && cur.deco ? 'block' : 'none';
@@ -839,6 +882,7 @@ function update(dt) {
   const hideAct = () => { $('act').style.display = 'none'; $('actbtn').classList.remove('show'); };
   if (tg.on) updateTramp(dt);
   if (leap.on) { updateLeap(dt); hideAct(); return; }
+  if (concert.on) { updateConcert(dt); hideAct(); return; }
   if (trans.on || nameEntry.open || menu.open || shop.open || deco.open || paint.open || jump.on) { hideAct(); if (jump.on) jump.t += dt; return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
@@ -921,8 +965,8 @@ function update(dt) {
 // ===== 描画 =====
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
-  if (battle.on) drawBattle(ctx); else if (view.on) drawView(); else drawField();
-  if (!battle.on) drawDark();
+  if (battle.on) drawBattle(ctx); else if (stageShow.on) drawConcert(ctx, tm); else if (view.on) (view.kind === 'storm' ? drawStorm() : drawView()); else drawField();
+  if (!battle.on && !stageShow.on && !view.on) drawDark();
   const a = fadeAlpha();
   if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, VW, VH); }
 }
@@ -981,6 +1025,22 @@ function drawDark() {
     ctx.fillStyle = eyeColor(look);
     ctx.fillRect(sx + ex1, sy + ey + hop, 2, 2); ctx.fillRect(sx + ex2, sy + ey + hop, 2, 2);
   }
+}
+// 第3章の よこく: とおくの そらに くろい くもが ひろがる
+function drawStorm() {
+  const g = ctx, k = Math.min(1, (tm - view.t0) / 6);
+  for (let y = 0; y < 130; y++) { const f = y / 130; g.fillStyle = `rgb(${70 + f * 150 | 0},${50 + f * 60 | 0},${110 - f * 30 | 0})`; g.fillRect(0, y, VW, 1); }
+  g.fillStyle = '#3a3050'; g.beginPath(); g.ellipse(160, 140, 220, 34, 0, 0, 7); g.fill();
+  g.fillStyle = '#2a2440'; g.fillRect(0, 140, VW, 60);
+  // パルル町の あかり(ひだり)
+  for (let i = 0; i < 6; i++) { g.fillStyle = '#1a1830'; g.fillRect(30 + i * 12, 128 - (i % 2) * 4, 9, 12 + (i % 2) * 4); g.fillStyle = (Math.floor(tm * 2) + i) % 4 ? '#ffd23f' : '#ff9a3a'; g.fillRect(33 + i * 12, 132, 2, 2); }
+  // くろい くも(みぎから ひろがる)
+  for (let i = 0; i < 18; i++) { const x = 330 - (i / 17) * 280 * k - Math.sin(tm + i) * 4, y = 20 + (i % 4) * 12 + Math.sin(i * 1.7) * 6;
+    g.fillStyle = i % 3 ? '#1e1a2a' : '#2c2638'; g.beginPath(); g.arc(x, y, 16 + (i % 3) * 5, 0, 7); g.fill(); }
+  // かみなり
+  if (k > 0.5 && (tm * 0.7) % 2 < 0.08) { g.fillStyle = 'rgba(255,255,230,.5)'; g.fillRect(0, 0, VW, VH); g.fillStyle = '#fff6a0'; let x = 240, y = 50; for (let i = 0; i < 6; i++) { const nx = x + (i % 2 ? 8 : -6); g.fillRect(Math.min(x, nx), y, Math.abs(nx - x) + 2, 2); g.fillRect(nx, y, 2, 12); x = nx; y += 12; } }
+  // うしろすがたの 3にん
+  g.drawImage(charSprite('hamo', 'up', 0), 120, 156, 24, 32); g.drawImage(heroSprite('up', 0, equipLook()), 148, 158, 24, 32); g.drawImage(charSprite('melo', 'up', 0), 176, 156, 24, 32);
 }
 // おかの うえからの けしき(かたぐるま)
 function drawView() {

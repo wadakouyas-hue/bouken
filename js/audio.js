@@ -141,7 +141,7 @@ function compile(song) {
 const compiled = {};
 
 // ===== 曲を流す(先読みして予約する) =====
-const play = { song: null, name: null, step: 0, next: 0, gain: null };
+const play = { song: null, name: null, step: 0, next: 0, gain: null, t0: 0 };
 function tick() {
   if (!play.song || ac.state !== 'running') return;
   const s = play.song;
@@ -158,8 +158,11 @@ export function playBgm(name) {
   play.name = name;
   if (!SONGS[name]) { play.song = null; return; }
   play.song = compiled[name] || (compiled[name] = compile(SONGS[name]));
-  play.step = 0; play.next = ac.currentTime + .1;
+  play.step = 0; play.next = ac.currentTime + .1; play.t0 = play.next;
 }
+// いま ながれている きょくの はじまりからの びょうすう(おとが でない ときは null)
+// (スピーカーから おとが でるまでの おくれ outputLatency も ひく。 タブレットでは 0.1びょう ちかく おくれる ことが ある)
+export function bgmTime(name) { return ac && ac.state === 'running' && play.name === name && play.song ? ac.currentTime - play.t0 - (ac.outputLatency || ac.baseLatency || 0) : null; }
 
 // ===== 効果音 =====
 function duck(sec) {   // 効果音の間だけ 曲を小さく
@@ -200,6 +203,11 @@ export function sfx(name) {
       [64, 66, 71, 69].forEach((m, i) => fm(t + 1 + i * .25, freqOf(m), .5, { ...EP, vol: .08, send: .7 }, sfxBus)); break;
     case 'rise':   // よるの まものが じめんから でてくる(ゴゴゴ)
       hiss(t, .22, 'lowpass', 180, 1, .9, sfxBus); hiss(t + .3, .16, 'lowpass', 140, 1, .8, sfxBus); break;
+    case 'snare':  // スネアを 1かい たたく(がっそう)
+      hiss(t, .32, 'bandpass', 1800, .8, .14, sfxBus);
+      { const o = ac.createOscillator(), og = ac.createGain(); o.type = 'triangle'; o.frequency.value = 190; og.gain.setValueAtTime(.2, t); og.gain.exponentialRampToValueAtTime(.001, t + .08); o.connect(og).connect(sfxBus); o.start(t); o.stop(t + .1); } break;
+    case 'clap':   // はくしゅ
+      for (let i = 0; i < 14; i++) hiss(t + Math.random() * 1.6, .12 + Math.random() * .1, 'bandpass', 1400 + Math.random() * 900, 1.2, .05, sfxBus); break;
     case 'drum':   // スネア
       hiss(t, .35, 'highpass', 1500, .7, .12, sfxBus); hiss(t + .09, .3, 'highpass', 1500, .7, .1, sfxBus); hiss(t + .18, .4, 'bandpass', 900, .8, .2, sfxBus); break;
     case 'note':   // おんぷ

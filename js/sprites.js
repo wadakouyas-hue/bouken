@@ -313,6 +313,7 @@ export function enemySprite(look) {
   return ecache[look] || (ecache[look] = build(d.rows, d.pal));
 }
 export const ENEMY_ROWS = ENEMY;
+DECO.owl = enemySprite('ミミズク');   // パルル町に いる ミミズク(かざり)
 export const eyeColor = look => { const d = ENEMY[look] || ENEMY.きのこ; return d.glow || d.pal.e; };
 export const eyePos = look => (ENEMY[look] || ENEMY.きのこ).eye || [4, 10, 6];   // くらやみで 光る 目の いろ   // 確認用
 
