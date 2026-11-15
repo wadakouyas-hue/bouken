@@ -526,7 +526,7 @@ function draw() {
 let clockKey = '';
 function drawClock() {
   const cvs = $('clockcv'), px = Math.round(36 * S * (globalThis.devicePixelRatio || 1));
-  const h = hourNow(), night = isNight(), key = `${px}|${Math.floor(h * 60)}|${night}`;
+  const h = Math.floor(hourNow() * 12) / 12, night = isNight(), key = `${px}|${h}|${night}`;   // はりは 5ふん ずつ うごく
   if (key === clockKey) return;
   clockKey = key;
   if (cvs.width !== px) { cvs.width = px; cvs.height = px; }

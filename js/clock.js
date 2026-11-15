@@ -24,7 +24,7 @@ export function hourNow() {
 }
 // こたえあわせの ことば(5ふん きざみ)
 export function timeWords() {
-  let mins = Math.round(hourNow() * 12) * 5, h = Math.floor(mins / 60) % 24, m = mins % 60;
+  let mins = Math.floor(hourNow() * 12) * 5, h = Math.floor(mins / 60) % 24, m = mins % 60;
   const ampm = h === 12 ? 'おひるの' : h === 0 ? 'よなかの' : h < 12 ? '{午前|ごぜん}' : '{午後|ごご}', h12 = h % 12 || 12;
   if (m === 0) return `いま ${ampm} ${h12}{時|じ} ちょうど だよ。`;
   const fun = [10, 20, 30, 40, 50].includes(m) ? 'ぷん' : 'ふん';
