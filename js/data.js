@@ -1,7 +1,7 @@
 // data/ フォルダの CSV を読み込む(書き方がまちがっていても止まらず、まちがいを知らせる)
 export const DATA = { party: [], enemies: [], skills: [], items: [], furniture: [], recipes: [], time: [], tramp: [] };
 export const dataErrors = [];
-export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね', 'からす'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
+export const LOOKS = ['きのこ', 'どんぐり', 'はっぱ', 'ゾンビねこ', 'ほねほね', 'からす', 'かえる', 'スカンク', 'いのしし', 'こうもり', 'ミミズク'];   // てきの「みため」に書けるもの(js/sprites.js にある絵)
 export const ARMOR_LOOKS = ['ぬの', 'かわ', 'てつ'];     // よろいの「みため」
 export const WEAPON_LOOKS = ['ぼう', 'けん'];            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい

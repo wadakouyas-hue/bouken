@@ -1,0 +1,47 @@
+// きたの もり4 ミミズクの す(20×22マス)。 おおきな きの した → はしご(こうさくの かけらで なおす) → うえに ミミズク
+export default {
+  outside: true,
+  bgm: 'forest',
+  rows: [
+    'YYYYYYYYYYYYYYYYYYYY',
+    'YYYYGGGGGGGGGGGGYYYY',
+    'YYYYGGGGGGGGGGGGYYYY',
+    'YYYYGGGGGGGGGGGGYYYY',
+    'YYYYGGGGGGGGGGGGYYYY',
+    'YYYYGGGGGGGGGGGGYYYY',
+    'YYYYGGGGGGGGGGGGYYYY',
+    'YYYYGGGGGGGGGGGGYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYYYYYIIeeIIYYYYYYY',
+    'YYYggggggggggggggYYY',
+    'YYYgmggggggggggogYYY',
+    'YYYggggggggggggggYYY',
+    'YYYgggoggggggmgggYYY',
+    'YYYggggggggggggggYYY',
+    'YYYYYYYYYggYYYYYYYYY',
+  ],
+  swaps: [
+    { flag: 'nestLadder', chars: { e: 'l' } },
+  ],
+  objs: [
+    { kind: 'look', x: 9.5, y: 16, label: 'なおす', event: 'ladder', hide: 'nestLadder' },
+    { kind: 'deco', x: 9.5, y: 2.9, pic: 'nest' },
+    { kind: 'boss', x: 9.5, y: 3, bw: 16, look: 'ミミズク', party: 'ミミズク', event: 'owl', hide: 'owl', name: 'おとどろぼうの {ミミズク|みみずく}', label: 'はなす',
+      lines: ['ホーホー! だれだ、 わたしの すに くるのは。', 'まちの おとは ぜんぶ わたしの たからものだ。\nかえして ほしければ、 かかって きなさい! ホーッ!'] },
+    { kind: 'chest', x: 5, y: 2, label: 'あける', give: 'げんきのみず',
+      lines: ['たからばこを あけた!', '♪げんきの みずを {手|て}に いれた!'], after: ['もう からっぽだ。'] },
+    { kind: 'chest', x: 14, y: 2, label: 'あける', give: 'ぎんのよろい',
+      lines: ['たからばこを あけた!', '♪ぎんの よろいを {手|て}に いれた!', '{メニュー|めにゅー}の 「そうび」で きられるよ。'], after: ['もう からっぽだ。'] },
+    { kind: 'enemy', x: 5, y: 18, party: 'いのしし スカンク' },
+    { kind: 'enemy', x: 14, y: 18, party: 'かえる かえる いのしし' },
+  ],
+  exits: [
+    { x: 9, y: 21, w: 2, to: 'cave', at: [16.5, 1], dir: 'down' },      // した → くらい どうくつ
+  ],
+};

@@ -83,7 +83,17 @@ export const DECO = {
     p(3, 4 + f, 6, 5 - f, '#e8401a'); p(4, 2 - f + 1, 4, 6, '#ff8a2a'); p(5, 1 + f, 2, 6, '#ffd23f'); p(5, 6, 2, 2, '#fff3a0'); })),
   birdhouse: paintCv(10, 12, p => { p(0, 2, 10, 2, '#c84a3a'); p(1, 0, 8, 2, '#e05a4a'); p(1, 4, 8, 7, '#d8a060'); p(4, 6, 2, 2, '#3a2210'); p(4, 11, 2, 1, '#7a4a24'); p(2, 4, 1, 7, '#b8804a'); }),
   bird: paintCv(6, 5, p => { p(1, 1, 4, 3, '#5ab0ff'); p(0, 2, 1, 1, '#5ab0ff'); p(5, 2, 1, 1, '#f2c230'); p(3, 1, 1, 1, '#2a1e1a'); p(1, 4, 1, 1, '#e8a040'); p(3, 4, 1, 1, '#e8a040'); }),
+  // きたの もり: ランタン(0 きえている / 1 ついている)・おおきな はな(いろ なし / いろ あり)・ミミズクの す
+  lantern: [0, 1].map(on => paintCv(10, 16, p => { p(4, 8, 2, 8, '#5a3418'); p(2, 14, 6, 2, '#3a2210'); p(2, 1, 6, 1, '#3a3430'); p(1, 2, 8, 7, '#3a3430');
+    p(2, 3, 6, 5, on ? '#ffd23f' : '#4a4a58'); if (on) { p(4, 4, 2, 3, '#fff3a0'); } p(4, 0, 2, 1, '#3a3430'); })),
+  flowerG: paintCv(20, 22, p => { p(9, 10, 2, 12, '#6a6a66'); p(4, 14, 5, 2, '#7a7a76'); p(11, 16, 5, 2, '#7a7a76');
+    for (const [x, y] of [[10, 1], [3, 5], [17, 5], [5, 11], [15, 11]]) p(x - 3, y - 1, 6, 5, '#b4b4b0'); p(6, 4, 8, 7, '#d8d8d4'); p(8, 6, 4, 3, '#8a8a86'); }),
+  flowerC: paintCv(20, 22, p => { p(9, 10, 2, 12, '#3a8a3e'); p(4, 14, 5, 2, '#4fb14f'); p(11, 16, 5, 2, '#4fb14f');
+    const pc = ['#ff5a6e', '#ff8ad0', '#ffd23f', '#7ac8ff', '#b07ae8']; [[10, 1], [3, 5], [17, 5], [5, 11], [15, 11]].forEach(([x, y], i) => p(x - 3, y - 1, 6, 5, pc[i])); p(6, 4, 8, 7, '#ffe8a0'); p(8, 6, 4, 3, '#f2a030'); }),
+  nest: paintCv(40, 14, p => { p(2, 4, 36, 8, '#7a5230'); p(0, 6, 40, 4, '#8a6238'); for (let x = 1; x < 39; x += 3) p(x, 3 + (x % 2), 4, 1, '#a87a4a'); p(4, 11, 32, 2, '#5a3a1c'); for (let x = 3; x < 37; x += 5) p(x, 8, 3, 1, '#5a3a1c'); }),
 };
+
+DECO.lanternOn = DECO.lantern[1]; DECO.lantern = DECO.lantern[0];
 
 // ===== てき(16×16ドット) =====
 const ENEMY = {
@@ -191,6 +201,93 @@ const ENEMY = {
     '...kwwwwwwwwk...',
     '..kwwk....kwwk..',
     '..kkkk....kkkk..'] },
+  // ===== きたの もり(第2章)。 eye: くらやみで 光る 目の ばしょ [ひだりの x, みぎの x, y]、 glow: その いろ =====
+  かえる: { eye: [2, 11, 4], glow: '#ffd23f', pal: { k: '#1a2a1a', g: '#5cc45a', G: '#2f8a3a', w: '#ffffff', y: '#e8f0a0', p: '#ff8a9a' }, rows: [
+    '................',
+    '................',
+    '................',
+    '..kkk......kkk..',
+    '.kwwwk....kwwwk.',
+    '.kwkwkkkkkkwkwk.',
+    'kggggggggggggggk',
+    'kggGggggggggGggk',
+    'kggkkkkkkkkkkggk',
+    'kgggppggggppgggk',
+    '.kgggyyyyyygggk.',
+    '.kggyyyyyyyyggk.',
+    'kggggyyyyyyggggk',
+    'kgGgkkkkkkkkgGgk',
+    'kggk........kggk',
+    'kkkk........kkkk'] },
+  スカンク: { eye: [3, 11, 7], glow: '#ffe066', pal: { k: '#141018', b: '#3a3448', w: '#f4f2ff', e: '#ffe066', p: '#e07070' }, rows: [
+    '.....kkkkkk.....',
+    '...kkwwwwwwkk...',
+    '..kbwwwbbwwwbk..',
+    '..kbbbwbbwbbbk..',
+    '.kk.kkkkkkkk.kk.',
+    '.kbkbbbwwbbbkbk.',
+    '.kbbbbbwwbbbbbk.',
+    'kbbeebbwwbbeebbk',
+    'kbbeebbwwbbeebbk',
+    'kbbbbbbppbbbbbbk',
+    '.kbppbbbbbbppbk.',
+    '..kbbbbbbbbbbk..',
+    '.kbbbwwwwwwbbbk.',
+    '.kbbwwwwwwwwbbk.',
+    '.kbbkk....kkbbk.',
+    '.kkkk......kkkk.'] },
+  いのしし: { eye: [4, 10, 7], glow: '#ff7a3a', pal: { k: '#2a1a10', b: '#9a6234', B: '#7a4a24', w: '#fff6e0', p: '#e8a0a0', e: '#1a1010' }, rows: [
+    '................',
+    '................',
+    '..kk........kk..',
+    '.kbbk......kbbk.',
+    '.kbbbkkkkkkbbbk.',
+    'kbbbbbbbbbbbbbbk',
+    'kbbbBbbbbbbBbbbk',
+    'kbbbeebbbbeebbbk',
+    'kbbbeebbbbeebbbk',
+    'kbbbbkppppkbbbbk',
+    'kbwbkppkkppkbwbk',
+    '.kwbkppppppkbwk.',
+    '..kbbkkkkkkbbk..',
+    '..kbbbbbbbbbbk..',
+    '..kbbk....kbbk..',
+    '..kkkk....kkkk..'] },
+  こうもり: { eye: [5, 9, 6], glow: '#ff4a6a', pal: { k: '#1a1020', p: '#7a4aa8', w: '#ffffff', e: '#ff4a6a' }, rows: [
+    '................',
+    '................',
+    '....k......k....',
+    '...kpk....kpk...',
+    'k..kppkkkkppk..k',
+    'kk.kppppppppk.kk',
+    'kpkkpeeppeepkkpk',
+    'kppkpeeppeepkppk',
+    'kpppkppwwppkpppk',
+    'kpppkpwppwpkpppk',
+    'kppkkkppppkkkppk',
+    'kpk..kkppkk..kpk',
+    'kk....kkkk....kk',
+    '................',
+    '................',
+    '................'] },
+  // おとどろぼうの ミミズク(ボス)
+  ミミズク: { eye: [4, 10, 5], glow: '#ffd23f', pal: { k: '#1e140c', b: '#8a5a32', B: '#6a4224', w: '#e8d8b8', y: '#ffd23f', o: '#e8a040', f: '#f2c230' }, rows: [
+    '.kk..........kk.',
+    '.kbk........kbk.',
+    '..kbkkkkkkkkbk..',
+    '..kbbbbbbbbbbk..',
+    '.kbbyyybbyyybbk.',
+    '.kbykkybbykkybk.',
+    '.kbykkybbykkybk.',
+    '.kbbyyyooyyybbk.',
+    'kbbbbbboobbbbbbk',
+    'kbBwBwBwBwBwBwbk',
+    'kbwBwBwBwBwBwBbk',
+    'kbBwBwBwBwBwBwbk',
+    '.kbwBwBwBwBwBbk.',
+    '..kbbbbbbbbbbk..',
+    '...kfkfk.kfkfk..',
+    '...kkkkk.kkkkk..'] },
 };
 const ecache = {};
 export function enemySprite(look) {
@@ -198,7 +295,8 @@ export function enemySprite(look) {
   return ecache[look] || (ecache[look] = build(d.rows, d.pal));
 }
 export const ENEMY_ROWS = ENEMY;
-export const eyeColor = look => (ENEMY[look] || ENEMY.きのこ).pal.e;   // くらやみで 光る 目の いろ   // 確認用
+export const eyeColor = look => { const d = ENEMY[look] || ENEMY.きのこ; return d.glow || d.pal.e; };
+export const eyePos = look => (ENEMY[look] || ENEMY.きのこ).eye || [4, 10, 6];   // くらやみで 光る 目の いろ   // 確認用
 
 // ===== 主人公(そうびで 見た目が かわる) =====
 // よろい: 上着(r)と ズボン(b)の色、ベルト

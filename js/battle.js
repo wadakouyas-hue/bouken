@@ -135,7 +135,8 @@ const COND_TURNS = { ねむり: () => 1 + (Math.random() * 3 | 0), どく: () =>
 const nameOf = x => x.name;
 async function inflict(t, skill) {
   const c = skill?.status; if (!c || !(t.alive ?? t.s.hp > 0)) return;
-  if (Math.random() * 100 >= (skill.chance || 100)) return;
+  const resist = B.boss && t.d && B.enemies.includes(t) ? 0.4 : 1;   // ボスは じょうたい いじょうに なりにくい
+  if (Math.random() * 100 >= (skill.chance || 100) * resist) return;
   if (t.cond[c]) return;
   t.cond[c] = COND_TURNS[c](); updateStat();
   await say(`${nameOf(t)}${COND_MSG[c]}`, 1.1);

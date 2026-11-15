@@ -1,6 +1,6 @@
 // ぼうけんの たび — 本体
 import { T, BLOCK, tileImg } from './tiles.js';
-import { charSprite, SPR, enemySprite, heroSprite, eyeColor, DECO } from './sprites.js';
+import { charSprite, SPR, enemySprite, heroSprite, eyeColor, eyePos, DECO } from './sprites.js';
 import { paint, openPaint, paintTap, paintAt } from './paint.js';
 import { clock, tick, toMorning, darkness, isNight, hourNow, timeWords, dayLen } from './clock.js';
 import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHTML, hooks } from './dialog.js';
@@ -25,6 +25,10 @@ import mid2 from '../maps/mid2.js';
 import town2 from '../maps/town2.js';
 import cafe from '../maps/cafe.js';
 import shop2 from '../maps/shop2.js';
+import north1 from '../maps/north1.js';
+import north2 from '../maps/north2.js';
+import cave from '../maps/cave.js';
+import nest from '../maps/nest.js';
 import { readSave, writeSave, clearSave, toCode, fromCode } from './save.js';
 
 // ===== 基本設定 =====
@@ -48,9 +52,9 @@ document.querySelectorAll('.ruby').forEach(el => { el.innerHTML = rubyHTML(el.te
 
 // ===== マップ =====
 const at = (tx, ty) => ({ x: tx * T + 8, y: ty * T + 14 });
-const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2 };
+const MAPS = { village, house, forest, shop: shopMap, home, deep, hill, mid1, mid2, town2, cafe, shop2, north1, north2, cave, nest };
 for (const [name, m] of Object.entries(MAPS)) {
-  m.w = m.rows[0].length; m.h = m.rows.length;
+  m.w = m.rows[0].length; m.h = m.rows.length; m.rows0 = m.rows;
   m.objs = m.objs.map(o => {
     const p = at(o.x, o.y);
     const r = { dir: 'down', ...o, key: `${name}:${o.x},${o.y}`, ...p };   // key はセーブで使う名札
@@ -60,6 +64,16 @@ for (const [name, m] of Object.entries(MAPS)) {
   m.base = m.objs;   // かぐ いがいの 人や物
 }
 let cur = home;
+// swaps: フラグが つくと マスが かわる(いろが もどる・はしが なおる など)
+function applySwaps(m) {
+  if (!m.swaps) return;
+  const rows = m.rows0.map(r => r.split(''));
+  for (const sw of m.swaps) if (flags.has(sw.flag)) {
+    if (sw.chars) for (const r of rows) for (let i = 0; i < r.length; i++) if (sw.chars[r[i]]) r[i] = sw.chars[r[i]];
+    for (const [x, y, c] of sw.cells || []) rows[y][x] = c;
+  }
+  m.rows = rows.map(r => r.join(''));
+}
 const mapName = () => Object.keys(MAPS).find(k => MAPS[k] === cur);
 function resetEnemies(m) {
   for (const o of m.objs) {
@@ -277,7 +291,7 @@ stage.addEventListener('pointerdown', e => {
     const cv = e.target.closest('#paintcv'); if (cv) { const r = cv.getBoundingClientRect(); paintAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
     return;
   }
-  if (trans.on) return;
+  if (trans.on || leap.on) return;
   if (deco.open) {
     const b = e.target.closest('[data-d]'); if (b) { decoTap(b.dataset.d); return; }
     if (e.target.closest('#deco .dpick, #deco .dside')) return;
@@ -362,6 +376,17 @@ const fade = fn => new Promise(r => fadeTo(fn, r));
 const HAMO = '{ハモ|はも}';
 const view = { on: false };       // おかの うえからの けしき
 const jump = { on: false, t: 0 };     // トランポリンで とんでいる
+// かわを とびこえる(ひとっとびの ジャンプ)
+const leap = { on: false };
+const LEAP_T = 0.75;
+function hopTo(tx, ty) { const p = at(tx, ty); return new Promise(r => Object.assign(leap, { on: true, t: 0, fx: player.x, fy: player.y, x: p.x, y: p.y, done: r })); }
+function updateLeap(dt) {
+  leap.t += dt; const k = Math.min(1, leap.t / LEAP_T);
+  player.x = leap.fx + (leap.x - leap.fx) * k; player.y = leap.fy + (leap.y - leap.fy) * k; player.anim += dt; player.moving = true;
+  trail.length = 0; updateCamera();
+  if (k >= 1) { leap.on = false; player.moving = false; player.anim = 0; const cb = leap.done; leap.done = null; save(); cb(); }
+}
+const leapY = () => leap.on ? -Math.round(Math.sin(Math.min(1, leap.t / LEAP_T) * Math.PI) * 26) : 0;
 // ===== トランポリンの ミニゲーム: おりてきて つく ときに タップ =====
 const rec = {};                       // きろく(セーブ される)
 const tg = { on: false };
@@ -493,6 +518,82 @@ const EVENTS = {
     flags.add('ch2gate'); save();
     await say(HAMO, ['さあ、 きたの もりへ いこう!', '{ミミズク|みみずく}から まちの おとを とりかえすんだ!']);
   },
+  // ===== 第2章: きたの もり =====
+  // トランポリンで かわを とびこえる
+  async hop(o) {
+    if (!bag.includes('トランポリンのかけら')) { await say('', ['ちいさな {トランポリン|とらんぽりん}が ある。', 'でも、 どう つかえば いいのかな?']); return; }
+    if (!flags.has('hop')) {
+      flags.add('hop');
+      await say('', ['かわの まえに ちいさな {トランポリン|とらんぽりん}が ある。']);
+      await say(HAMO, ['こうえんで とんだ みたいに、 とびこえよう!']);
+      await say('', ['{トランポリン|とらんぽりん}の かけらが ひかった!']);
+    }
+    sfx(flags.has('owl') ? 'boing' : 'next');
+    player.dir = o.to[1] * T < o.y ? 'up' : 'down';
+    await hopTo(o.to[0], o.to[1]);
+  },
+  // いろの ない もり: えかきの かけらで いろを もどす
+  async color(o) {
+    if (flags.has('nfColor')) { await say('', ['おおきな はなが いろとりどりに さいている。']); return; }
+    await say('', ['おおきな はなが ある。', 'でも、 はなも くさも きも、 いろが ぜんぶ きえている……']);
+    if (!bag.includes('えかきのかけら')) return;
+    await say('{メロ|めろ}', ['@、 えかきの かけらで いろを ぬって あげましょう!']);
+    sfx('magic');
+    await fade(() => { flags.add('nfColor'); applySwaps(cur); });
+    sfx('get'); save();
+    await say('', ['えかきの かけらが ひかった!', 'もりに いろが もどった!', 'しげみの むこうに、 みちが みえる!']);
+    await say(HAMO, ['ミミズクが、 おとと いっしょに いろも すいとって いたのかな。'.replace('ミミズク', '{ミミズク|みみずく}')]);
+  },
+  // こわれた はしを なおす
+  async bridge() {
+    await say('', ['はしが こわれていて わたれない……']);
+    if (!bag.includes('こうさくのかけら')) return;
+    await say(HAMO, ['ことりの いえを つくった みたいに、 みんなで なおそう!']);
+    await fade(() => { flags.add('nfBridge'); applySwaps(cur); });
+    sfx('get'); save();
+    await say('', ['こうさくの かけらが ひかった!', '{トントン|とんとん}、 {カンカン|かんかん}……', 'はしが なおった!']);
+  },
+  // こわれた はしごを なおす
+  async ladder() {
+    await say('', ['おおきな {木|き}に はしごが かかっている。', 'でも、 はしごが こわれていて のぼれない……']);
+    if (!bag.includes('こうさくのかけら')) return;
+    await say(HAMO, ['よし、 また なおそう! @は そっちを もって!']);
+    await fade(() => { flags.add('nestLadder'); applySwaps(cur); });
+    sfx('get'); save();
+    await say('', ['こうさくの かけらが ひかった!', '{トントン|とんとん}、 {カンカン|かんかん}……', 'はしごが なおった! うえに のぼれる!']);
+    await say('{メロ|めろ}', ['うえから、 ホーホーって こえが きこえる……'.replace('ホーホー', '{ホーホー|ほーほー}')]);
+  },
+  // どうくつの ランタンに ひを つける
+  async torch(o) {
+    if (!bag.includes('キャンプのかけら')) { await say('', ['ひの きえた ランタンだ。'.replace('ランタン', '{ランタン|らんたん}')]); return; }
+    flags.add(o.lamp); save(); sfx('fire');
+    await say('', [flags.has('lamp1') && flags.has('lamp2') && flags.has('lamp3') && flags.has('lamp4') && flags.has('lamp5') ? 'ぜんぶの {ランタン|らんたん}に ひが ついた! どうくつが あかるく なった。' : '{キャンプ|きゃんぷ}の かけらが ぽっと ひかって、 {ランタン|らんたん}に ひが ついた!']);
+  },
+  // たんけんかの ねこ: どうくつで おとした ぼうし
+  async hat(o) {
+    if (flags.has('hatDone')) { await say(o.name, ['ぼうし、 ほんとうに ありがとう!', 'これで また たんけん できるよ。']); return; }
+    if (bag.includes('ぼうし')) {
+      bag.splice(bag.indexOf('ぼうし'), 1); bag.push('げんきのみず', 'げんきのみず'); hero.gold += 500; flags.add('hatDone'); chipText = ''; save(); sfx('get');
+      await say(o.name, ['あっ! それ、 ぼくの ぼうし!', 'くらい どうくつに はいって くれたんだね。 ありがとう!', 'これは おれいだよ。']);
+      await say('', ['♪げんきの みずを 2こ もらった!', '♪500{円|えん} もらった!']);
+      return;
+    }
+    flags.add('hatAsk'); save();
+    await say(o.name, ['こんにちは。 ぼくは たんけんかの ねこ。', 'この さきの くらい どうくつで、\nだいじな ぼうしを おとして しまったんだ。', 'くらくて こわくて、 とりに いけないの……', 'もし みつけたら、 もってきて くれる?']);
+  },
+  // おとどろぼうの ミミズク
+  owl(o) {
+    encounter({ party: [o.party] }, { boss: true, onWin: () => { flags.add('owl'); save(); },
+      afterWin: async () => {
+        await say(o.name, ['ホー…… まいった。 きみたちは つよいなあ。', 'わたしは、 まちの いろんな おとが だいすきでね。', 'ふんすいの おと、 ことりの うた、 えんそうかい……\nひとりじめ したくて、 ぜんぶ もってきて しまったんだ。']);
+        await say(HAMO, ['だったら、 まちに ききに くれば いいよ!', 'おとは みんなで きくと、 もっと たのしいんだ。']);
+        await say('{メロ|めろ}', ['そうよ。 こんど おみせの {ステージ|すてーじ}で、\nわたしたちが えんそうするわ。 ききに きてね。']);
+        await say(o.name, ['……いいのかい? ホー、 うれしいなあ。', 'じゃあ、 おとは ぜんぶ かえすよ。']);
+        sfx('chord');
+        await say('', ['ミミズクが つばさを ひろげると、'.replace('ミミズク', '{ミミズク|みみずく}'), 'たくさんの おとが きらきら ひかりながら、\nまちの ほうへ とんでいった!', '♪まちの おとが もどった!']);
+        await say(HAMO, ['やったね、 @!', '{パルル|ぱるる}{町|まち}へ かえろう!']);
+      } });
+  },
   // ===== 第1章の おてつだい =====
   // おばあさんの きのこスープ(きのこ 3こ)
   async soup(o) {
@@ -578,6 +679,8 @@ function save() {
   });
 }
 function load(d) {
+  for (const f of d.flags || []) flags.add(f);
+  Object.values(MAPS).forEach(applySwaps);
   cur = MAPS[d.map] || village;
   Object.assign(player, { x: d.x, y: d.y, dir: d.dir });
   if (!MAPS[d.map] || hits(player.x, player.y) || exitAt(player.x, player.y)) {  // マップを作り直して 入れない場所になっていたら 村の最初の場所へ
@@ -588,7 +691,6 @@ function load(d) {
   const done = new Set(d.done);
   for (const o of allObjs()) if (done.has(o.key)) markTaken(o);
   talkedOnce = d.talked;
-  for (const f of d.flags || []) flags.add(f);
   if (d.rec && typeof d.rec === 'object') for (const [k, v] of Object.entries(d.rec)) if (Number.isFinite(v)) rec[k] = v;
   clock.t = d.clock || 0; wasNight = isNight(); Object.values(MAPS).forEach(resetEnemies);
   if (d.hero) Object.assign(hero, d.hero);
@@ -705,6 +807,7 @@ function update(dt) {
   if (battle.on) { updateBattle(dt); $('act').style.display = 'none'; return; }
   const hideAct = () => { $('act').style.display = 'none'; $('actbtn').classList.remove('show'); };
   if (tg.on) updateTramp(dt);
+  if (leap.on) { updateLeap(dt); hideAct(); return; }
   if (trans.on || nameEntry.open || menu.open || shop.open || deco.open || paint.open || jump.on) { hideAct(); if (jump.on) jump.t += dt; return; }
   if (dlg.open) { hideAct(); updateDialog(dt); return; }
   if (!started || !hero.name) return;
@@ -824,7 +927,7 @@ function drawClock() {
 const darkCv = document.createElement('canvas'); darkCv.width = VW; darkCv.height = VH;
 const dg = darkCv.getContext('2d');
 function drawDark() {
-  const k = darkness(), a = (cur.outside ? 1 : cur.deco ? 0.7 : 0) * k;   // そとの よるは 明るい丸の そとは まっくら
+  const k = darkness(), a = cur.dark ? 1 : (cur.outside ? 1 : cur.deco ? 0.7 : 0) * k;   // そとの よると どうくつ(dark)は 明るい丸の そとは まっくら
   if (a <= 0.01) return;
   const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: bag.includes('キャンプのかけら') ? 80 : 40 }];
   for (const o of live()) if (o.light) lights.push({ x: o.x - cam.x, y: o.y - 6 - cam.y, r: o.light + Math.sin(tm * 9) * 2 });   // たきび など
@@ -840,11 +943,12 @@ function drawDark() {
   dg.globalCompositeOperation = 'source-over';
   ctx.drawImage(darkCv, 0, 0);
   // くらやみで 光る 目(ときどき まばたき)
-  for (const o of live()) if (o.kind === 'enemy' && o.night && Math.floor(tm * 3 + o.hx) % 9) {
+  for (const o of live()) if (o.kind === 'enemy' && (o.night || cur.dark) && Math.floor(tm * 3 + o.hx) % 9) {
     const rh = o.rise > 0 ? Math.round(16 * (1 - o.rise / RISE)) : 16; if (rh < 9) continue;   // でてくる とちゅうは 目が でてから
     const sx = Math.round(o.x - cam.x) - 8, sy = Math.round(o.y - cam.y) - rh, hop = o.moving && !(o.rise > 0) ? Math.round(Math.abs(Math.sin(tm * 8 + o.hx)) * -2) : 0;
-    ctx.fillStyle = eyeColor(byId('enemies', o.party[0])?.look);
-    ctx.fillRect(sx + 4, sy + 6 + hop, 2, 2); ctx.fillRect(sx + 10, sy + 6 + hop, 2, 2);
+    const look = byId('enemies', o.party[0])?.look, [ex1, ex2, ey] = eyePos(look);
+    ctx.fillStyle = eyeColor(look);
+    ctx.fillRect(sx + ex1, sy + ey + hop, 2, 2); ctx.fillRect(sx + ex2, sy + ey + hop, 2, 2);
   }
 }
 // おかの うえからの けしき(かたぐるま)
@@ -910,7 +1014,7 @@ function drawField() {
       if (e.pic === 'birdhouse' && flags.has('craft')) ctx.drawImage(DECO.bird, sx + 4, sy - 16 + Math.round(Math.sin(tm * 3)));
       continue;
     }
-    const jy = tg.on && e === player ? -Math.round(tgHeight() * 4 * tg.ph * (1 - tg.ph)) : jump.on && e.hop ? 0 : 0;
+    const jy = tg.on && e === player ? -Math.round(tgHeight() * 4 * tg.ph * (1 - tg.ph)) : leap.on && (e === player || e.kind === 'follower') ? leapY() : 0;
     if (e.kind === 'boss') { ctx.drawImage(enemySprite(e.look), sx - 16, sy - 30 + Math.round(Math.sin(tm * 3) * 1.5), 32, 32); continue; }
     if (e === player) img = heroSprite(e.dir, e.moving ? Math.floor(e.anim * 9) % 4 : 0, equipLook());
     else if (e.kind === 'follower') img = charSprite(e.pal, e.dir, e.moving ? Math.floor(player.anim * 9) % 4 : 0);

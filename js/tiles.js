@@ -61,6 +61,27 @@ TILE.tramp = [[quarter(TRAMP, 0, 0), quarter(TRAMP, 1, 0)], [quarter(TRAMP, 0, 1
 TILE.roofV = mk(g => { px(g, 0, 0, 16, 16, '#9a5ac8'); for (let y = 0; y < 16; y += 4) { px(g, 0, y + 3, 16, 1, '#6a3a98'); for (let x = ((y / 4) % 2) * 4; x < 16; x += 8) px(g, x, y, 1, 3, '#7a46a8'); } px(g, 0, 0, 16, 1, '#c88af0'); });
 TILE.stage = mk(g => { px(g, 0, 0, 16, 16, '#b8783e'); for (let y = 3; y < 16; y += 4) px(g, 0, y, 16, 1, '#8a5228'); px(g, 0, 0, 16, 1, '#e0a868'); px(g, 4, 0, 1, 3, '#8a5228'); px(g, 11, 4, 1, 3, '#8a5228'); });
 
+// --- きたの もり(第2章) ---
+// いろの ない もり(えかきの かけらで いろが もどる): q はいいろの くさ  i はいいろの はな  x はいいろの き  X はいいろの しげみ
+function ggrass(g) { px(g, 0, 0, 16, 16, '#8e9088'); for (let i = 0; i < 10; i++) px(g, rnd() * 16, rnd() * 16, 1, 1, rnd() < .6 ? '#7a7c76' : '#a4a69e'); }
+TILE.ggrass = [0, 1, 2].map(() => mk(ggrass));
+TILE.gflower = mk(g => { ggrass(g); for (let i = 0; i < 3; i++) { const x = 2 + rnd() * 11 | 0, y = 2 + rnd() * 11 | 0; px(g, x, y, 3, 1, '#d8d8d4'); px(g, x + 1, y - 1, 1, 3, '#d8d8d4'); px(g, x + 1, y, 1, 1, '#6a6a66'); } });
+TILE.gtree = [0, 1].map(p => mk(g => { px(g, 0, 0, 16, 16, '#4a4c48'); circle(g, 8, 8, 8, '#3a3c38'); circle(g, 7 + p, 7, 6, '#5e605a'); circle(g, 5 + p * 2, 5, 2, '#80827c'); circle(g, 11 - p, 10, 2, '#6e706a'); }));
+// もりの はな(いろが もどった あと)
+TILE.fflower = mk(g => { fgrass(g); const cols = ['#ff5a6e', '#ffd23f', '#ff8ad0', '#7ac8ff'];
+  for (let i = 0; i < 3; i++) { const x = 2 + rnd() * 11 | 0, y = 2 + rnd() * 11 | 0, c = cols[i + (rnd() * 2 | 0)]; px(g, x, y, 3, 1, c); px(g, x + 1, y - 1, 1, 3, c); px(g, x + 1, y, 1, 1, '#fff3a0'); } });
+TILE.ghedge = mk(g => { ggrass(g); circle(g, 8, 9, 7, '#4e504a'); circle(g, 7, 8, 6, '#6a6c66'); circle(g, 5, 6, 2, '#8a8c86'); circle(g, 11, 11, 2, '#5a5c56'); });
+// こわれた はし(こうさくの かけらで なおる)
+TILE.broken = [0, 1].map(p => mk(g => { g.drawImage(TILE.water[p], 0, 0); px(g, 1, 2, 4, 3, '#8a5a2a'); px(g, 10, 9, 5, 3, '#8a5a2a'); px(g, 11, 9, 1, 3, '#5a3a1c'); px(g, 3, 12, 3, 2, '#7a4a24'); }));
+// くらい どうくつ: n ゆか  N いわかべ
+TILE.cfloor = [0, 1, 2].map(() => mk(g => { px(g, 0, 0, 16, 16, '#5a4e44'); for (let i = 0; i < 9; i++) px(g, rnd() * 16, rnd() * 16, 1 + (rnd() * 2 | 0), 1, rnd() < .5 ? '#4a4036' : '#6e6254'); }));
+TILE.cwall = [0, 1].map(p => mk(g => { px(g, 0, 0, 16, 16, '#2e2622'); for (const [x, y, w, h] of [[1, 1, 6, 5], [8, 2, 7, 6], [2, 8, 5, 6], [9, 10, 6, 5]]) { px(g, x + p, y, w, h, '#3e342e'); px(g, x + p, y, w, 1, '#56483e'); } }));
+// おおきな きの みき(I)と はしご(l)・こわれた はしご(e)
+function bark(g) { px(g, 0, 0, 16, 16, '#7a4a24'); for (let x = 1; x < 16; x += 4) px(g, x, 0, 1, 16, '#5a3418'); px(g, 3, 5, 2, 3, '#9a6234'); px(g, 10, 11, 2, 3, '#9a6234'); }
+TILE.trunk = mk(bark);
+TILE.ladder = mk(g => { bark(g); px(g, 2, 0, 2, 16, '#d8a060'); px(g, 12, 0, 2, 16, '#d8a060'); for (const y of [2, 7, 12]) { px(g, 2, y, 12, 2, '#e8b878'); px(g, 2, y + 2, 12, 1, '#8a5a2a'); } });
+TILE.ladderX = mk(g => { bark(g); px(g, 2, 6, 2, 10, '#a87a4a'); px(g, 12, 0, 2, 5, '#a87a4a'); px(g, 3, 12, 7, 2, '#a87a4a'); px(g, 8, 3, 5, 2, '#a87a4a'); });
+
 // --- 家の中 ---
 TILE.inTop = mk(g => { px(g, 0, 0, 16, 16, '#5a3a24'); px(g, 0, 0, 16, 1, '#7a5034'); px(g, 0, 15, 16, 1, '#3a2414'); });
 function paper(g) { px(g, 0, 0, 16, 16, '#efdcb4'); for (let x = 2; x < 16; x += 5) px(g, x, 0, 1, 13, '#e2c998'); px(g, 0, 13, 16, 3, '#8a5a32'); px(g, 0, 13, 16, 1, '#a8744a'); }
@@ -90,8 +111,9 @@ TILE.mat = mk(g => { floor(g); px(g, 2, 2, 12, 12, '#4f9a52'); px(g, 3, 3, 10, 1
 // パルル町  p 石の ひろば  F ふんすい(2×2)  J トランポリン(2×2)  V むらさきの 屋根  G ステージの ゆか
 // 村  . 草  , 花  T 木  = 道  ~ 川  B b 橋  R 屋根  U 青い屋根  H h 壁  W 窓  D ドア
 // 森  g 森の草  Y 森の木  m きのこ  o しげみ
+// きたの もり  f もりの はな  q i x X はいいろの くさ・はな・き・しげみ  k こわれた はし  n N どうくつの ゆか・かべ  I みき  l はしご  e こわれた はしご
 // 家  # 天井  w 壁  v 窓  _ 床  r じゅうたん  K タンス  S 本だな  O Q テーブル  Z z ベッド  P 花びん  C お店のカウンター  E 出口のマット
-export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P']);
+export const BLOCK = new Set(['F', 'J', 'V', 'U', 'C', 'T', '~', 'R', 'H', 'h', 'W', 'D', 'Y', 'o', '#', 'w', 'v', 'K', 'S', 'O', 'Q', 'Z', 'z', 'P', 'x', 'X', 'k', 'N', 'I', 'e']);
 
 export function tileImg(c, x, y, t) {
   const v = (x * 7 + y * 13) % 3;
@@ -106,6 +128,9 @@ export function tileImg(c, x, y, t) {
     case '#': return TILE.inTop; case 'w': return TILE.inWall; case 'v': return TILE.inWin; case '_': return TILE.floor; case 'r': return TILE.rug;
     case 'K': return TILE.tansu; case 'S': return TILE.shelf; case 'O': return TILE.tableL; case 'Q': return TILE.tableR;
     case 'Z': return TILE.bedT; case 'z': return TILE.bedB; case 'P': return TILE.pot; case 'E': return TILE.mat;
+    case 'q': return TILE.ggrass[v]; case 'i': return TILE.gflower; case 'f': return TILE.fflower; case 'x': return TILE.gtree[(x + y) % 2]; case 'X': return TILE.ghedge;
+    case 'k': return TILE.broken[(Math.floor(t * 2) + x) % 2]; case 'n': return TILE.cfloor[v]; case 'N': return TILE.cwall[(x + y) % 2];
+    case 'I': return TILE.trunk; case 'l': return TILE.ladder; case 'e': return TILE.ladderX;
     default: return TILE.grass[v];
   }
 }
