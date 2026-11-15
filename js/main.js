@@ -434,7 +434,16 @@ const EVENTS = {
     flags.add('ch2gate'); save();
     await say(HAMO, ['さあ、 きたの もりへ いこう!', '{ミミズク|みみずく}から まちの おとを とりかえすんだ!']);
   },
-  // いずみの みず: みんな げんきに なる
+  // ===== 第1章の おてつだい =====
+  // おばあさんの きのこスープ(きのこ 3こ)
+  async soup(o) {
+    const n = bag.filter(b => b === 'きのこ').length;
+    if (n < 3) { await say(o.name, [`きのこを 3こ もってきて くれるかい?(いま ${n}こ)`, 'きのこぼうを たおすと ときどき おとすよ。']); return; }
+    for (let i = 0; i < 3; i++) bag.splice(bag.indexOf('きのこ'), 1);
+    flags.add('soup'); bag.push('かいふくやく', 'かいふくやく'); hero.gold += 300; chipText = ''; save(); sfx('get');
+    await say(o.name, ['まあ、 りっぱな きのこ! ありがとうね。', 'おいしい きのこスープが できるよ。'.replace('スープ', '{スープ|すーぷ}'), 'これは おれいだよ。']);
+    await say('', ['♪かいふくやくを 2こ もらった!', '♪300{円|えん} もらった!']);
+  },
   async spring() {
     const tired = members().some(m => m.s.hp < m.st.maxhp || m.s.mp < m.st.maxmp);
     if (tired) { healFull(); sfx('heal'); save(); }
@@ -465,7 +474,8 @@ const EVENTS = {
 function doTalk(o, t) {
   if (t.set) [].concat(t.set).forEach(f => flags.add(f));
   if (t.join) { joinAlly(t.join); chipText = ''; }
-  if (t.give) bag.push(t.give);
+  for (const g of [].concat(t.give || [])) bag.push(g);
+  if (t.gold) { hero.gold += t.gold; chipText = ''; }
   save();
   const then = t.then ? () => EVENTS[t.then]?.(o) : o.heal && t.heal !== false ? () => healAt(o) : null;
   openDialog(t.name || o.name, t.lines, then);

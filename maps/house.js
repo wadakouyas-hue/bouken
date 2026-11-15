@@ -13,6 +13,12 @@ export default {
   ],
   objs: [
     { kind: 'npc', x: 7, y: 3, pal: 'oba', name: 'おばあさん', label: 'はなす', heal: true,   // heal: HP・MPを もどしてくれる
+      // おてつだい: きのこスープ(ぬののふくを もらってから)
+      talk: [
+        { need: 'soup', lines: ['きのこスープ、 とっても おいしかったよ。'.replace('スープ', '{スープ|すーぷ}'), 'また いつでも おいで。'] },
+        { need: 'soupAsk', then: 'soup', heal: false, lines: ['きのこは あつまったかい?'] },
+        { need: 'hamo', set: 'soupAsk', then: 'soup', heal: false, lines: ['ねえ、 おねがいが あるんだけど。', 'きのこスープを つくりたいんだ。 {森|もり}の きのこを 3こ もってきて くれないかい?'.replace('スープ', '{スープ|すーぷ}')] },
+      ],
       lines: ['あら、いらっしゃい。', '{森|もり}へ いくのかい? {森|もり}には まものが でるそうだよ。', '{タンス|たんす}に ふくが はいっているから、\nもっていきなさい。'],
       ifHave: { item: 'ぬののふく', lines: ['その ふくが あれば すこしは あんしんだね。', 'きを つけて いっておいで。'] } },
     { kind: 'look', x: 1, y: 2, label: 'しらべる', give: 'ぬののふく',
