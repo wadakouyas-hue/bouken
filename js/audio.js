@@ -283,6 +283,12 @@ export function sfx(name) {
       g.gain.setValueAtTime(.001, t + .5); g.gain.linearRampToValueAtTime(.05, t + .8); g.gain.linearRampToValueAtTime(.001, t + 1.4);
       o.connect(g).connect(sfxBus); o.start(t + .5); o.stop(t + 1.5); break;
     }
+    case 'ice': { // こおり: キラキラ キーン
+      for (let i = 0; i < 4; i++) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(1800 + i * 420, t + i * .05);
+        g.gain.setValueAtTime(.05, t + i * .05); g.gain.exponentialRampToValueAtTime(.001, t + i * .05 + .25); o.connect(g).connect(sfxBus); o.start(t + i * .05); o.stop(t + i * .05 + .26); }
+      hiss(t, .08, 'highpass', 4000, 1, .3, sfxBus); break; }
+    case 'camera': // カシャッ
+      hiss(t, .2, 'bandpass', 2500, 2, .04, sfxBus); hiss(t + .07, .15, 'bandpass', 1800, 2, .05, sfxBus); break;
     case 'slide':  // こおりを すべる(しゃーっ)
       hiss(t, .12, 'highpass', 3200, .8, .35, sfxBus); break;
     case 'bump': { // こおりで いわに ぶつかって とまる(こつん)

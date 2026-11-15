@@ -7,7 +7,7 @@ export const WEAPON_LOOKS = ['ぼう', 'けん', 'スネア', 'ギター', 'マ�
 export const ACC_LOOKS = ['おうかん', 'リボン', 'はなかんむり', 'むぎわら', 'サングラス', 'ちょうネクタイ'];   // かざりの「みため」            // ぶきの「みため」
 export const ELEMENTS = ['ほのお', 'みず', 'かみなり', 'かぜ'];   // ぞくせい
 export const STATUSES = ['ねむり', 'どく', 'しびれ', 'わらい', 'くさい'];   // ステータス いじょう
-export const FX_TYPES = ['slash', 'fire', 'water', 'thunder', 'wind', 'magic', 'heal', 'impact', 'drum', 'notes', 'wave', 'star', 'song', 'stink', 'lick', 'spit', 'spore', 'leaf', 'butt'];   // わざの エフェクト(js/battle.js の drawFx)
+export const FX_TYPES = ['slash', 'fire', 'water', 'thunder', 'wind', 'magic', 'heal', 'impact', 'drum', 'notes', 'wave', 'star', 'song', 'stink', 'lick', 'spit', 'spore', 'leaf', 'butt', 'ice', 'flash', 'heart', 'petal', 'nut'];   // わざの エフェクト(js/battle.js の drawFx)
 export const FURN_LOOKS = ['ベッド', 'タンス', 'たな', 'はなびん', 'いす', 'テーブル', 'うえき', 'ぬいぐるみ', 'じゅうたん', 'ドラム', 'ギター', 'マイク', 'さぎょうだい', 'ランプ', 'ほねのいす', 'き', 'え', 'トランポリン', 'トロフィー', 'かぼちゃ', 'ゆきだるま', 'かかし', 'ねこタワー', 'こたつ', 'ハンモック', 'にじ', 'ほしランプ', 'ペット', 'おもいでかたぐるま', 'おもいでトランポリン', 'おもいでえかき', 'おもいでこうさく', 'おもいでキャンプ', 'おもいでがっそう', 'おもいでゆうき', 'おもいでぬくもり'];   // かぐの「みため」(js/furniture.js にある絵)
 
 const SPEC = {

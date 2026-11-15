@@ -206,11 +206,12 @@ const allyTarget = m => ({ def: st(m).def, spr: st(m).spr, weak: [], resist: [] 
 // こうげきの エフェクトの しゅるい
 const FX_OF = { ほのお: 'fire', みず: 'water', かみなり: 'thunder', かぜ: 'wind' };
 function fxType(skill) { if (skill?.fx) return skill.fx; if (skill?.elem && FX_OF[skill.elem]) return FX_OF[skill.elem]; return skill?.type === 'じゅもん' ? 'magic' : 'slash'; }
-const FX_TIME = { slash: 0.35, fire: 0.75, water: 0.7, thunder: 0.6, wind: 0.75, magic: 0.6, heal: 0.7, impact: 0.25, drum: 0.6, notes: 0.8, wave: 0.6, star: 0.9, song: 0.9, stink: 0.9, lick: 0.55, spit: 0.5, spore: 0.7, leaf: 0.7, butt: 0.7 };
+const FX_TIME = { slash: 0.35, fire: 0.75, water: 0.7, thunder: 0.6, wind: 0.75, magic: 0.6, heal: 0.7, impact: 0.25, drum: 0.6, notes: 0.8, wave: 0.6, star: 0.9, song: 0.9, stink: 0.9, lick: 0.55, spit: 0.5, spore: 0.7, leaf: 0.7, butt: 0.7, ice: 0.75, flash: 0.5, heart: 0.9, petal: 0.9, nut: 0.7 };
 async function effect(type, targets) {
-  sfx({ slash: 'slash', fire: 'fire', water: 'water', thunder: 'thunder', wind: 'wind', magic: 'magic', heal: 'heal', impact: 'hurt', drum: 'drum', notes: 'note', wave: 'chord', star: 'magic', song: 'heal', stink: 'stink', lick: 'lick', spit: 'spit', spore: 'stink', leaf: 'wind', butt: 'boing' }[type]);
+  sfx({ slash: 'slash', fire: 'fire', water: 'water', thunder: 'thunder', wind: 'wind', magic: 'magic', heal: 'heal', impact: 'hurt', drum: 'drum', notes: 'note', wave: 'chord', star: 'magic', song: 'heal', stink: 'stink', lick: 'lick', spit: 'spit', spore: 'stink', leaf: 'wind', butt: 'boing', ice: 'ice', flash: 'camera', heart: 'heal', petal: 'note', nut: 'hurt' }[type]);
   for (const t of targets) B.fx.push({ type, x: t.x, y: t.y, t: 0, dur: FX_TIME[type], seed: Math.random() * 1000 });
   if (type === 'thunder') B.flashScreen = 0.18;
+  if (type === 'flash') B.flashScreen = 0.3;   // カメラの フラッシュ
   await wait(FX_TIME[type] * 0.8);
 }
 function popup(x, y, text, cls) {
@@ -599,6 +600,21 @@ function drawFx(ctx, f) {
   } else if (f.type === 'butt') {     // おしり プリプリ(ハート)
     for (let i = 0; i < 5; i++) { const q = Math.min(1, p * 1.3 - i * 0.1); if (q <= 0) continue; const x = cx - 12 + i * 6, y = cy - q * 20;
       const c = '#ff6aa8'; dot(ctx, x, y, c, 2); dot(ctx, x + 2, y, c, 2); dot(ctx, x + 1, y + 2, c, 2); }
+  } else if (f.type === 'ice') {      // つららが ふってきて、 こおりの つぶが とぶ
+    for (let i = 0; i < 4; i++) { const q = Math.min(1, p * 2 - i * 0.15); if (q <= 0) continue; const x = cx - 12 + i * 8, y = cy - 30 + q * 28;
+      for (let k = 0; k < 6; k++) dot(ctx, x + (k > 3 ? 1 : 0), y - k * 2, k < 2 ? '#ffffff' : '#9fd6f2', Math.max(1, 3 - (k >> 1))); }
+    if (p > 0.5) for (let i = 0; i < 8; i++) { const an = i / 8 * 6.28, r = (p - 0.5) * 30; dot(ctx, cx + Math.cos(an) * r, cy + Math.sin(an) * r * .6, i % 2 ? '#e6f8ff' : '#7ab8e0', 2); }
+  } else if (f.type === 'flash') {    // カメラの ひかり(しろい わ)
+    for (let i = 0; i < 12; i++) { const an = i / 12 * 6.28, r = 4 + p * 22; line(ctx, cx + Math.cos(an) * r * .5, cy + Math.sin(an) * r * .5, cx + Math.cos(an) * r, cy + Math.sin(an) * r, `rgba(255,255,255,${1 - p})`, 1); }
+  } else if (f.type === 'heart') {    // ハートが ふわふわ のぼる
+    for (let i = 0; i < 6; i++) { const q = Math.min(1, p * 1.3 - i * 0.08); if (q <= 0) continue; const x = cx - 15 + i * 6 + Math.sin(q * 6 + i) * 3, y = cy + 6 - q * 26, c = i % 2 ? '#ff5a7a' : '#ff9ac0';
+      dot(ctx, x, y, c, 2); dot(ctx, x + 3, y, c, 2); dot(ctx, x - 1, y + 2, c, 2); dot(ctx, x + 1, y + 2, c, 3); dot(ctx, x + 4, y + 2, c, 1); dot(ctx, x + 1, y + 4, c, 2); }
+  } else if (f.type === 'petal') {    // はなびらが まう
+    for (let i = 0; i < 12; i++) { const an = f.t * 4 + i * .9, x = cx - 20 + ((i * 13 + S) % 40) + Math.sin(an) * 4, y = cy - 26 + p * 40 + (i % 4) * 4 - 8;
+      dot(ctx, x, y, ['#ff9ac0', '#ffffff', '#ffd23f', '#ff5a7a'][i % 4], 2); }
+  } else if (f.type === 'nut') {      // くりや どんぐりが ふる
+    for (let i = 0; i < 7; i++) { const q = Math.min(1, p * 1.8 - i * 0.1); if (q <= 0) continue; const x = cx - 18 + i * 6, y = cy - 30 + q * 30 - Math.abs(Math.sin(q * 9)) * (q > 0.8 ? 4 : 0);
+      dot(ctx, x, y, '#7a4a24', 3); dot(ctx, x, y - 1, '#a86a34', 2); dot(ctx, x + 1, y - 2, '#3a2210', 1); }
   } else if (f.type === 'impact') {   // ぶつかった ほし
     for (let i = 0; i < 8; i++) { const an = i / 8 * 6.28, r = 4 + p * 12; line(ctx, cx + Math.cos(an) * r * .4, cy + 4 + Math.sin(an) * r * .4, cx + Math.cos(an) * r, cy + 4 + Math.sin(an) * r, i % 2 ? '#ffffff' : '#ff6060', 1); }
   }
