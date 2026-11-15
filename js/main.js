@@ -675,7 +675,7 @@ function drawClock() {
 const darkCv = document.createElement('canvas'); darkCv.width = VW; darkCv.height = VH;
 const dg = darkCv.getContext('2d');
 function drawDark() {
-  const k = darkness(), a = (cur.outside ? 0.95 : cur.deco ? 0.7 : 0) * k;
+  const k = darkness(), a = (cur.outside ? 1 : cur.deco ? 0.7 : 0) * k;   // そとの よるは 明るい丸の そとは まっくら
   if (a <= 0.01) return;
   const lights = [{ x: player.x - cam.x, y: player.y - 8 - cam.y, r: bag.includes('キャンプのかけら') ? 80 : 40 }];
   if (cur.deco) for (const f of placed(cur)) if (furnLook(f.id) === 'ランプ') lights.push({ x: f.x * T + 8 - cam.x, y: f.y * T + 6 - cam.y, r: 72 });
