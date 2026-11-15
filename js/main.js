@@ -62,7 +62,8 @@ let cur = home;
 const mapName = () => Object.keys(MAPS).find(k => MAPS[k] === cur);
 function resetEnemies(m) {
   for (const o of m.objs) {
-    if (o.kind === 'enemy') Object.assign(o, { gone: !!o.night && !isNight(), x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
+    if (o.night) { Object.assign(o, { gone: true, spawnT: isNight() ? 1 + Math.random() * 6 : null }); continue; }
+    if (o.kind === 'enemy') Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
     if (o.again) { o.taken = false; o.gone = false; }   // また おちている もの(きの えだ など)
   }
 }
@@ -74,12 +75,31 @@ let wasNight = false;
 // よるに なった / あさに なった
 function nightChanged() {
   wasNight = isNight();
-  for (const m of Object.values(MAPS)) for (const o of m.objs) if (o.night) {
-    if (wasNight) Object.assign(o, { gone: false, x: o.hx, y: o.hy, tx: o.hx, ty: o.hy, cool: 0, timer: 0, chase: false, notice: 0 });
-    else o.gone = true;
-  }
+  for (const m of Object.values(MAPS)) for (const o of m.objs) if (o.night) { o.gone = true; o.spawnT = wasNight ? 1 + Math.random() * 10 : null; }
   if (cur.outside && !battle.on) playBgm(bgmFor());
 }
+
+// よるの まものは じめんから でてくる(ばしょは ランダム。 主人公から すこし はなれた ところ)
+function spawnSpot() {
+  for (let i = 0; i < 60; i++) {
+    const tx = 1 + Math.random() * (cur.w - 2) | 0, ty = 1 + Math.random() * (cur.h - 2) | 0, p = at(tx, ty);
+    if (Math.hypot(p.x - player.x, p.y - player.y) < 96 || hits(p.x, p.y) || exitAt(p.x, p.y)) continue;
+    if (cur.rows[ty][tx] === '=' && Math.random() < 0.5) continue;   // みちの うえは すこし でにくく
+    return p;
+  }
+  return null;
+}
+function updateSpawns(dt) {
+  for (const o of cur.objs) if (o.night && o.gone && o.spawnT != null && (o.spawnT -= dt) <= 0) {
+    const p = spawnSpot();
+    if (!p) { o.spawnT = 1; continue; }
+    Object.assign(o, { gone: false, x: p.x, y: p.y, hx: p.x, hy: p.y, tx: p.x, ty: p.y, cool: 0, timer: 0, chase: false, notice: 0, rise: RISE, spawnT: null });
+    if (Math.hypot(p.x - player.x, p.y - player.y) < 200) sfx('rise');
+  }
+}
+const RISE = 1.4;   // でてくるまでの びょうすう
+// よるの まものの つよさ: レベル3までは そのまま、 それより うえは 1レベル ごとに 15% つよく
+const nightScale = () => Math.max(1, 1 + 0.15 * (hero.lv - 3));
 
 // ===== かぐ(もようがえ が できる マップ) =====
 const placed = m => room.placed[Object.keys(MAPS).find(k => MAPS[k] === m)] || [];
@@ -192,7 +212,7 @@ function encounter(o, opt = {}) {
   sfx('encounter');
   fadeTo(() => {
     startBattle(o.party, opt).then(result => fadeTo(() => {
-      if (result === 'win') { if (opt.onWin) opt.onWin(); else o.gone = true; }
+      if (result === 'win') { if (opt.onWin) opt.onWin(); else { o.gone = true; o.spawnT = null; } }
       if (result === 'run') o.cool = 3;          // にげたあと 少しの間は ぶつからない
       if (result === 'lose') {                   // まけたら 村で 目が さめる。 もっている おかねは はんぶんに
         cur = MAPS[START.map]; Object.values(MAPS).forEach(resetEnemies);
@@ -568,8 +588,10 @@ function update(dt) {
   // ときどき向きを変える人
   for (const o of cur.objs) if (o.wander && Math.random() < dt * .4) o.dir = ['down', 'left', 'right'][Math.random() * 3 | 0];
   // てきは うろうろ歩く。 ぶつかったら 戦闘
+  updateSpawns(dt);
   for (const o of live()) {
     if (o.kind !== 'enemy') continue;
+    if (o.rise > 0) { o.rise -= dt; continue; }   // じめんから でてくる とちゅう
     o.cool = Math.max(0, o.cool - dt); o.notice = Math.max(0, (o.notice || 0) - dt);
     // うごき: うろうろ / ゆっくり(おいかける) / はやい(主人公と おなじ はやさで おいかける)
     const mv = byId('enemies', o.party[0])?.move || 'うろうろ', dp = Math.hypot(player.x - o.x, player.y - o.y);
@@ -595,7 +617,7 @@ function update(dt) {
     }
     // よるの まものが おいかけて くると あしおと
     if (o.night && o.chase && dp < 130 && (o.stepT = (o.stepT || 0) - dt) <= 0) { o.stepT = mv === 'はやい' ? 0.26 : 0.45; sfx('step'); }
-    if (!o.cool && Math.hypot(o.x - player.x, o.y - player.y) < 12) { encounter(o); return; }
+    if (!o.cool && Math.hypot(o.x - player.x, o.y - player.y) < 12) { encounter(o, o.night ? { scale: nightScale() } : {}); return; }
   }
   updateCamera();
   // 近くにあるものを探す
@@ -669,7 +691,8 @@ function drawDark() {
   ctx.drawImage(darkCv, 0, 0);
   // くらやみで 光る 目(ときどき まばたき)
   for (const o of live()) if (o.kind === 'enemy' && o.night && Math.floor(tm * 3 + o.hx) % 9) {
-    const sx = Math.round(o.x - cam.x) - 8, sy = Math.round(o.y - cam.y) - 16, hop = o.moving ? Math.round(Math.abs(Math.sin(tm * 8 + o.hx)) * -2) : 0;
+    const rh = o.rise > 0 ? Math.round(16 * (1 - o.rise / RISE)) : 16; if (rh < 9) continue;   // でてくる とちゅうは 目が でてから
+    const sx = Math.round(o.x - cam.x) - 8, sy = Math.round(o.y - cam.y) - rh, hop = o.moving && !(o.rise > 0) ? Math.round(Math.abs(Math.sin(tm * 8 + o.hx)) * -2) : 0;
     ctx.fillStyle = eyeColor(byId('enemies', o.party[0])?.look);
     ctx.fillRect(sx + 4, sy + 6 + hop, 2, 2); ctx.fillRect(sx + 10, sy + 6 + hop, 2, 2);
   }
@@ -714,8 +737,16 @@ function drawField() {
     if (e.kind === 'enemy' && e.cool > 0 && Math.floor(tm * 10) % 2) continue;   // にげたあとは ちかちか
     ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(sx - 4, sy - 1, 8, 2); ctx.fillRect(sx - 3, sy - 2, 6, 4);   // 影
     if (e.kind === 'enemy') {
+      const img = enemySprite(byId('enemies', e.party[0])?.look);
+      if (e.rise > 0) {                        // じめんから すこしずつ でてくる + つちが とぶ
+        const h = Math.max(1, Math.round(16 * (1 - e.rise / RISE))), shake = Math.round(Math.sin(tm * 40));
+        ctx.drawImage(img, 0, 0, 16, h, sx - 8 + shake, sy - h, 16, h);
+        ctx.fillStyle = '#5a3a22'; ctx.fillRect(sx - 7, sy - 1, 14, 2);
+        for (let i = 0; i < 6; i++) { const a = tm * 5 + i * 1.7, r = (tm * 30 + i * 7) % 10; ctx.fillStyle = i % 2 ? '#7a5230' : '#a07040'; ctx.fillRect(sx + Math.round(Math.cos(a) * r), sy - 2 - Math.round(Math.abs(Math.sin(a)) * r), 1, 1); }
+        continue;
+      }
       const hop = e.moving ? Math.round(Math.abs(Math.sin(tm * 8 + e.hx)) * -2) : 0;
-      ctx.drawImage(enemySprite(byId('enemies', e.party[0])?.look), sx - 8, sy - 16 + hop);
+      ctx.drawImage(img, sx - 8, sy - 16 + hop);
       if (e.notice > 0) { ctx.fillStyle = '#ffd23f'; ctx.fillRect(sx - 1, sy - 26, 3, 6); ctx.fillRect(sx - 1, sy - 19, 3, 2); ctx.fillStyle = '#2a1e1a'; ctx.fillRect(sx, sy - 25, 1, 4); ctx.fillRect(sx, sy - 19, 1, 1); }  // 「!」
       continue;
     }

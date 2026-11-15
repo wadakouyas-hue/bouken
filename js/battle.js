@@ -17,7 +17,10 @@ const SPOTS = [[[262, 112]], [[248, 100], [282, 138]]];     // みかたの た�
 
 // ===== はじめる(ids: てきの id の ならび、 opt.boss: ボス せん) → 'win' / 'lose' / 'run' =====
 export function startBattle(ids, opt = {}) {
-  const defs = ids.map(id => byId('enemies', id)).filter(Boolean);
+  // opt.scale: つよさの ばいりつ(よるの まもの)
+  const k = opt.scale || 1, mul = v => Math.round(v * k);
+  const defs = ids.map(id => byId('enemies', id)).filter(Boolean)
+    .map(d => k === 1 ? d : { ...d, hp: mul(d.hp), atk: mul(d.atk), def: mul(d.def), mag: mul(d.mag), spr: mul(d.spr), exp: mul(d.exp), gold: mul(d.gold) });
   if (!defs.length) return Promise.resolve('win');
   const count = {}, seen = {};
   defs.forEach(d => { count[d.id] = (count[d.id] || 0) + 1; });

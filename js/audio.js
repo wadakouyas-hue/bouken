@@ -198,6 +198,8 @@ export function sfx(name) {
       duck(2.5);
       [52, 59, 62, 66, 71, 74].forEach((m, i) => fm(t + i * .06, freqOf(m), 2, { ...EP, vol: .1, send: .7 }, sfxBus));
       [64, 66, 71, 69].forEach((m, i) => fm(t + 1 + i * .25, freqOf(m), .5, { ...EP, vol: .08, send: .7 }, sfxBus)); break;
+    case 'rise':   // よるの まものが じめんから でてくる(ゴゴゴ)
+      hiss(t, .22, 'lowpass', 180, 1, .9, sfxBus); hiss(t + .3, .16, 'lowpass', 140, 1, .8, sfxBus); break;
     case 'step':   // よるの まものの あしおと(ざっ)
       hiss(t, .14, 'bandpass', 650, 1.2, .09, sfxBus); hiss(t + .02, .18, 'lowpass', 250, .7, .08, sfxBus); break;
     case 'miss':   // よけた
