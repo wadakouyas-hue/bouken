@@ -214,3 +214,8 @@ rt{font-size:.5em;}
 #bstat.two .bmem.on{background:rgba(255,210,63,.25);box-shadow:0 0 0 calc(var(--u)*.75) #ffd23f;}
 #bstat .bmem.down{opacity:.5;}
 #clockcv.two{top:calc(var(--u)*34);}
+
+/* ステータス いじょう */
+.cond{display:inline-block;font-size:calc(var(--u)*3.8);line-height:1.5;padding:0 calc(var(--u)*1.5);margin-left:calc(var(--u)*1.5);border-radius:calc(var(--u)*2);color:#fff;font-weight:bold;vertical-align:middle;}
+.c-ねむり{background:#5a6ad8;} .c-どく{background:#8a3ab8;} .c-しびれ{background:#d8a020;} .c-わらい{background:#e8609a;} .c-くさい{background:#6a8a3a;}
+#battle .econd{position:absolute;width:calc(var(--u)*48);text-align:center;pointer-events:none;}

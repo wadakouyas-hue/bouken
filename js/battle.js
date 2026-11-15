@@ -28,10 +28,10 @@ export function startBattle(ids, opt = {}) {
   const enemies = defs.map((d, i) => {
     let name = d.name;
     if (count[d.id] > 1) { seen[d.id] = (seen[d.id] || 0) + 1; name += ' ' + 'ABCDE'[seen[d.id] - 1]; }
-    return { d, name, hp: d.hp, mp: d.mp, x: 105 + (i - (n - 1) / 2) * 66, y: opt.boss ? 132 : 118, size: opt.boss ? 56 : 32, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
+    return { d, name, cond: {}, hp: d.hp, mp: d.mp, x: 105 + (i - (n - 1) / 2) * 66, y: opt.boss ? 132 : 118, size: opt.boss ? 56 : 32, flash: 0, alpha: 1, alive: true, lunge: 0, bob: Math.random() * 6 };
   });
   const ms = members(), spots = SPOTS[Math.min(ms.length, 2) - 1];
-  const party = ms.map((m, i) => ({ ...m, x: spots[i][0], y: spots[i][1], flash: 0, lunge: 0, guard: false }));
+  const party = ms.map((m, i) => ({ ...m, cond: {}, x: spots[i][0], y: spots[i][1], flash: 0, lunge: 0, guard: false }));   // cond: ステータス いじょう
   B = { enemies, party, boss: !!opt.boss, waits: [], shake: 0, fx: [], flashScreen: 0, btns: [], t: 0, turnOf: null };
   battle.on = true;
   $('battle').style.display = 'block';
@@ -95,7 +95,7 @@ function chooseCommand(m, first) {
     const done = cmd => { setButtons([]); B.turnOf = null; updateStat(); resolve(cmd); };
     const pick = (then, back) => { const a = alive(); if (a.length === 1) then(a[0]); else targetButtons(a, then, back, 'どの てきに する? てきを タップしてね'); };
     // かいふくする あいて(みかたが ひとりなら じぶん)
-    const pickAlly = (then, back) => { if (B.party.length === 1) then(B.party[0]); else targetButtons(B.party, then, back, 'だれを かいふく する? タップしてね'); };
+    const pickAlly = (then, back, ask) => { if (B.party.length === 1) then(B.party[0]); else targetButtons(B.party, then, back, ask || 'だれを かいふく する? タップしてね'); };
     const main = () => setButtons([
       { html: 'たたかう', fn: () => pick(t => done({ type: 'attack', target: t }), main) },
       { html: 'じゅもん', fn: () => skills('じゅもん') },
@@ -116,26 +116,63 @@ function chooseCommand(m, first) {
         } })), { html: 'もどる', fn: main }], true);
     };
     const items = () => {
-      const ids = [...new Set(bag)].filter(id => byId('items', id)?.kind === 'かいふく');
+      const ids = [...new Set(bag)].filter(id => ['かいふく', 'なおす'].includes(byId('items', id)?.kind));
       if (!ids.length) { note('つかえる どうぐが ないよ'); return; }
       setButtons([...ids.map(id => { const it = byId('items', id); return { html: `${rubyHTML(it.name)}<small>×${bagCount(id)}</small>`,
-        fn: () => pickAlly(t => done({ type: 'item', item: it, target: t }), items) }; }),
+        fn: () => pickAlly(t => done({ type: 'item', item: it, target: t }), items, it.kind === 'なおす' ? 'だれを なおす? タップしてね' : undefined) }; }),
         { html: 'もどる', fn: main }], true);
     };
     main();
   });
 }
 
+// ===== ステータス いじょう(たたかいが おわると ぜんぶ なおる) =====
+// ねむり: 1〜3ターン うごけない(こうげきを うけると おきる)  どく: ターンの おわりに HPが へる
+// しびれ: 3ターン、 はんぶんくらい うごけない  わらい: 1かい やすみ  くさい: 3ターン こうげきが さがる
+const COND_MSG = { ねむり: 'は ねむって しまった!', どく: 'は どくに かかった!', しびれ: 'は からだが しびれた!', わらい: 'は わらいだして とまらない!', くさい: 'は くさくて ちからが でない!' };
+const COND_TURNS = { ねむり: () => 1 + (Math.random() * 3 | 0), どく: () => 99, しびれ: () => 3, わらい: () => 1, くさい: () => 3 };
+const nameOf = x => x.name;
+async function inflict(t, skill) {
+  const c = skill?.status; if (!c || !(t.alive ?? t.s.hp > 0)) return;
+  if (Math.random() * 100 >= (skill.chance || 100)) return;
+  if (t.cond[c]) return;
+  t.cond[c] = COND_TURNS[c](); updateStat();
+  await say(`${nameOf(t)}${COND_MSG[c]}`, 1.1);
+}
+// うごけるか(うごけなければ メッセージを だして false)
+async function canAct(x) {
+  if (x.cond.ねむり) { if (--x.cond.ねむり <= 0) delete x.cond.ねむり; updateStat(); await say(`${nameOf(x)}は ぐうぐう ねむっている……`, 1); return false; }
+  if (x.cond.わらい) { delete x.cond.わらい; updateStat(); await say(`${nameOf(x)}は わらいころげて うごけない!`, 1); return false; }
+  if (x.cond.しびれ && Math.random() < 0.5) { await say(`${nameOf(x)}は からだが しびれて うごけない!`, 1); return false; }
+  return true;
+}
+async function wake(x) { if (x.cond.ねむり) { delete x.cond.ねむり; updateStat(); await say(`${nameOf(x)}は めを さました!`, 0.9); } }
+// ターンの おわり: どくの ダメージ、 じかんで なおる もの
+async function endRound() {
+  for (const x of [...up(), ...alive()]) {
+    if (x.cond.どく) {
+      const isM = !!x.s, max = isM ? x.st.maxhp : x.d.hp, n = Math.max(1, Math.floor(max / 10));
+      if (isM) x.s.hp = Math.max(0, x.s.hp - n); else x.hp -= n;
+      updateStat(); popup(x.x, x.y - (x.size || 0) - 8, n, isM ? 'hurt' : '');
+      await say(`${nameOf(x)}は どくで ${n}の {ダメージ|だめーじ}!`, 1);
+      if (isM && x.s.hp <= 0) await say(`${nameOf(x)}は たおれてしまった…`, 1.2);
+      if (!isM && x.hp <= 0) { x.alive = false; sfx('defeat'); await say(`${nameOf(x)}を やっつけた!`); }
+    }
+    for (const c of ['しびれ', 'くさい']) if (x.cond[c] && --x.cond[c] <= 0) { delete x.cond[c]; updateStat(); }
+  }
+}
+const atkMul = x => x.cond?.くさい ? 0.7 : 1;
+
 // ===== ダメージの けいさん =====
 // わざ・たたかう(物理) = こうげき × いりょく ÷ 100 − あいての ぼうぎょ ÷ 2
 // じゅもん(魔法)      = まりょく × いりょく ÷ 100 − あいての せいしん ÷ 2
 // ぞくせい: あいての よわい ぞくせい なら 1.5倍、 つよい ぞくせい なら 半分
 // user: {atk, mag}  target: {def, spr, weak, resist}
-function calc(user, skill, target) {
+function calc(user, skill, target, mul = 1) {
   const magic = skill?.type === 'じゅもん';
   if (!magic && Math.random() < 0.05) return { miss: true };          // じゅもんは よけられない
   const pow = skill ? skill.pow : 100;
-  let dmg = ((magic ? user.mag : user.atk) * pow / 100 - (magic ? target.spr : target.def) / 2) * rnd(0.85, 1.15);
+  let dmg = ((magic ? user.mag : user.atk * mul) * pow / 100 - (magic ? target.spr : target.def) / 2) * rnd(0.85, 1.15);
   let mult = 1;
   const el = skill?.elem;
   if (el && el !== 'なし') { if (target.weak?.includes(el)) mult = 1.5; else if (target.resist?.includes(el)) mult = 0.5; }
@@ -167,21 +204,35 @@ function updateStat() {
   $('bstat').className = two ? 'two' : '';
   $('bstat').innerHTML = B.party.map(m => {
     const s = m.s, t = st(m);
-    return `<div class="bmem${B.turnOf === m.key ? ' on' : ''}${s.hp <= 0 ? ' down' : ''}"><div class="bname">${rubyHTML(m.name)}${m.key === 'hero' ? ` <small>${rubyHTML('{レベル|れべる}')}${hero.lv}</small>` : ''}</div>` +
+    return `<div class="bmem${B.turnOf === m.key ? ' on' : ''}${s.hp <= 0 ? ' down' : ''}"><div class="bname">${rubyHTML(m.name)}${m.key === 'hero' ? ` <small>${rubyHTML('{レベル|れべる}')}${hero.lv}</small>` : ''}${condChips(m)}</div>` +
       `<div>HP ${s.hp}/${t.maxhp}${bar(s.hp, t.maxhp, s.hp <= t.maxhp / 4 ? '#ff5a5a' : '#6cdc5a')}</div>` +
       `<div>MP ${s.mp}/${t.maxmp}${bar(s.mp, t.maxmp, '#5ab0ff')}</div></div>`;
   }).join('');
+  // てきの あたまの うえの ステータス いじょう
+  document.querySelectorAll('#battle .econd').forEach(el => el.remove());
+  for (const e of B.enemies) if (e.alive && Object.keys(e.cond).length) {
+    const el = document.createElement('div'); el.className = 'econd';
+    el.style.left = `calc(var(--u) * ${e.x - 24})`; el.style.top = `calc(var(--u) * ${e.y - e.size - 12})`;
+    el.innerHTML = condChips(e); $('battle').appendChild(el);
+  }
 }
+const condChips = x => Object.keys(x.cond || {}).map(c => `<span class="cond c-${c}">${c}</span>`).join('');
 async function lunge(who) { who.lunge = 0.3; await wait(0.3); }
 
 async function hitEnemy(t, r) {
   if (r.miss) { sfx('miss'); await say(`${t.name}は ひらりと よけた!`); return; }
   if (r.crit) await say('すごい いちげき!', 0.7);
   sfx('hit'); t.flash = 0.4; t.hp -= r.dmg; popup(t.x, t.y - t.size - 8, r.dmg, r.mult > 1 ? 'weak' : '');
+  if (t.hp > 0) await wake(t);
   if (r.mult > 1) await say('よわい ところを ついた!', 0.9);
   if (r.mult < 1) await say('あまり きいていない…', 0.9);
   await say(`${t.name}に ${r.dmg}の {ダメージ|だめーじ}!`);
   if (t.hp <= 0) { t.alive = false; sfx('defeat'); await say(`${t.name}を やっつけた!`); }
+}
+async function cureMember(t) {
+  await effect('heal', [t]);
+  t.cond = {}; updateStat();
+  await say(`${t.name}は すっかり よくなった!`);
 }
 async function healMember(t, n) {
   await effect('heal', [t]);
@@ -190,11 +241,12 @@ async function healMember(t, n) {
 }
 async function memberAct(m, cmd) {
   const s0 = st(m);
+  if (!(await canAct(m))) return;
   if (cmd.type === 'attack') {
     const t = cmd.target.alive ? cmd.target : alive()[0];
     await say(`${m.name}の こうげき!`, 0.6); await lunge(m);
     await effect('slash', [t]);
-    await hitEnemy(t, calc(s0, null, t.d));
+    await hitEnemy(t, calc(s0, null, t.d, atkMul(m)));
   } else if (cmd.type === 'skill') {
     const s = cmd.skill;
     m.s.mp -= s.mp; updateStat();
@@ -205,14 +257,18 @@ async function memberAct(m, cmd) {
       if (s.type === 'わざ') await lunge(m);
       const targets = s.target === 'ぜんぶ' ? alive() : [cmd.target?.alive ? cmd.target : alive()[0]];
       await effect(fxType(s), targets);
-      for (const t of targets) if (t.alive) await hitEnemy(t, calc(s0, s, t.d));
+      for (const t of targets) if (t.alive) {
+        if (s.effect !== 'じょうたい') await hitEnemy(t, calc(s0, s, t.d, atkMul(m)));
+        const before = Object.keys(t.cond).length; await inflict(t, s);
+        if (s.effect === 'じょうたい' && Object.keys(t.cond).length === before) await say(`${t.name}には きかなかった!`, 0.9);
+      }
     }
   } else if (cmd.type === 'item') {
     const it = cmd.item;
     if (!bag.includes(it.id)) { await say(`${it.name}は もう ないよ…`); return; }
     bagRemove(it.id);
     await say(`${m.name}は ${it.name}を つかった!`, 1);
-    await healMember(cmd.target || m, it.val);
+    if (it.kind === 'なおす') await cureMember(cmd.target || m); else await healMember(cmd.target || m, it.val);
   }
 }
 async function hurtMember(t, r) {
@@ -221,9 +277,11 @@ async function hurtMember(t, r) {
   sfx('hurt'); B.shake = 0.3; t.flash = 0.4;
   t.s.hp = Math.max(0, t.s.hp - r.dmg); updateStat(); popup(t.x, t.y - 44, r.dmg, 'hurt');
   await say(`${t.name}は ${r.dmg}の {ダメージ|だめーじ}を うけた!`);
-  if (t.s.hp <= 0) await say(`${t.name}は たおれてしまった…`, 1.4);
+  if (t.s.hp <= 0) { t.cond = {}; await say(`${t.name}は たおれてしまった…`, 1.4); }
+  else await wake(t);
 }
 async function enemyAct(e) {
+  if (!(await canAct(e))) return;
   const sk = e.d.skills.map(id => byId('skills', id)).filter(s => s && e.mp >= s.mp);
   let skill = null;
   if (sk.length && Math.random() < 0.35) {
@@ -239,9 +297,11 @@ async function enemyAct(e) {
   if (guard && targets.length === 1 && targets[0] !== guard) { await say(`${guard.name}が ${targets[0].name}を かばった!`, 1); targets = [guard]; }
   await effect(skill ? fxType(skill) : 'impact', targets);
   for (const t of targets) {
-    const r = calc(e.d, skill, allyTarget(t));
+    if (skill?.effect === 'じょうたい') { const b = Object.keys(t.cond).length; await inflict(t, skill); if (Object.keys(t.cond).length === b) await say(`${t.name}は へいきだった!`, 0.9); continue; }
+    const r = calc(e.d, skill, allyTarget(t), atkMul(e));
     if (t.guard && !r.miss) r.dmg = Math.max(1, Math.round(r.dmg / 2));   // かばうと はんぶん
     await hurtMember(t, r);
+    if (!r.miss) await inflict(t, skill);
   }
 }
 
@@ -255,7 +315,8 @@ async function run() {
     let ran = false;
     for (const m of B.party) m.guard = false;
     for (const [i, m] of up().entries()) {
-      const cmd = await chooseCommand(m, i === 0);
+      if (m.cond.ねむり || m.cond.わらい) { actors.push({ who: m, spd: st(m).spd, cmd: { type: 'none' } }); continue; }   // えらべない(ねむり・わらい)
+      const cmd = await chooseCommand(m, i === 0 || up().slice(0, i).every(x => x.cond.ねむり || x.cond.わらい));
       if (cmd.type === 'run') { ran = true; break; }
       actors.push({ who: m, spd: st(m).spd * rnd(0.8, 1.2), cmd });
     }
@@ -270,6 +331,9 @@ async function run() {
       if (!alive().length) return victory();
       if (!up().length) return defeat();
     }
+    await endRound();
+    if (!alive().length) return victory();
+    if (!up().length) return defeat();
   }
 }
 async function victory() {
@@ -300,7 +364,7 @@ async function defeat() {
 function finish(result) {
   battle.on = false;
   $('battle').style.display = 'none';
-  document.querySelectorAll('#battle .tgt, #battle .pop').forEach(el => el.remove());
+  document.querySelectorAll('#battle .tgt, #battle .pop, #battle .econd').forEach(el => el.remove());
   const done = B.done; B = null; done(result);
 }
 

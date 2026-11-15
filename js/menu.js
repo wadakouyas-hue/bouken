@@ -38,7 +38,7 @@ const who = key => members().find(m => m.key === key) || members()[0];
 function useItem(key) {
   const it = byId('items', sel); if (!it || !bag.includes(it.id)) return;
   const m = who(key);
-  if (it.kind !== 'かいふく') { msg = it.kind === 'だいじ' ? 'だいじに もっておこう。' : it.kind === 'ざいりょう' ? 'おうちの さぎょうだいで つかうよ。' : '「そうび」で つかうよ。'; return; }
+  if (it.kind !== 'かいふく') { msg = it.kind === 'だいじ' ? 'だいじに もっておこう。' : it.kind === 'ざいりょう' ? 'おうちの さぎょうだいで つかうよ。' : it.kind === 'なおす' ? 'たたかいの ときに つかうよ。' : '「そうび」で つかうよ。'; return; }
   if (m.s.hp >= m.st.maxhp) { msg = `${m.name}の HPは まんたんだよ。`; return; }
   bagRemove(it.id); const n = heal(it.val, m); sfx('heal');
   msg = `${it.name}を つかった! ${m.name}の HPが ${n} かいふくした!`;
