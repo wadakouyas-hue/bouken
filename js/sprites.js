@@ -13,15 +13,24 @@ const LEGS = {
   sA: ["...kbbbk....", "...kbbbk....", "...kbbbk....", "...koook....", "...kkkkk....", "............"],
   sB: ["...kbbbk....", "..kbk.kbk...", ".kbk...kbk..", ".kook..kook.", ".kkkk..kkkk.", "............"]};
 LEGS.fC = LEGS.fB.map(r => r.split('').reverse().join(''));
+// スカート(b = スカートの いろ、 h = あしの 毛)
+const SKIRT = {
+  fA: ["..kbbbbbbk..", ".kbbbbbbbbk.", ".kkkkkkkkkk.", "..khk..khk..", ".kook..kook.", ".kkkk..kkkk."],
+  fB: ["..kbbbbbbk..", ".kbbbbbbbbk.", ".kkkkkkkkkk.", "..khk..khk..", ".kook..khk..", ".kkkk..kook."],
+  sA: ["...kbbbk....", "..kbbbbbk...", "..kkkkkkk...", "...khhk.....", "...koook....", "...kkkkk...."],
+  sB: ["...kbbbk....", "..kbbbbbk...", "..kkkkkkk...", "..khk.khk...", ".kook..kook.", ".kkkk..kkkk."]};
+SKIRT.fC = SKIRT.fB.map(r => r.split('').reverse().join(''));
+// 足もと(skirt: スカートの ねこ)
+const legsOf = (side, f, skirt) => { const L = skirt ? SKIRT : LEGS; return side ? [L.sA, L.sB, L.sA, L.sB][f] : [L.fA, L.fB, L.fA, L.fC][f]; };
 
 // 色 (k 輪郭 h 毛 g ぶち t しま s くちもと・手 e 目 p はな r 上着 b ズボン o くつ)
 export const PAL = {
-  hero:  { k: '#2a1e1a', h: '#f4f2ec', g: '#9a9aa8', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#e04848', b: '#3a5ad8', o: '#5a3a22' },   // しろに はいいろの ぶち
-  melo:  { k: '#2a1e1a', h: '#f4f2ec', g: '#9a9aa8', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#5ab0a0', b: '#3a7a70', o: '#4a3a2a' },   // メロ(主人公と おなじ もよう)
+  hero:  { skirt: true, k: '#2a1e1a', h: '#f4f2ec', g: '#9a9aa8', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#e04848', b: '#3a5ad8', o: '#5a3a22' },   // しろに はいいろの ぶち
+  melo:  { skirt: true, k: '#2a1e1a', h: '#f4f2ec', g: '#9a9aa8', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#5ab0a0', b: '#3a7a70', o: '#4a3a2a' },   // メロ(主人公と おなじ もよう)
   hamo:  { k: '#2a1e1a', h: '#f0a050', t: '#b8601e', s: '#ffe2b8', e: '#2a1e1a', p: '#e07a6a', r: '#7a5a3a', b: '#3a4a6a', o: '#3a2a1a' },   // ハモ(ちゃトラ)
   oji:   { k: '#2a1e1a', h: '#a8a8b4', t: '#787884', s: '#e8e8ee', e: '#2a1e1a', p: '#f08aa0', r: '#4f9a52', b: '#7a6a50', o: '#4a3a2a' },
-  girl:  { k: '#15101a', h: '#3a3a46', s: '#5a5a6a', e: '#ffd23f', p: '#f08aa0', r: '#f07ab0', b: '#f5a8cf', o: '#c04060' },
-  oba:   { k: '#2a1e1a', h: '#f6f0e0', g: '#e09a4a', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#8a5ab8', b: '#6a4a8a', o: '#4a3a2a' },
+  girl:  { skirt: true, k: '#15101a', h: '#3a3a46', s: '#5a5a6a', e: '#ffd23f', p: '#f08aa0', r: '#f5a8cf', b: '#d84080', o: '#c04060' },
+  oba:   { skirt: true, k: '#2a1e1a', h: '#f6f0e0', g: '#e09a4a', s: '#ffffff', e: '#2a1e1a', p: '#f08aa0', r: '#8a5ab8', b: '#6a4a8a', o: '#4a3a2a' },
   shop1: { k: '#2a1e1a', h: '#a87a4a', t: '#7a5230', s: '#f0dcc0', e: '#2a1e1a', p: '#e07a6a', r: '#4fb07a', b: '#e8e0c8', o: '#4a3a2a' },
   shop2: { k: '#2a1e1a', h: '#8a8a96', g: '#5a5a66', s: '#c8c8d2', e: '#2a1e1a', p: '#f08aa0', r: '#8a96a4', b: '#4a4a5a', o: '#2a2a2a' },
   shop3: { k: '#2a1e1a', h: '#f0dca0', t: '#d0a860', s: '#fff4d8', e: '#2a1e1a', p: '#f08aa0', r: '#e8a040', b: '#7a4a24', o: '#4a3a2a' },
@@ -50,8 +59,7 @@ export function charSprite(palName, dir, f) {
   const side = (dir === 'left' || dir === 'right');
   const head = side ? HEAD.side : HEAD[dir];
   const body = side ? BODY.side : BODY.front;
-  const legs = side ? [LEGS.sA, LEGS.sB, LEGS.sA, LEGS.sB][f] : [LEGS.fA, LEGS.fB, LEGS.fA, LEGS.fC][f];
-  const base = PAL[palName] || PAL.oji, pal = { g: base.h, t: base.h, p: '#f08aa0', ...base };   // ぶち・しまが ない ねこは 毛の いろ
+  const base = PAL[palName] || PAL.oji, legs = legsOf(side, f, base.skirt), pal = { g: base.h, t: base.h, p: '#f08aa0', ...base };   // ぶち・しまが ない ねこは 毛の いろ
   const c = build([...head, ...body, ...legs], pal, dir === 'left');
   if (palName === 'hamo') drawGuitar(c.getContext('2d'), dir);
   return cache[key] = c;
@@ -186,7 +194,7 @@ export function heroSprite(dir, f, look = {}) {
   const key = dir + f + (look.armor || '') + '/' + (look.weapon || '');
   if (hcache[key]) return hcache[key];
   const side = dir === 'left' || dir === 'right', flip = dir === 'left';
-  const legs = side ? [LEGS.sA, LEGS.sB, LEGS.sA, LEGS.sB][f] : [LEGS.fA, LEGS.fB, LEGS.fA, LEGS.fC][f];
+  const legs = legsOf(side, f, true);   // 主人公は スカート
   const a = ARMOR[look.armor] || {};
   const c = build([...(side ? HEAD.side : HEAD[dir]), ...(side ? BODY.side : BODY.front), ...legs], { t: PAL.hero.h, ...PAL.hero, ...a }, flip);
   const g = c.getContext('2d');
