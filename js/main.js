@@ -1462,6 +1462,7 @@ function drawField() {
       continue;
     }
     if (e.hand && (e.dir === 'up' || e.dir === 'down')) { ctx.fillStyle = '#ffe2b8'; ctx.fillRect(sx - 7, sy - 7, 4, 1); }   // つないだ て
+    if (e === player) { /* うえで きめた */ }
     else if (e.kind === 'follower') img = charSprite(e.pal, e.dir, e.moving ? Math.floor(player.anim * 9) % 4 : 0);
     else if (e.kind === 'npc') img = charSprite(e.pal, e.dir, 0);
     else if (e.kind === 'sign') img = SPR.sign;
