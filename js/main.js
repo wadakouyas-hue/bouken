@@ -15,7 +15,7 @@ import { menu, openMenu, menuTap, menuBack } from './menu.js';
 import { navReset, navMark, navMove, navKey } from './keynav.js';
 import { room, furnImg, furnLook, furnSize, furnWork, isFlat, solidCells, canPlace } from './furniture.js';
 import { deco, openDeco, decoTile, decoTap, drawDeco } from './deco.js';
-import { battle, startBattle, updateBattle, drawBattle, battleTap } from './battle.js';
+import { battle, startBattle, updateBattle, drawBattle, battleTap, battleButtons, battleBack } from './battle.js';
 import { nameEntry, askName, nameKey } from './nameentry.js';
 import village from '../maps/village.js';
 import house from '../maps/house.js';
@@ -405,6 +405,7 @@ const trail = [];                 // 主人公の あしあと(ハモが つい�
 const cam = { x: 0, y: 0 };
 const hold = { timer: null };            // タイトル右上の長押し
 stage.addEventListener('pointerdown', e => {
+  kbUsed = false;
   if (e.target.closest('#parent')) return;            // 保護者メニューは ふつうに操作できるように
   e.preventDefault();
   if (parentOpen()) return;
@@ -453,10 +454,16 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 // キーボード(Macで確認する用)
 const keys = {};
 addEventListener('keydown', e => {
+  kbUsed = true;
   if (parentOpen()) return;              // 保護者メニューで文字を打っているとき
   const ok = e.key === ' ' || e.key === 'Enter' || e.key === 'z';
   if (nameEntry.open) { if (e.key === 'Backspace') nameKey('#del'); else if (e.key === 'Enter') nameKey('#ok'); return; }
-  if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
+  if (battle.on) {   // ボタンが あれば やじるしで えらぶ。 ないとき(おはなし)は Enter・z で すすむ
+    if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1);
+    else if (battleButtons()) navKeys(e, 'battle', 'data-b', k => battleTap(+k), battleBack);
+    else if (ok) battleTap();
+    return;
+  }
   if (shop.open) { navKeys(e, 'shop', 'data-s', shopTap, shopBack); return; }
   if (tg.on) { if (ok) tgTap(); return; }
   if (concert.on) { if (ok) concertTap(); return; }
@@ -474,6 +481,8 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key] = false; });
 // メニューと おみせ: ←↑→↓ で ボタンを えらぶ、 Enter・スペースで きめる、 z・x・Esc・Backspace で もどる
+let kbUsed = false;   // さいごに つかったのが キーボード(タップしたら わくを ださない)
+battle.onButtons = () => { if (kbUsed && battle.on) { navReset($('battle')); navMark($('battle'), 'data-b'); } };
 const NAV_DIR = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] };
 function navKeys(e, id, attr, tap, back) {
   const root = $(id), d = NAV_DIR[e.key];

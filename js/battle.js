@@ -67,10 +67,13 @@ export function battleTap(btnIndex) {
   for (const w of B.waits) if (w.skip || (w.hold && w.age > 0.5)) w.t = 0;   // hold: うっかり れんだ で とばない ように すこし まつ
 }
 export const battleButtons = () => B ? B.btns.length : 0;
+// もどる(キーボードの z・x など): 「もどる」の ボタンが ある ときだけ
+export function battleBack() { if (B && B.back) { sfx('next'); B.back(); } }
 
 // ===== ボタン =====
 function setButtons(items, wide) {   // items: [{html, fn, off}]
-  B.btns = items.map(it => it.fn);
+  B.btns = items.map(it => it.fn); B.back = items.find(it => it.html === 'もどる')?.fn || null;
+  if (battle.onButtons) setTimeout(battle.onButtons, 0);   // キーボードで あそんで いる ときは さいしょの ボタンに わく
   const box = $('bcmd');
   box.className = typeof wide === 'string' ? wide : wide ? 'wide' : '';
   box.innerHTML = items.map((it, i) => `<button data-b="${i}"${it.off ? ' class="off"' : ''}>${it.html}</button>`).join('');
@@ -84,7 +87,7 @@ function targetButtons(list, onPick, back, ask) {
   $('bnote').innerHTML = rubyHTML(ask); $('bnote').style.display = 'block'; clearTimeout(noteTimer);
   for (const e of list) {
     const b = document.createElement('button'), top = e.size ? e.y - e.size - 14 : e.y - 46;
-    b.className = 'tgt'; b.dataset.b = B.btns.length;
+    b.className = 'tgt' + (e === list[0] ? ' kdef' : ''); b.dataset.b = B.btns.length;
     b.style.left = `calc(var(--u) * ${e.x - 22})`; b.style.top = `calc(var(--u) * ${top})`;
     b.innerHTML = `<span class="arrow">▼</span><span class="tname">${rubyHTML(e.name)}</span>`;
     B.btns.push(() => { $('bnote').style.display = 'none'; onPick(e); });

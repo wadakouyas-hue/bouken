@@ -11,7 +11,7 @@ function current(root, attr) {
     let best = Infinity;
     for (const x of bs) { const c = ctr(x), d = (c.x - s.x) ** 2 + (c.y - s.y) ** 2; if (d < best) { best = d; b = x; } }
   }
-  return b || bs.find(x => x.classList.contains('on')) || bs[0];
+  return b || bs.find(x => x.classList.contains('on')) || bs.find(x => x.classList.contains('kdef')) || bs[0];   // kdef: さいしょに えらぶ ボタン
 }
 function keep(root, attr, b) { const c = ctr(b); st[root.id] = { key: b.getAttribute(attr), x: c.x, y: c.y }; }
 export function navReset(root) { delete st[root.id]; }
