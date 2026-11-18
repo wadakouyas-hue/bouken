@@ -425,7 +425,7 @@ stage.addEventListener('pointerdown', e => {
     const cv = e.target.closest('#paintcv'); if (cv) { const r = cv.getBoundingClientRect(); paintAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
     return;
   }
-  if (trans.on || leap.on) return;
+  if (trans.on || leap.on || jump.on) return;
   if (deco.open) {
     const b = e.target.closest('[data-d]'); if (b) { decoTap(b.dataset.d); return; }
     if (e.target.closest('#deco .dpick, #deco .dside')) return;
@@ -800,7 +800,8 @@ const EVENTS = {
   // ===== 第2章: パルル町の おてつだい =====
   // トランポリン: こねこと いっしょに とぶ
   async tramp(o) {
-    const back = { x: player.x, y: player.y }, first = !rec.tramp && !flags.has('tramp');
+    if (jump.on || tg.on) return;              // とびおわって もどる まえの れんだで もう いちど はじまらない ように
+    const back = hits(player.x, player.y) ? { x: o.x, y: o.y + 10 } : { x: player.x, y: player.y }, first = !rec.tramp && !flags.has('tramp');
     if (first) await say('こねこ', ['{トランポリン|とらんぽりん}の あそびかたを おしえて あげる!', 'おりてきて、 {トランポリン|とらんぽりん}に つく ときに タップ してね。', 'じょうずに タップ できたら、 また とべるよ。 なんかい とべるかな?']);
     await fade(() => { Object.assign(player, { x: 5 * T, y: 17 * T + 6, dir: 'down' }); trail.length = 0; jump.on = true; jump.t = 0; });
     const n = await playTramp();
