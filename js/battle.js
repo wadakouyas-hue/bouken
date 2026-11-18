@@ -43,12 +43,17 @@ export function startBattle(ids, opt = {}) {
 const st = m => m.st;
 
 // ===== 待つ(タップで とばせる) =====
-function wait(sec, skip) { return new Promise(r => B.waits.push({ t: sec, r, skip })); }
+function wait(sec, skip) { return new Promise(r => B.waits.push({ t: sec, r, skip, age: 0 })); }
 function showMsg(s) { $('bmsg').innerHTML = rubyHTML(fill(s)); $('bmsg').style.display = s ? 'block' : 'none'; }
 async function say(s, sec) {
   showMsg(s);
   const len = s.replace(/\{([^|}]*)\|[^}]*\}/g, '$1').length;
   await wait(sec ?? 0.9 + len * 0.045, true);
+}
+// だいじな セリフ: タップ するまで すすまない(▼ が でる)
+async function talk(s) {
+  showMsg(s); $('bmsg').innerHTML += '<span class="bnext">▼</span>';
+  await new Promise(r => B.waits.push({ t: Infinity, r, hold: true, age: 0 }));
 }
 let noteTimer = null;
 function note(s) {   // ボタンの上に 少しだけ出る お知らせ
@@ -59,7 +64,7 @@ function note(s) {   // ボタンの上に 少しだけ出る お知らせ
 export function battleTap(btnIndex) {
   if (!B) return;
   if (btnIndex !== undefined && B.btns[btnIndex]) { sfx('next'); B.btns[btnIndex](); return; }
-  for (const w of B.waits) if (w.skip) w.t = 0;
+  for (const w of B.waits) if (w.skip || (w.hold && w.age > 0.5)) w.t = 0;   // hold: うっかり れんだ で とばない ように すこし まつ
 }
 export const battleButtons = () => B ? B.btns.length : 0;
 
@@ -161,12 +166,12 @@ async function memoryRound() {
   for (let i = 0; i < 2 && B.memories.length; i++) {
     const m = B.memories.shift();
     sfx('magic'); B.flashScreen = 0.15;
-    await say(m.title, 1.1);
-    await say(m.line, 1.2 + m.line.length * 0.06);
+    await talk(m.title);
+    await talk(m.line);
     B.crack++; sfx('hit'); B.shake = 0.2;
-    await say('くろい たてに ひびが はいった!', 0.9);
+    await talk('くろい たてに ひびが はいった!');
   }
-  if (!B.memories.length) { B.lie = true; await say('たてが ぐらぐら ゆれている!', 1.0); await say('@の こころに、 いいたい ことばが うかんだ……', 1.5); }
+  if (!B.memories.length) { B.lie = true; await talk('たてが ぐらぐら ゆれている!'); await talk('@の こころに、 いいたい ことばが うかんだ……'); }
 }
 async function endRound() {
   await memoryRound();
@@ -245,7 +250,7 @@ async function hitEnemy(t, r) {
   if (t.shield) {                            // くろい たて: こうげきが とどかない
     sfx('miss'); t.flash = 0.2; popup(t.x, t.y - t.size - 8, 0, '');
     await say('くろい たてに はじかれた!', 0.9);
-    if (!B.shieldTold) { B.shieldTold = true; await say('こうげきが ぜんぜん とどかない……!', 1.2); }
+    if (!B.shieldTold) { B.shieldTold = true; await talk('こうげきが ぜんぜん とどかない……!'); }
     return;
   }
   if (r.crit) await say('すごい いちげき!', 0.7);
@@ -273,13 +278,13 @@ async function memberAct(m, cmd) {
   if (!(await canAct(m))) return;
   if (cmd.type === 'gassou') { await gassou(); return; }
   if (cmd.type === 'truth') {                // そんなの うそだ! → たてが こわれる
-    await say('@「そんなの うそだ!」', 1.4);
-    await say('@「ハモも メロも、 わたしの かぞくだよ!」'.replace('ハモ', '{ハモ|はも}').replace('メロ', '{メロ|めろ}'), 1.8);
-    await say('{ハモ|はも}と {メロ|めろ}「うそだ!」', 1.3);
+    await talk('@「そんなの うそだ!」');
+    await talk('@「ハモも メロも、 わたしの かぞくだよ!」'.replace('ハモ', '{ハモ|はも}').replace('メロ', '{メロ|めろ}'));
+    await talk('{ハモ|はも}と {メロ|めろ}「うそだ!」');
     for (const x of B.party) x.lunge = 0.3;
     sfx('chord'); await effect('star', B.enemies.filter(e => e.alive && e.shield));
     for (const e of B.enemies) e.shield = false;
-    B.shake = 0.5; sfx('thunder'); await say('くろい たてが こなごなに くだけた!', 1.4);
+    B.shake = 0.5; sfx('thunder'); await talk('くろい たてが こなごなに くだけた!');
     return;
   }
   if (cmd.type === 'brave') {                // ゆうきを だす → こわい てきが ちいさく なる
@@ -469,7 +474,7 @@ function finish(result) {
 export function updateBattle(dt) {
   if (!B) return;
   B.t += dt;
-  for (const w of [...B.waits]) { w.t -= dt; if (w.t <= 0) { B.waits.splice(B.waits.indexOf(w), 1); w.r(); } }
+  for (const w of [...B.waits]) { w.t -= dt; w.age += dt; if (w.t <= 0) { B.waits.splice(B.waits.indexOf(w), 1); w.r(); } }
   B.shake = Math.max(0, B.shake - dt); B.flashScreen = Math.max(0, B.flashScreen - dt);
   for (const f of B.fx) f.t += dt;
   B.fx = B.fx.filter(f => f.t < f.dur);
