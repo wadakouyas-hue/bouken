@@ -10,8 +10,9 @@ import { dlg, openDialog as openDlg, advance as advanceDlg, updateDialog, rubyHT
 import { initAudio, playBgm, sfx, getLevel, setLevel } from './audio.js';
 import { ready, dataErrors, byId, DATA } from './data.js';
 import { hero, bag, heroStats, healFull, equipLook, equipBest, START_GOLD, members, joinAlly, party, bagRemove } from './hero.js';
-import { shop, openShop, shopTap } from './shop.js';
-import { menu, openMenu, menuTap } from './menu.js';
+import { shop, openShop, shopTap, shopBack } from './shop.js';
+import { menu, openMenu, menuTap, menuBack } from './menu.js';
+import { navReset, navMark, navMove, navKey } from './keynav.js';
 import { room, furnImg, furnLook, furnSize, furnWork, isFlat, solidCells, canPlace } from './furniture.js';
 import { deco, openDeco, decoTile, decoTap, drawDeco } from './deco.js';
 import { battle, startBattle, updateBattle, drawBattle, battleTap } from './battle.js';
@@ -456,7 +457,7 @@ addEventListener('keydown', e => {
   const ok = e.key === ' ' || e.key === 'Enter' || e.key === 'z';
   if (nameEntry.open) { if (e.key === 'Backspace') nameKey('#del'); else if (e.key === 'Enter') nameKey('#ok'); return; }
   if (battle.on) { if (/^[1-9]$/.test(e.key)) battleTap(+e.key - 1); else if (ok) battleTap(); return; }
-  if (shop.open) { if (e.key === 'Escape') shopTap('#close'); return; }
+  if (shop.open) { navKeys(e, 'shop', 'data-s', shopTap, shopBack); return; }
   if (tg.on) { if (ok) tgTap(); return; }
   if (concert.on) { if (ok) concertTap(); return; }
   if (roll.on) { if (ok) rollTap(); return; }
@@ -464,14 +465,25 @@ addEventListener('keydown', e => {
   if (care.on) { const k = ['towel', 'water', 'kayu', 'blanket', 'hand'][+e.key - 1]; if (k || ok) careTap(k || null); return; }
   if (paint.open) { if (e.key === 'Escape') paintTap('#close'); return; }
   if (deco.open) { if (e.key === 'Escape') decoTap('#done'); return; }
-  if (e.key === 'm' || e.key === 'Escape') { if (menu.open) menuTap('#close'); else if (started && hero.name && !dlg.open && !trans.on) openFieldMenu(); return; }
-  if (menu.open) return;
+  if (menu.open) { navKeys(e, 'menu', 'data-m', menuTap, menuBack); return; }
+  if (e.key === 'm' || e.key === 'Escape' || (e.key === 'z' && !dlg.open)) { if (started && hero.name && !dlg.open && !trans.on && !leap.on && !jump.on) { openFieldMenu(); navReset($('menu')); navMark($('menu'), 'data-m'); } return; }
   keys[e.key] = true;
   if (ok) {
     if (!started) start(); else if (trans.on) return; else if (dlg.open) advance(); else if (near) interact(near);
   }
 });
 addEventListener('keyup', e => { keys[e.key] = false; });
+// メニューと おみせ: ←↑→↓ で ボタンを えらぶ、 Enter・スペースで きめる、 z・x・Esc・Backspace で もどる
+const NAV_DIR = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] };
+function navKeys(e, id, attr, tap, back) {
+  const root = $(id), d = NAV_DIR[e.key];
+  if (d) { e.preventDefault?.(); navMove(root, attr, ...d); return; }
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault?.(); const k = navKey(root, attr); if (k) tap(k); }
+  else if (['z', 'x', 'Escape', 'Backspace'].includes(e.key)) back();
+  else if (e.key === 'm' && id === 'menu') { menuTap('#close'); return; }
+  else return;
+  if (root.style.display !== 'none') navMark(root, attr);
+}
 
 // もようがえ を はじめる(人が いる マスには おけない)
 function startDeco() {

@@ -25,6 +25,8 @@ export function openShop(npc, onChange) {
   shop.open = true; $('shop').style.display = 'flex'; render();
 }
 function close() { shop.open = false; $('shop').style.display = 'none'; S = null; }
+// もどる(キーボードの z・x など): えらんでいる ものが あれば やめる、 なければ みせを でる
+export function shopBack() { if (S && (S.sel || S.ask)) { sfx('next'); S.sel = null; S.ask = null; S.msg = ''; render(); } else shopTap('#close'); }
 const changed = () => { if (S.onChange) S.onChange(); };
 const sellPrice = it => Math.floor((it.price || 0) / 2);
 

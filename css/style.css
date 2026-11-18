@@ -279,3 +279,5 @@ rt{font-size:.5em;}
 .pnav button{font:inherit;font-size:calc(var(--u)*6);padding:calc(var(--u)*2) calc(var(--u)*8);pointer-events:auto;background:#3a5ad8;color:#fff;border:calc(var(--u)*.75) solid #fff;border-radius:calc(var(--u)*3);}
 .pnav button.dim{opacity:.35;}
 #bmsg .bnext{position:absolute;right:calc(var(--u)*4);bottom:calc(var(--u)*1.5);font-size:calc(var(--u)*5);line-height:1;animation:blink .8s steps(2) infinite;}
+/* キーボードで えらんでいる ボタン(Macで ためす とき用) */
+#menu button.kfocus,#shop button.kfocus{outline:calc(var(--u)*1) solid #ff7ab8;outline-offset:calc(var(--u)*.5);}

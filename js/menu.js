@@ -16,6 +16,8 @@ export function openMenu(cb) {
   $('menu').style.display = 'flex'; render();
 }
 function close() { menu.open = false; $('menu').style.display = 'none'; }
+// もどる(キーボードの z・x など): えらんでいる ものが あれば やめる、 なければ とじる
+export function menuBack() { if (slot || sel) menuTap('back'); else { sfx('next'); close(); } }
 const changed = () => { if (onChange) onChange(); };
 
 // ボタンが おされた(data-m の 中身)
